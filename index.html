@@ -1927,12 +1927,22 @@ Add any product information here..."></textarea>
         // Supabase client - declared here so ALL functions can access it
         const SUPABASE_URL = 'https://qnlaaieyipeglfuepmor.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFubGFhaWV5aXBlZ2xmdWVwbW9yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE0NjAxNjgsImV4cCI6MjA4NzAzNjE2OH0.jwAH8E93iPlBJyYuF-HfoB52jVxNLiR2LL64gfqppa8';
+
+        // Custom storage that works in ALL browsers including Edge with tracking prevention
+        const customStorage = {
+            getItem: (key) => { try { return window.localStorage.getItem(key); } catch(e) { return null; } },
+            setItem: (key, value) => { try { window.localStorage.setItem(key, value); } catch(e) {} },
+            removeItem: (key) => { try { window.localStorage.removeItem(key); } catch(e) {} }
+        };
+
         const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
             auth: {
-                storage: window.localStorage,
+                storage: customStorage,
                 persistSession: true,
                 autoRefreshToken: true,
-                detectSessionInUrl: true
+                detectSessionInUrl: true,
+                flowType: 'implicit',
+                lock: async (name, acquireTimeout, fn) => { return await fn(); }
             }
         });
 
