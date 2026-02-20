@@ -1949,14 +1949,23 @@ Add any product information here..."></textarea>
             }
         };
 
-        const isPostLogout = window.location.search.includes('logged_out=');
+        // If returning from logout, wipe all storage BEFORE Supabase initializes
+        if (window.location.search.includes('logged_out=')) {
+            document.cookie.split(';').forEach(function(c) {
+                var name = c.split('=')[0].trim();
+                document.cookie = name + '=; path=/; max-age=0';
+            });
+            try { localStorage.clear(); } catch(e) {}
+            try { sessionStorage.clear(); } catch(e) {}
+            window.history.replaceState({}, '', window.location.origin);
+        }
         
         const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
             auth: {
                 storage: cookieStorage,
-                persistSession: !isPostLogout,
-                autoRefreshToken: !isPostLogout,
-                detectSessionInUrl: !isPostLogout,
+                persistSession: true,
+                autoRefreshToken: true,
+                detectSessionInUrl: true,
                 flowType: 'implicit',
                 lock: async (name, acquireTimeout, fn) => { return await fn(); }
             }
@@ -4581,14 +4590,9 @@ Add any product information here..."></textarea>
         }
 
         // Auth state listener - runs after all functions are defined
-        if (isPostLogout) {
-            // Clean up the URL without reloading
-            window.history.replaceState({}, '', window.location.origin);
-        }
-        
         db.auth.onAuthStateChange(async (event, session) => {
-            // Don't re-authenticate if user just logged out or is logging out
-            if (isLoggingOut || isPostLogout) return;
+            // Don't re-authenticate if user is logging out
+            if (isLoggingOut) return;
             
             if (event === 'SIGNED_OUT') {
                 currentUser = null;
