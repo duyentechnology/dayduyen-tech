@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,6 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,300;0,400;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         * {
             margin: 0;
@@ -1920,6 +1922,28 @@ Add any product information here..."></textarea>
             console.warn('jsPDF not available:', e);
             jsPDF = null;
         }
+
+        // ==========================================
+        // SUPABASE INIT
+        // ==========================================
+        const SUPABASE_URL = 'https://qnlaaieyipeglfuepmor.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFubGFhaWV5aXBlZ2xmdWVwbW9yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE0NjAxNjgsImV4cCI6MjA4NzAzNjE2OH0.jwAH8E93iPlBJyYuF-HfoB52jVxNLiR2LL64gfqppa8';
+        const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // Listen for auth state changes (handles email confirmation redirects)
+        db.auth.onAuthStateChange(async (event, session) => {
+            if (session && session.user) {
+                const user = session.user;
+                currentUser = { email: user.email, name: user.user_metadata?.full_name || user.email, id: user.id };
+                document.getElementById('userEmail').textContent = user.email;
+                document.getElementById('headerBtn').style.display = 'none';
+                const aboutBtn = document.getElementById('headerAboutBtn');
+                if (aboutBtn) aboutBtn.style.display = 'none';
+                document.getElementById('userMenu').classList.add('active');
+                await loadQRCodesFromSupabase();
+                if (event === 'SIGNED_IN') showView('mode');
+            }
+        });
         
         let currentUser = null;
         let currentMode = null;
@@ -2015,28 +2039,12 @@ Add any product information here..."></textarea>
             }
         }
         
-        function handleGoogleAuth() {
-            console.log('🔵 Google auth');
-            // In production: Supabase signInWithOAuth({ provider: 'google' })
-            document.getElementById('authModal').classList.remove('active');
-            currentUser = { email: 'user@gmail.com', name: 'Google User' };
-            document.getElementById('userEmail').textContent = currentUser.email;
-            document.getElementById('headerBtn').style.display = 'none';
-            if (document.getElementById('headerAboutBtn')) document.getElementById('headerAboutBtn').style.display = 'none';
-            document.getElementById('userMenu').classList.add('active');
-            showView('mode');
+        async function handleGoogleAuth() {
+            await db.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: 'https://dayduyen.tech' } });
         }
 
-        function handleAppleAuth() {
-            console.log('🍎 Apple auth');
-            // In production: Supabase signInWithOAuth({ provider: 'apple' })
-            document.getElementById('authModal').classList.remove('active');
-            currentUser = { email: 'user@icloud.com', name: 'Apple User' };
-            document.getElementById('userEmail').textContent = currentUser.email;
-            document.getElementById('headerBtn').style.display = 'none';
-            if (document.getElementById('headerAboutBtn')) document.getElementById('headerAboutBtn').style.display = 'none';
-            document.getElementById('userMenu').classList.add('active');
-            showView('mode');
+        async function handleAppleAuth() {
+            await db.auth.signInWithOAuth({ provider: 'apple', options: { redirectTo: 'https://dayduyen.tech' } });
         }
 
         function toggleAuth() {
@@ -2051,9 +2059,9 @@ Add any product information here..."></textarea>
             }
         }
         
-        function signup() {
-            const name = document.getElementById('signupName').value;
-            const email = document.getElementById('signupEmail').value;
+        async function signup() {
+            const name = document.getElementById('signupName').value.trim();
+            const email = document.getElementById('signupEmail').value.trim();
             const password = document.getElementById('signupPassword').value;
             const confirmPassword = document.getElementById('signupPasswordConfirm').value;
             
@@ -2061,12 +2069,24 @@ Add any product information here..."></textarea>
                 alert('❌ Please fill in all fields');
                 return;
             }
-            
             if (password !== confirmPassword) {
                 alert('❌ Passwords do not match. Please try again.');
                 document.getElementById('signupPasswordConfirm').value = '';
                 return;
             }
+            
+            const btn = document.querySelector('#signupForm .btn-auth');
+            if (btn) { btn.textContent = 'Creating account...'; btn.disabled = true; }
+            
+            const { data, error } = await db.auth.signUp({
+                email,
+                password,
+                options: { data: { full_name: name }, emailRedirectTo: 'https://dayduyen.tech' }
+            });
+            
+            if (btn) { btn.textContent = 'Create Account'; btn.disabled = false; }
+            
+            if (error) { alert('❌ ' + error.message); return; }
             
             document.getElementById('verifyEmail').textContent = email;
             document.getElementById('signupForm').style.display = 'none';
@@ -2635,23 +2655,13 @@ Add any product information here..."></textarea>
         }
         
         function verify() {
-            const name = document.getElementById('signupName').value;
-            const email = document.getElementById('signupEmail').value;
-            
-            currentUser = { name, email };
-            
+            // Real verification happens via email link — this just closes the modal
             document.getElementById('authModal').classList.remove('active');
-            document.getElementById('headerBtn').style.display = 'none';
-            document.getElementById('userMenu').classList.add('active');
-            document.getElementById('userEmail').textContent = email;
-            
-            showView('mode');
-            
-            alert('✅ Email Verified!\n\nWelcome to Duyền, ' + name + '!');
+            alert('✅ Check your email for a verification link!\n\nClick it to activate your account, then come back and log in.');
         }
         
-        function login() {
-            const email = document.getElementById('loginEmail').value;
+        async function login() {
+            const email = document.getElementById('loginEmail').value.trim();
             const password = document.getElementById('loginPassword').value;
             
             if (!email || !password) {
@@ -2659,14 +2669,17 @@ Add any product information here..."></textarea>
                 return;
             }
             
-            currentUser = { name: 'Demo User', email };
+            const btn = document.querySelector('#loginForm .btn-auth');
+            if (btn) { btn.textContent = 'Signing in...'; btn.disabled = true; }
             
+            const { data, error } = await db.auth.signInWithPassword({ email, password });
+            
+            if (btn) { btn.textContent = 'Log In'; btn.disabled = false; }
+            
+            if (error) { alert('❌ ' + error.message); return; }
+            
+            // onAuthStateChange will handle the rest
             document.getElementById('authModal').classList.remove('active');
-            document.getElementById('headerBtn').style.display = 'none';
-            document.getElementById('userMenu').classList.add('active');
-            document.getElementById('userEmail').textContent = email;
-            
-            showView('mode');
         }
         
         function backToSignup() {
@@ -2674,13 +2687,70 @@ Add any product information here..."></textarea>
             document.getElementById('signupForm').style.display = 'block';
         }
         
-        function logout() {
+        async function logout() {
+            await db.auth.signOut();
             currentUser = null;
+            savedQRCodes = [];
             document.getElementById('headerBtn').style.display = 'block';
+            const aboutBtn = document.getElementById('headerAboutBtn');
+            if (aboutBtn) aboutBtn.style.display = 'block';
             document.getElementById('userMenu').classList.remove('active');
             showView('landing');
         }
         
+        // ==========================================
+        // SUPABASE QR CODE SAVE / LOAD
+        // ==========================================
+        async function saveQRToSupabase(qrData) {
+            if (!currentUser) return;
+            try {
+                await db.from('qr_codes').insert([{
+                    qr_id: qrData.id,
+                    user_id: currentUser.id,
+                    biz_name: currentUser.name || currentUser.email,
+                    product_name: qrData.label,
+                    description: qrData.details || null,
+                    memory_url: qrData.url,
+                    color: qrData.color,
+                    created_at: qrData.createdAt
+                }]);
+            } catch(e) {
+                console.warn('Could not save QR to Supabase:', e);
+            }
+        }
+
+        async function loadQRCodesFromSupabase() {
+            if (!currentUser) return;
+            try {
+                const { data, error } = await db
+                    .from('qr_codes')
+                    .select('*')
+                    .eq('user_id', currentUser.id)
+                    .order('created_at', { ascending: false });
+                if (error || !data) return;
+                // Merge with any local codes not yet in DB
+                data.forEach(row => {
+                    if (!savedQRCodes.find(q => q.id === row.qr_id)) {
+                        savedQRCodes.push({
+                            id: row.qr_id,
+                            url: row.memory_url,
+                            label: row.product_name,
+                            color: row.color || '#C85A3E',
+                            details: row.description || '',
+                            createdAt: row.created_at,
+                            updatedAt: row.created_at,
+                            status: 'active',
+                            includeLogo: true,
+                            media: [], files: [], photo: null
+                        });
+                    }
+                });
+                updateQRCount();
+            } catch(e) {
+                console.warn('Could not load QR codes:', e);
+            }
+        }
+
         function selectMode(mode) {
             currentMode = mode;
             
@@ -2994,7 +3064,7 @@ Add any product information here..."></textarea>
                 });
                 
                 // Save to persistent library
-                savedQRCodes.push({
+                const newQR = {
                     id: id,
                     url: url,
                     label: labels[i],
@@ -3007,7 +3077,9 @@ Add any product information here..."></textarea>
                     createdAt: new Date().toISOString(),
                     updatedAt: new Date().toISOString(),
                     status: (productData && productData.hasData) ? 'active' : 'draft'
-                });
+                };
+                savedQRCodes.push(newQR);
+                saveQRToSupabase(newQR); // Save to Supabase
                 updateQRCount();
             }
             
