@@ -2702,29 +2702,25 @@ Add any product information here..."></textarea>
             document.getElementById('signupForm').style.display = 'block';
         }
         
+        let isLoggingOut = false;
+        
         async function logout() {
-            // 1. Tell Supabase to sign out
-            try { await db.auth.signOut(); } catch(e) { console.warn('signOut error', e); }
+            isLoggingOut = true;
             
-            // 2. Force-clear ALL Supabase cookies (handles chunked tokens)
+            // 1. Tell Supabase to sign out
+            try { await db.auth.signOut({ scope: 'local' }); } catch(e) {}
+            
+            // 2. Nuke ALL storage - cookies, localStorage, sessionStorage
             document.cookie.split(';').forEach(function(c) {
                 var name = c.split('=')[0].trim();
-                if (name.startsWith('sb-')) {
-                    document.cookie = name + '=; path=/; max-age=0';
-                    document.cookie = name + '=; path=/; max-age=0; SameSite=Lax';
-                }
+                document.cookie = name + '=; path=/; max-age=0';
+                document.cookie = name + '=; path=/; max-age=0; SameSite=Lax';
             });
+            try { localStorage.clear(); } catch(e) {}
+            try { sessionStorage.clear(); } catch(e) {}
             
-            // 3. Reset app state
-            currentUser = null;
-            savedQRCodes = [];
-            
-            // 4. Update UI
-            document.getElementById('headerBtn').style.display = 'block';
-            const ab = document.getElementById('headerAboutBtn');
-            if (ab) ab.style.display = 'inline-block';
-            document.getElementById('userMenu').classList.remove('active');
-            showView('landing');
+            // 3. Hard reload - cleanest way to reset on all browsers
+            window.location.href = window.location.origin;
         }
         
         // ==========================================
@@ -4585,7 +4581,9 @@ Add any product information here..."></textarea>
 
         // Auth state listener - runs after all functions are defined
         db.auth.onAuthStateChange(async (event, session) => {
-            // Only act on meaningful auth events
+            // Don't re-authenticate if user is logging out
+            if (isLoggingOut) return;
+            
             if (event === 'SIGNED_OUT') {
                 currentUser = null;
                 savedQRCodes = [];
