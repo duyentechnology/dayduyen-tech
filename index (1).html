@@ -1,5 +1,6 @@
 
 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -2733,65 +2734,21 @@ Add any product information here..."></textarea>
         }
         
         // ==========================================
-        // SUPABASE QR CODE SAVE / LOAD / UPDATE / DELETE
+        // SUPABASE QR CODE SAVE / LOAD
         // ==========================================
         async function saveQRToSupabase(qrData) {
             try {
                 const { data: sessionData } = await db.auth.getSession();
                 const userId = sessionData?.session?.user?.id;
                 if (!userId) return;
-                const { data, error } = await db.from('qr_codes').insert([{
+                const { error } = await db.from('qr_codes').insert([{
                     user_id: userId,
-                    label: qrData.label || 'QR Code',
-                    url: qrData.url || '',
-                    color: qrData.color || '#C85A3E',
-                    details: qrData.details || '',
-                    status: qrData.status || 'draft',
-                    include_logo: qrData.includeLogo !== false,
-                    media: qrData.media || [],
-                    files: qrData.files || [],
-                    photo: qrData.photo || null,
-                    created_at: qrData.createdAt || new Date().toISOString(),
-                    updated_at: new Date().toISOString()
-                }]).select();
-                if (error) {
-                    console.warn('Supabase save error:', error.message);
-                } else if (data && data[0]) {
-                    // Store the database ID so we can update/delete later
-                    qrData.dbId = data[0].id;
-                }
+                    label: qrData.label,
+                    created_at: qrData.createdAt
+                }]);
+                if (error) console.warn('Supabase save error:', error.message);
             } catch(e) {
                 console.warn('Could not save QR to Supabase:', e);
-            }
-        }
-
-        async function updateQRInSupabase(qrData) {
-            try {
-                if (!qrData.dbId) return;
-                const { error } = await db.from('qr_codes').update({
-                    label: qrData.label || 'QR Code',
-                    color: qrData.color || '#C85A3E',
-                    details: qrData.details || '',
-                    status: qrData.status || 'draft',
-                    include_logo: qrData.includeLogo !== false,
-                    media: qrData.media || [],
-                    files: qrData.files || [],
-                    photo: qrData.photo || null,
-                    updated_at: new Date().toISOString()
-                }).eq('id', qrData.dbId);
-                if (error) console.warn('Supabase update error:', error.message);
-            } catch(e) {
-                console.warn('Could not update QR in Supabase:', e);
-            }
-        }
-
-        async function deleteQRFromSupabase(dbId) {
-            try {
-                if (!dbId) return;
-                const { error } = await db.from('qr_codes').delete().eq('id', dbId);
-                if (error) console.warn('Supabase delete error:', error.message);
-            } catch(e) {
-                console.warn('Could not delete QR from Supabase:', e);
             }
         }
 
@@ -2804,22 +2761,23 @@ Add any product information here..."></textarea>
                     .eq('user_id', currentUser.id)
                     .order('created_at', { ascending: false });
                 if (error || !data) return;
-                // Replace local array with database data
-                savedQRCodes = data.map(row => ({
-                    dbId: row.id,
-                    id: row.id,
-                    url: row.url || 'https://duyen.io/q/' + row.id,
-                    label: row.label || 'QR Code',
-                    color: row.color || '#C85A3E',
-                    details: row.details || '',
-                    createdAt: row.created_at,
-                    updatedAt: row.updated_at || row.created_at,
-                    status: row.status || 'draft',
-                    includeLogo: row.include_logo !== false,
-                    media: row.media || [],
-                    files: row.files || [],
-                    photo: row.photo || null
-                }));
+                data.forEach(row => {
+                    if (!savedQRCodes.find(q => q.dbId === row.id)) {
+                        savedQRCodes.push({
+                            dbId: row.id,
+                            id: row.id,
+                            url: 'https://duyen.io/q/' + row.id,
+                            label: row.label || 'QR Code',
+                            color: '#C85A3E',
+                            details: '',
+                            createdAt: row.created_at,
+                            updatedAt: row.created_at,
+                            status: 'active',
+                            includeLogo: true,
+                            media: [], files: [], photo: null
+                        });
+                    }
+                });
                 updateQRCount();
             } catch(e) {
                 console.warn('Could not load QR codes:', e);
@@ -4068,9 +4026,6 @@ Add any product information here..."></textarea>
             qrItem.files = (editStore.files || []).slice();
             qrItem.updatedAt = new Date().toISOString();
             
-            // Sync to Supabase
-            updateQRInSupabase(qrItem);
-            
             var hasContent = qrItem.details || qrItem.photo || qrItem.media.length > 0 || qrItem.files.length > 0;
             qrItem.status = hasContent ? 'active' : 'draft';
             
@@ -4133,7 +4088,6 @@ Add any product information here..."></textarea>
                 
                 var hasContent = qr.details || qr.photo || qr.media.length > 0 || qr.files.length > 0;
                 qr.status = hasContent ? 'active' : 'draft';
-                updateQRInSupabase(qr);
                 updated++;
             }
             
@@ -4156,8 +4110,6 @@ Add any product information here..."></textarea>
         
         function deleteQRCode() {
             if (editingQRIndex === null) return;
-            var qr = savedQRCodes[editingQRIndex];
-            if (qr && qr.dbId) deleteQRFromSupabase(qr.dbId);
             savedQRCodes.splice(editingQRIndex, 1);
             editingQRIndex = null;
             updateQRCount();
@@ -4591,7 +4543,6 @@ Add any product information here..."></textarea>
                 qr.updatedAt = new Date().toISOString();
                 var hasContent = qr.details || qr.photo || (qr.media && qr.media.length > 0) || (qr.files && qr.files.length > 0);
                 qr.status = hasContent ? 'active' : 'draft';
-                updateQRInSupabase(qr);
                 updated++;
             }
             
@@ -4618,8 +4569,6 @@ Add any product information here..."></textarea>
             // Delete in reverse order to preserve indices
             var indices = Array.from(batchSelectedIndices).sort(function(a, b) { return b - a; });
             indices.forEach(function(idx) {
-                var qr = savedQRCodes[idx];
-                if (qr && qr.dbId) deleteQRFromSupabase(qr.dbId);
                 savedQRCodes.splice(idx, 1);
             });
             
