@@ -1928,16 +1928,29 @@ Add any product information here..."></textarea>
         const SUPABASE_URL = 'https://qnlaaieyipeglfuepmor.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFubGFhaWV5aXBlZ2xmdWVwbW9yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE0NjAxNjgsImV4cCI6MjA4NzAzNjE2OH0.jwAH8E93iPlBJyYuF-HfoB52jVxNLiR2LL64gfqppa8';
 
-        // Custom storage that works in ALL browsers including Edge with tracking prevention
-        const customStorage = {
-            getItem: (key) => { try { return window.localStorage.getItem(key); } catch(e) { return null; } },
-            setItem: (key, value) => { try { window.localStorage.setItem(key, value); } catch(e) {} },
-            removeItem: (key) => { try { window.localStorage.removeItem(key); } catch(e) {} }
+        // Cookie-based storage - works in ALL browsers including Edge with strict tracking prevention
+        const cookieStorage = {
+            getItem: (key) => {
+                try {
+                    const match = document.cookie.match(new RegExp('(^| )' + key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '=([^;]+)'));
+                    return match ? decodeURIComponent(match[2]) : null;
+                } catch(e) { return null; }
+            },
+            setItem: (key, value) => {
+                try {
+                    document.cookie = key + '=' + encodeURIComponent(value) + '; path=/; max-age=31536000; SameSite=Lax';
+                } catch(e) {}
+            },
+            removeItem: (key) => {
+                try {
+                    document.cookie = key + '=; path=/; max-age=0';
+                } catch(e) {}
+            }
         };
 
         const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
             auth: {
-                storage: customStorage,
+                storage: cookieStorage,
                 persistSession: true,
                 autoRefreshToken: true,
                 detectSessionInUrl: true,
