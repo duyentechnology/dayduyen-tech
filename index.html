@@ -1942,6 +1942,14 @@ Add any product information here..."></textarea>
                 document.getElementById('userMenu').classList.add('active');
                 await loadQRCodesFromSupabase();
                 if (event === 'SIGNED_IN') showView('mode');
+            } else if (event === 'SIGNED_OUT') {
+                currentUser = null;
+                savedQRCodes = [];
+                document.getElementById('headerBtn').style.display = 'block';
+                const aboutBtn2 = document.getElementById('headerAboutBtn');
+                if (aboutBtn2) aboutBtn2.style.display = 'inline-block';
+                document.getElementById('userMenu').classList.remove('active');
+                showView('landing');
             }
         });
         
@@ -2689,13 +2697,7 @@ Add any product information here..."></textarea>
         
         async function logout() {
             await db.auth.signOut();
-            currentUser = null;
-            savedQRCodes = [];
-            document.getElementById('headerBtn').style.display = 'block';
-            const aboutBtn = document.getElementById('headerAboutBtn');
-            if (aboutBtn) aboutBtn.style.display = 'block';
-            document.getElementById('userMenu').classList.remove('active');
-            showView('landing');
+            // onAuthStateChange handles UI reset on SIGNED_OUT event
         }
         
         // ==========================================
