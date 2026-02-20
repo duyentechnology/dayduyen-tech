@@ -1930,7 +1930,7 @@ Add any product information here..."></textarea>
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFubGFhaWV5aXBlZ2xmdWVwbW9yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE0NjAxNjgsImV4cCI6MjA4NzAzNjE2OH0.jwAH8E93iPlBJyYuF-HfoB52jVxNLiR2LL64gfqppa8';
         const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // Declare ALL variables FIRST so auth callbacks can access them
+        // ALL variables declared FIRST before any callbacks use them
         let currentUser = null;
         let currentMode = null;
         let selectedColor = '#C85A3E';
@@ -1963,8 +1963,7 @@ Add any product information here..."></textarea>
             }
         });
         
-        // (variables declared above near Supabase init)
-        let productDataStore = {};
+        // Avery template specifications (in inches, converted to PDF points: 1 inch = 72 points)
         const averyTemplates = {
             '22806': { // 2x2 Square Labels
                 name: 'Avery 22806 - 2" Square Labels',
