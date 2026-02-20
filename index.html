@@ -1,5 +1,6 @@
 
 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -2702,9 +2703,23 @@ Add any product information here..."></textarea>
         }
         
         async function logout() {
+            // 1. Tell Supabase to sign out
             try { await db.auth.signOut(); } catch(e) { console.warn('signOut error', e); }
+            
+            // 2. Force-clear ALL Supabase cookies (handles chunked tokens)
+            document.cookie.split(';').forEach(function(c) {
+                var name = c.split('=')[0].trim();
+                if (name.startsWith('sb-')) {
+                    document.cookie = name + '=; path=/; max-age=0';
+                    document.cookie = name + '=; path=/; max-age=0; SameSite=Lax';
+                }
+            });
+            
+            // 3. Reset app state
             currentUser = null;
             savedQRCodes = [];
+            
+            // 4. Update UI
             document.getElementById('headerBtn').style.display = 'block';
             const ab = document.getElementById('headerAboutBtn');
             if (ab) ab.style.display = 'inline-block';
@@ -4570,7 +4585,16 @@ Add any product information here..."></textarea>
 
         // Auth state listener - runs after all functions are defined
         db.auth.onAuthStateChange(async (event, session) => {
-            if (session && session.user) {
+            // Only act on meaningful auth events
+            if (event === 'SIGNED_OUT') {
+                currentUser = null;
+                savedQRCodes = [];
+                document.getElementById('headerBtn').style.display = 'block';
+                const aboutBtn2 = document.getElementById('headerAboutBtn');
+                if (aboutBtn2) aboutBtn2.style.display = 'inline-block';
+                document.getElementById('userMenu').classList.remove('active');
+                showView('landing');
+            } else if (session && session.user) {
                 const user = session.user;
                 currentUser = { email: user.email, name: user.user_metadata?.full_name || user.email, id: user.id };
                 document.getElementById('userEmail').textContent = user.email;
@@ -4580,14 +4604,6 @@ Add any product information here..."></textarea>
                 document.getElementById('userMenu').classList.add('active');
                 await loadQRCodesFromSupabase();
                 if (event === 'SIGNED_IN') showView('mode');
-            } else if (event === 'SIGNED_OUT') {
-                currentUser = null;
-                savedQRCodes = [];
-                document.getElementById('headerBtn').style.display = 'block';
-                const aboutBtn2 = document.getElementById('headerAboutBtn');
-                if (aboutBtn2) aboutBtn2.style.display = 'inline-block';
-                document.getElementById('userMenu').classList.remove('active');
-                showView('landing');
             }
         });
 
