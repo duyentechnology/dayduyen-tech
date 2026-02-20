@@ -1923,14 +1923,6 @@ Add any product information here..."></textarea>
             jsPDF = null;
         }
 
-        // ==========================================
-        // SUPABASE INIT
-        // ==========================================
-        const SUPABASE_URL = 'https://qnlaaieyipeglfuepmor.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFubGFhaWV5aXBlZ2xmdWVwbW9yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE0NjAxNjgsImV4cCI6MjA4NzAzNjE2OH0.jwAH8E93iPlBJyYuF-HfoB52jVxNLiR2LL64gfqppa8';
-        const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-        // ALL variables declared FIRST before any callbacks use them
         let currentUser = null;
         let currentMode = null;
         let selectedColor = '#C85A3E';
@@ -1939,29 +1931,6 @@ Add any product information here..."></textarea>
         let editingQRIndex = null;
         let batchEditMode = false;
         let batchSelectedIndices = new Set();
-
-        // Listen for auth state changes
-        db.auth.onAuthStateChange(async (event, session) => {
-            if (session && session.user) {
-                const user = session.user;
-                currentUser = { email: user.email, name: user.user_metadata?.full_name || user.email, id: user.id };
-                document.getElementById('userEmail').textContent = user.email;
-                document.getElementById('headerBtn').style.display = 'none';
-                const aboutBtn = document.getElementById('headerAboutBtn');
-                if (aboutBtn) aboutBtn.style.display = 'none';
-                document.getElementById('userMenu').classList.add('active');
-                await loadQRCodesFromSupabase();
-                if (event === 'SIGNED_IN') showView('mode');
-            } else if (event === 'SIGNED_OUT') {
-                currentUser = null;
-                savedQRCodes = [];
-                document.getElementById('headerBtn').style.display = 'block';
-                const aboutBtn2 = document.getElementById('headerAboutBtn');
-                if (aboutBtn2) aboutBtn2.style.display = 'inline-block';
-                document.getElementById('userMenu').classList.remove('active');
-                showView('landing');
-            }
-        });
         
         // Avery template specifications (in inches, converted to PDF points: 1 inch = 72 points)
         const averyTemplates = {
@@ -4554,6 +4523,36 @@ Add any product information here..."></textarea>
             
             renderMyCodes();
         }
+
+        // ==========================================
+        // SUPABASE - must be at bottom after all functions defined
+        // ==========================================
+        const SUPABASE_URL = 'https://qnlaaieyipeglfuepmor.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFubGFhaWV5aXBlZ2xmdWVwbW9yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE0NjAxNjgsImV4cCI6MjA4NzAzNjE2OH0.jwAH8E93iPlBJyYuF-HfoB52jVxNLiR2LL64gfqppa8';
+        const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        db.auth.onAuthStateChange(async (event, session) => {
+            if (session && session.user) {
+                const user = session.user;
+                currentUser = { email: user.email, name: user.user_metadata?.full_name || user.email, id: user.id };
+                document.getElementById('userEmail').textContent = user.email;
+                document.getElementById('headerBtn').style.display = 'none';
+                const aboutBtn = document.getElementById('headerAboutBtn');
+                if (aboutBtn) aboutBtn.style.display = 'none';
+                document.getElementById('userMenu').classList.add('active');
+                await loadQRCodesFromSupabase();
+                if (event === 'SIGNED_IN') showView('mode');
+            } else if (event === 'SIGNED_OUT') {
+                currentUser = null;
+                savedQRCodes = [];
+                document.getElementById('headerBtn').style.display = 'block';
+                const aboutBtn2 = document.getElementById('headerAboutBtn');
+                if (aboutBtn2) aboutBtn2.style.display = 'inline-block';
+                document.getElementById('userMenu').classList.remove('active');
+                showView('landing');
+            }
+        });
+
     </script>
 </body>
 </html>
