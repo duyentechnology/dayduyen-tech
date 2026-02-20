@@ -1930,7 +1930,17 @@ Add any product information here..."></textarea>
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFubGFhaWV5aXBlZ2xmdWVwbW9yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE0NjAxNjgsImV4cCI6MjA4NzAzNjE2OH0.jwAH8E93iPlBJyYuF-HfoB52jVxNLiR2LL64gfqppa8';
         const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // Listen for auth state changes (handles email confirmation redirects)
+        // Declare ALL variables FIRST so auth callbacks can access them
+        let currentUser = null;
+        let currentMode = null;
+        let selectedColor = '#C85A3E';
+        let generatedQRCodes = [];
+        let savedQRCodes = [];
+        let editingQRIndex = null;
+        let batchEditMode = false;
+        let batchSelectedIndices = new Set();
+
+        // Listen for auth state changes
         db.auth.onAuthStateChange(async (event, session) => {
             if (session && session.user) {
                 const user = session.user;
@@ -1953,16 +1963,8 @@ Add any product information here..."></textarea>
             }
         });
         
-        let currentUser = null;
-        let currentMode = null;
-        let selectedColor = '#C85A3E';
-        let generatedQRCodes = []; // Store generated QR data for downloads
-        let savedQRCodes = []; // Persistent library of all created QR codes
-        let editingQRIndex = null; // Index of QR being edited
-        let batchEditMode = false; // Whether batch selection mode is active
-        let batchSelectedIndices = new Set(); // Set of selected savedQRCodes indices
-        
-        // Avery template specifications (in inches, converted to PDF points: 1 inch = 72 points)
+        // (variables declared above near Supabase init)
+        let productDataStore = {};
         const averyTemplates = {
             '22806': { // 2x2 Square Labels
                 name: 'Avery 22806 - 2" Square Labels',
@@ -2706,16 +2708,12 @@ Add any product information here..."></textarea>
         async function saveQRToSupabase(qrData) {
             if (!currentUser) return;
             try {
-                await db.from('qr_codes').insert([{
-                    qr_id: qrData.id,
+                const { error } = await db.from('qr_codes').insert([{
                     user_id: currentUser.id,
-                    biz_name: currentUser.name || currentUser.email,
-                    product_name: qrData.label,
-                    description: qrData.details || null,
-                    memory_url: qrData.url,
-                    color: qrData.color,
+                    label: qrData.label,
                     created_at: qrData.createdAt
                 }]);
+                if (error) console.warn('Supabase save error:', error.message);
             } catch(e) {
                 console.warn('Could not save QR to Supabase:', e);
             }
@@ -2730,15 +2728,15 @@ Add any product information here..."></textarea>
                     .eq('user_id', currentUser.id)
                     .order('created_at', { ascending: false });
                 if (error || !data) return;
-                // Merge with any local codes not yet in DB
                 data.forEach(row => {
-                    if (!savedQRCodes.find(q => q.id === row.qr_id)) {
+                    if (!savedQRCodes.find(q => q.dbId === row.id)) {
                         savedQRCodes.push({
-                            id: row.qr_id,
-                            url: row.memory_url,
-                            label: row.product_name,
-                            color: row.color || '#C85A3E',
-                            details: row.description || '',
+                            dbId: row.id,
+                            id: row.id,
+                            url: 'https://duyen.io/q/' + row.id,
+                            label: row.label || 'QR Code',
+                            color: '#C85A3E',
+                            details: '',
                             createdAt: row.created_at,
                             updatedAt: row.created_at,
                             status: 'active',
