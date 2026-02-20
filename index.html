@@ -1923,6 +1923,11 @@ Add any product information here..."></textarea>
             jsPDF = null;
         }
 
+        // Supabase client - declared here so ALL functions can access it
+        const SUPABASE_URL = 'https://qnlaaieyipeglfuepmor.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFubGFhaWV5aXBlZ2xmdWVwbW9yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE0NjAxNjgsImV4cCI6MjA4NzAzNjE2OH0.jwAH8E93iPlBJyYuF-HfoB52jVxNLiR2LL64gfqppa8';
+        const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
         let currentUser = null;
         let currentMode = null;
         let selectedColor = '#C85A3E';
@@ -2666,8 +2671,14 @@ Add any product information here..."></textarea>
         }
         
         async function logout() {
-            await db.auth.signOut();
-            // onAuthStateChange handles UI reset on SIGNED_OUT event
+            try { await db.auth.signOut(); } catch(e) { console.warn('signOut error', e); }
+            currentUser = null;
+            savedQRCodes = [];
+            document.getElementById('headerBtn').style.display = 'block';
+            const ab = document.getElementById('headerAboutBtn');
+            if (ab) ab.style.display = 'inline-block';
+            document.getElementById('userMenu').classList.remove('active');
+            showView('landing');
         }
         
         // ==========================================
@@ -4524,13 +4535,7 @@ Add any product information here..."></textarea>
             renderMyCodes();
         }
 
-        // ==========================================
-        // SUPABASE - must be at bottom after all functions defined
-        // ==========================================
-        const SUPABASE_URL = 'https://qnlaaieyipeglfuepmor.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFubGFhaWV5aXBlZ2xmdWVwbW9yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE0NjAxNjgsImV4cCI6MjA4NzAzNjE2OH0.jwAH8E93iPlBJyYuF-HfoB52jVxNLiR2LL64gfqppa8';
-        const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
+        // Auth state listener - runs after all functions are defined
         db.auth.onAuthStateChange(async (event, session) => {
             if (session && session.user) {
                 const user = session.user;
