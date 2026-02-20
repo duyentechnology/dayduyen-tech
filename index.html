@@ -1949,12 +1949,14 @@ Add any product information here..."></textarea>
             }
         };
 
+        const isPostLogout = window.location.search.includes('logged_out=');
+        
         const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
             auth: {
                 storage: cookieStorage,
-                persistSession: true,
-                autoRefreshToken: true,
-                detectSessionInUrl: true,
+                persistSession: !isPostLogout,
+                autoRefreshToken: !isPostLogout,
+                detectSessionInUrl: !isPostLogout,
                 flowType: 'implicit',
                 lock: async (name, acquireTimeout, fn) => { return await fn(); }
             }
@@ -2707,20 +2709,19 @@ Add any product information here..."></textarea>
         async function logout() {
             isLoggingOut = true;
             
-            // 1. Tell Supabase to sign out
-            try { await db.auth.signOut({ scope: 'local' }); } catch(e) {}
+            // 1. Revoke token SERVER-SIDE so it's invalid even if Edge blocks local storage cleanup
+            try { await db.auth.signOut({ scope: 'global' }); } catch(e) {}
             
-            // 2. Nuke ALL storage - cookies, localStorage, sessionStorage
+            // 2. Clear whatever storage Edge allows us to touch
             document.cookie.split(';').forEach(function(c) {
                 var name = c.split('=')[0].trim();
                 document.cookie = name + '=; path=/; max-age=0';
-                document.cookie = name + '=; path=/; max-age=0; SameSite=Lax';
             });
             try { localStorage.clear(); } catch(e) {}
             try { sessionStorage.clear(); } catch(e) {}
             
-            // 3. Hard reload - cleanest way to reset on all browsers
-            window.location.href = window.location.origin;
+            // 3. Redirect with cache-bust to force completely fresh page load
+            window.location.replace(window.location.origin + '?logged_out=' + Date.now());
         }
         
         // ==========================================
@@ -4580,9 +4581,14 @@ Add any product information here..."></textarea>
         }
 
         // Auth state listener - runs after all functions are defined
+        if (isPostLogout) {
+            // Clean up the URL without reloading
+            window.history.replaceState({}, '', window.location.origin);
+        }
+        
         db.auth.onAuthStateChange(async (event, session) => {
-            // Don't re-authenticate if user is logging out
-            if (isLoggingOut) return;
+            // Don't re-authenticate if user just logged out or is logging out
+            if (isLoggingOut || isPostLogout) return;
             
             if (event === 'SIGNED_OUT') {
                 currentUser = null;
