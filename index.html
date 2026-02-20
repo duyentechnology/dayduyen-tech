@@ -1,4 +1,4 @@
-
+f
 
 <!DOCTYPE html>
 <html lang="en">
@@ -2714,11 +2714,11 @@ Add any product information here..."></textarea>
         
         let isLoggingOut = false;
         
-        async function logout() {
+       function logout() {
             isLoggingOut = true;
             
             // 1. Revoke token SERVER-SIDE so it's invalid even if Edge blocks local storage cleanup
-            try { await db.auth.signOut({ scope: 'global' }); } catch(e) {}
+            try {db.auth.signOut({ scope: 'global' }); } catch(e) {}
             
             // 2. Clear whatever storage Edge allows us to touch
             document.cookie.split(';').forEach(function(c) {
