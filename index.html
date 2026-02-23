@@ -2818,7 +2818,9 @@ Add any product information here..."></textarea>
                     includeLogo: row.include_logo !== false,
                     media: row.media || [],
                     files: row.files || [],
-                    photo: row.photo || null
+                    photo: row.photo || null,
+                    scan_count: row.scan_count || 0,
+                    last_scanned_at: row.last_scanned_at || null
                 }));
                 updateQRCount();
             } catch(e) {
@@ -3923,6 +3925,7 @@ Add any product information here..."></textarea>
                         '<div class="qr-card-body">' +
                             '<div class="qr-card-label">' + qrItem.label + '</div>' +
                             '<div class="qr-card-meta">Created ' + dateStr + '</div>' +
+                            '<div class="qr-card-meta" style="color: var(--brand-red); font-weight: 600;">📊 ' + (qrItem.scan_count || 0) + ' scan' + ((qrItem.scan_count || 0) !== 1 ? 's' : '') + '</div>' +
                             '<div class="qr-card-badges">' + badges + '</div>' +
                             dataBoxesHTML +
                             '<div class="qr-card-actions">' +
@@ -4232,6 +4235,17 @@ Add any product information here..."></textarea>
             title.textContent = qrItem.label + ' — Attached Data';
             
             var html = '';
+            
+            // Scan Analytics
+            var scanCount = qrItem.scan_count || 0;
+            var lastScanned = qrItem.last_scanned_at;
+            var lastScannedStr = lastScanned ? new Date(lastScanned).toLocaleString() : 'Never';
+            html += '<div style="background: linear-gradient(135deg, #FDF8F5, #FAF0EA); border: 2px solid var(--border-light); border-radius: 14px; padding: 16px; margin-bottom: 20px;">';
+            html += '<h4 style="color: #3D2E24; margin: 0 0 10px; font-size: 15px;">📊 Scan Analytics</h4>';
+            html += '<div style="display: flex; gap: 20px;">';
+            html += '<div style="flex:1; text-align:center;"><div style="font-size: 2rem; font-weight: 700; color: var(--brand-red);">' + scanCount + '</div><div style="font-size: 0.8rem; color: var(--text-muted);">Total Scans</div></div>';
+            html += '<div style="flex:1; text-align:center;"><div style="font-size: 0.95rem; font-weight: 600; color: #3D2E24; margin-top: 0.5rem;">' + lastScannedStr + '</div><div style="font-size: 0.8rem; color: var(--text-muted);">Last Scanned</div></div>';
+            html += '</div></div>';
             
             // Photos / Images
             var mediaItems = qrItem.media || [];
