@@ -2796,19 +2796,13 @@ Add any product information here..."></textarea>
         async function loadQRCodesFromSupabase() {
             if (!currentUser) { console.log('⚠️ No currentUser, skipping load'); return; }
             try {
-                // Verify session is active before querying
-                const { data: sessData } = await db.auth.getSession();
-                if (!sessData.session) {
-                    console.log('⚠️ No active session for query');
-                    return;
-                }
                 console.log('🔍 Loading QR codes for user:', currentUser.id);
                 const { data, error } = await db
                     .from('qr_codes')
                     .select('*')
                     .eq('user_id', currentUser.id)
                     .order('created_at', { ascending: false });
-                if (error) { console.error('❌ Load error:', error); return; }
+                if (error) { console.error('❌ Load error:', JSON.stringify(error)); return; }
                 if (!data) { console.log('⚠️ No data returned'); return; }
                 console.log('✅ Loaded', data.length, 'QR codes');
                 // Replace local array with database data
@@ -4704,7 +4698,7 @@ Add any product information here..."></textarea>
                 renderMyCodes();
                 updateQRCount();
                 
-                if (event === 'SIGNED_IN') {
+                if (event === 'SIGNED_IN' && savedQRCodes.length === 0) {
                     showView('mode');
                 } else {
                     showView('myCodes');
