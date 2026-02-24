@@ -1961,12 +1961,10 @@ Add any product information here..."></textarea>
         
         const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
             auth: {
-                storage: cookieStorage,
                 persistSession: true,
                 autoRefreshToken: true,
                 detectSessionInUrl: true,
-                flowType: 'implicit',
-                lock: async (name, acquireTimeout, fn) => { return await fn(); }
+                flowType: 'implicit'
             }
         });
 
