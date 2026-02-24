@@ -2796,6 +2796,12 @@ Add any product information here..."></textarea>
         async function loadQRCodesFromSupabase() {
             if (!currentUser) { console.log('⚠️ No currentUser, skipping load'); return; }
             try {
+                // Verify session is active before querying
+                const { data: sessData } = await db.auth.getSession();
+                if (!sessData.session) {
+                    console.log('⚠️ No active session for query');
+                    return;
+                }
                 console.log('🔍 Loading QR codes for user:', currentUser.id);
                 const { data, error } = await db
                     .from('qr_codes')
@@ -4678,13 +4684,29 @@ Add any product information here..."></textarea>
                 const aboutBtn = document.getElementById('headerAboutBtn');
                 if (aboutBtn) aboutBtn.style.display = 'none';
                 document.getElementById('userMenu').classList.add('active');
+                
+                // On page refresh, wait a moment for auth token to be fully ready
+                if (event === 'INITIAL_SESSION') {
+                    await new Promise(r => setTimeout(r, 500));
+                }
+                
                 await loadQRCodesFromSupabase();
                 console.log('📦 Loaded QR codes:', savedQRCodes.length);
+                
+                // If first load got 0 results, retry once
+                if (savedQRCodes.length === 0 && event === 'INITIAL_SESSION') {
+                    console.log('🔄 Retrying load...');
+                    await new Promise(r => setTimeout(r, 1000));
+                    await loadQRCodesFromSupabase();
+                    console.log('📦 Retry loaded:', savedQRCodes.length);
+                }
+                
                 renderMyCodes();
                 updateQRCount();
+                
                 if (event === 'SIGNED_IN') {
                     showView('mode');
-                } else if (event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') {
+                } else {
                     showView('myCodes');
                 }
             }
