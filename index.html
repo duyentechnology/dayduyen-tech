@@ -2716,7 +2716,7 @@ Add any product information here..."></textarea>
             isLoggingOut = true;
             
             // Fire signOut but do NOT wait for it - Edge may block it
-            try { db.auth.signOut({ scope: 'global' }); } catch(e) {}
+            try { db.auth.signOut({ scope: 'local' }); } catch(e) {}
             
             // Nuke all storage immediately
             document.cookie.split(';').forEach(function(c) {
@@ -4674,7 +4674,11 @@ Add any product information here..."></textarea>
                 if (aboutBtn) aboutBtn.style.display = 'none';
                 document.getElementById('userMenu').classList.add('active');
                 await loadQRCodesFromSupabase();
-                if (event === 'SIGNED_IN') showView('mode');
+                if (event === 'SIGNED_IN') {
+                    showView('mode');
+                } else if (event === 'INITIAL_SESSION') {
+                    showView('myCodes');
+                }
             }
         });
 
