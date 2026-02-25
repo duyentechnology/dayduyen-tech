@@ -1,5 +1,6 @@
 
 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -2796,45 +2797,42 @@ Add any product information here..."></textarea>
         async function loadQRCodesFromSupabase() {
             if (!currentUser) return;
             try {
-                const { data: sessData } = await db.auth.getSession();
-                const token = sessData?.session?.access_token;
-                let data = null;
+                var { data: sessData } = await db.auth.getSession();
+                var token = sessData?.session?.access_token;
+                if (!token) return;
                 
-                if (token) {
-                    const resp = await fetch(
-                        SUPABASE_URL + '/rest/v1/qr_codes?user_id=eq.' + currentUser.id + '&order=created_at.desc',
-                        {
-                            headers: {
-                                'apikey': SUPABASE_ANON_KEY,
-                                'Authorization': 'Bearer ' + token,
-                                'Content-Type': 'application/json'
-                            }
+                var resp = await fetch(
+                    SUPABASE_URL + '/rest/v1/qr_codes?user_id=eq.' + currentUser.id + '&order=created_at.desc',
+                    {
+                        headers: {
+                            'apikey': SUPABASE_ANON_KEY,
+                            'Authorization': 'Bearer ' + token,
+                            'Content-Type': 'application/json'
                         }
-                    );
-                    if (resp.ok) data = await resp.json();
-                } else {
-                    const result = await db.from('qr_codes').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
-                    data = result.data;
-                }
+                    }
+                );
+                if (!resp.ok) return;
+                var data = await resp.json();
                 
-                if (!data) return;
-                savedQRCodes = data.map(row => ({
-                    dbId: row.id,
-                    id: row.id,
-                    url: row.url || 'https://duyen.io/q/' + row.id,
-                    label: row.label || 'QR Code',
-                    color: row.color || '#C85A3E',
-                    details: row.details || '',
-                    createdAt: row.created_at,
-                    updatedAt: row.updated_at || row.created_at,
-                    status: row.status || 'draft',
-                    includeLogo: row.include_logo !== false,
-                    media: row.media || [],
-                    files: row.files || [],
-                    photo: row.photo || null,
-                    scan_count: row.scan_count || 0,
-                    last_scanned_at: row.last_scanned_at || null
-                }));
+                savedQRCodes = data.map(function(row) {
+                    return {
+                        dbId: row.id,
+                        id: row.id,
+                        url: row.url || 'https://duyen.io/q/' + row.id,
+                        label: row.label || 'QR Code',
+                        color: row.color || '#C85A3E',
+                        details: row.details || '',
+                        createdAt: row.created_at,
+                        updatedAt: row.updated_at || row.created_at,
+                        status: row.status || 'draft',
+                        includeLogo: row.include_logo !== false,
+                        media: row.media || [],
+                        files: row.files || [],
+                        photo: row.photo || null,
+                        scan_count: row.scan_count || 0,
+                        last_scanned_at: row.last_scanned_at || null
+                    };
+                });
                 updateQRCount();
             } catch(e) {
                 console.warn('Could not load QR codes:', e);
@@ -4693,68 +4691,51 @@ Add any product information here..."></textarea>
                 if (aboutBtn) aboutBtn.style.display = 'none';
                 document.getElementById('userMenu').classList.add('active');
                 
-                // Load QR codes
+                // Load QR codes using token from callback (NOT getSession which deadlocks)
                 try {
-                    console.log('🔍 Starting query...');
+                    var token = session.access_token;
+                    console.log('🔑 Token from callback:', !!token);
                     
-                    // Get the access token directly
-                    const { data: sessData } = await db.auth.getSession();
-                    const token = sessData?.session?.access_token;
-                    console.log('🔑 Token available:', !!token);
-                    
-                    let data = null;
-                    let error = null;
-                    
-                    if (token) {
-                        // Use direct REST call — more reliable on page refresh
-                        const resp = await fetch(
-                            SUPABASE_URL + '/rest/v1/qr_codes?user_id=eq.' + currentUser.id + '&order=created_at.desc',
-                            {
-                                headers: {
-                                    'apikey': SUPABASE_ANON_KEY,
-                                    'Authorization': 'Bearer ' + token,
-                                    'Content-Type': 'application/json'
-                                }
+                    var resp = await fetch(
+                        SUPABASE_URL + '/rest/v1/qr_codes?user_id=eq.' + currentUser.id + '&order=created_at.desc',
+                        {
+                            headers: {
+                                'apikey': SUPABASE_ANON_KEY,
+                                'Authorization': 'Bearer ' + token,
+                                'Content-Type': 'application/json'
                             }
-                        );
-                        if (resp.ok) {
-                            data = await resp.json();
-                        } else {
-                            error = { message: 'HTTP ' + resp.status, details: await resp.text() };
                         }
+                    );
+                    
+                    console.log('📡 Response status:', resp.status);
+                    
+                    if (resp.ok) {
+                        var data = await resp.json();
+                        console.log('✅ Loaded', data.length, 'QR codes');
+                        savedQRCodes = data.map(function(row) {
+                            return {
+                                dbId: row.id,
+                                id: row.id,
+                                url: row.url || 'https://duyen.io/q/' + row.id,
+                                label: row.label || 'QR Code',
+                                color: row.color || '#C85A3E',
+                                details: row.details || '',
+                                createdAt: row.created_at,
+                                updatedAt: row.updated_at || row.created_at,
+                                status: row.status || 'draft',
+                                includeLogo: row.include_logo !== false,
+                                media: row.media || [],
+                                files: row.files || [],
+                                photo: row.photo || null,
+                                scan_count: row.scan_count || 0,
+                                last_scanned_at: row.last_scanned_at || null
+                            };
+                        });
                     } else {
-                        // Fallback to Supabase client
-                        const result = await db.from('qr_codes').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
-                        data = result.data;
-                        error = result.error;
-                    }
-                    
-                    console.log('📡 Query returned. Error:', error, 'Data count:', data ? data.length : 'null');
-                    
-                    if (error) {
-                        console.error('❌ Query error:', JSON.stringify(error));
-                    } else if (data) {
-                        savedQRCodes = data.map(row => ({
-                            dbId: row.id,
-                            id: row.id,
-                            url: row.url || 'https://duyen.io/q/' + row.id,
-                            label: row.label || 'QR Code',
-                            color: row.color || '#C85A3E',
-                            details: row.details || '',
-                            createdAt: row.created_at,
-                            updatedAt: row.updated_at || row.created_at,
-                            status: row.status || 'draft',
-                            includeLogo: row.include_logo !== false,
-                            media: row.media || [],
-                            files: row.files || [],
-                            photo: row.photo || null,
-                            scan_count: row.scan_count || 0,
-                            last_scanned_at: row.last_scanned_at || null
-                        }));
-                        console.log('✅ Mapped', savedQRCodes.length, 'QR codes');
+                        console.error('❌ HTTP error:', resp.status, await resp.text());
                     }
                 } catch(e) {
-                    console.error('💥 Load exception:', e.message, e);
+                    console.error('💥 Load error:', e);
                 }
                 
                 renderMyCodes();
@@ -4762,8 +4743,10 @@ Add any product information here..."></textarea>
                 
                 if (savedQRCodes.length > 0) {
                     showView('myCodes');
-                } else {
+                } else if (event === 'SIGNED_IN') {
                     showView('mode');
+                } else {
+                    showView('myCodes');
                 }
             }
         });
