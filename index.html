@@ -4657,7 +4657,7 @@ Add any product information here..."></textarea>
 
         // Auth state listener - runs after all functions are defined
         db.auth.onAuthStateChange(async (event, session) => {
-            console.log('🔐 Auth event:', event, session ? session.user.email : 'no session');
+            console.log('🔐 Auth event:', event);
             // Don't re-authenticate if user is logging out
             if (isLoggingOut) return;
             
@@ -4669,42 +4669,41 @@ Add any product information here..."></textarea>
                 if (aboutBtn2) aboutBtn2.style.display = 'inline-block';
                 document.getElementById('userMenu').classList.remove('active');
                 showView('landing');
-            } else if (session && session.user) {
-                const user = session.user;
-                currentUser = { email: user.email, name: user.user_metadata?.full_name || user.email, id: user.id };
-                console.log('👤 User:', currentUser.email, 'ID:', currentUser.id);
-                document.getElementById('userEmail').textContent = user.email;
-                document.getElementById('headerBtn').style.display = 'none';
-                const aboutBtn = document.getElementById('headerAboutBtn');
-                if (aboutBtn) aboutBtn.style.display = 'none';
-                document.getElementById('userMenu').classList.add('active');
-                
-                // On page refresh, wait a moment for auth token to be fully ready
-                if (event === 'INITIAL_SESSION') {
-                    await new Promise(r => setTimeout(r, 500));
-                }
-                
-                await loadQRCodesFromSupabase();
-                console.log('📦 Loaded QR codes:', savedQRCodes.length);
-                
-                // If first load got 0 results, retry once
-                if (savedQRCodes.length === 0 && event === 'INITIAL_SESSION') {
-                    console.log('🔄 Retrying load...');
-                    await new Promise(r => setTimeout(r, 1000));
-                    await loadQRCodesFromSupabase();
-                    console.log('📦 Retry loaded:', savedQRCodes.length);
-                }
-                
-                renderMyCodes();
-                updateQRCount();
-                
-                if (event === 'SIGNED_IN' && savedQRCodes.length === 0) {
-                    showView('mode');
-                } else {
-                    showView('myCodes');
-                }
+            } else if (event === 'SIGNED_IN' && session && session.user) {
+                // Only handle fresh logins here
+                await setupUser(session.user);
+                showView('mode');
             }
         });
+        
+        // Setup user and load QR codes
+        async function setupUser(user) {
+            currentUser = { email: user.email, name: user.user_metadata?.full_name || user.email, id: user.id };
+            console.log('👤 User:', currentUser.email, 'ID:', currentUser.id);
+            document.getElementById('userEmail').textContent = user.email;
+            document.getElementById('headerBtn').style.display = 'none';
+            const aboutBtn = document.getElementById('headerAboutBtn');
+            if (aboutBtn) aboutBtn.style.display = 'none';
+            document.getElementById('userMenu').classList.add('active');
+            await loadQRCodesFromSupabase();
+            console.log('📦 Loaded QR codes:', savedQRCodes.length);
+            renderMyCodes();
+            updateQRCount();
+        }
+        
+        // On page load, check if already logged in
+        (async function initSession() {
+            try {
+                const { data } = await db.auth.getSession();
+                console.log('🔄 Init session check:', data.session ? data.session.user.email : 'none');
+                if (data.session && data.session.user) {
+                    await setupUser(data.session.user);
+                    showView('myCodes');
+                }
+            } catch(e) {
+                console.error('Init session error:', e);
+            }
+        })();
 
     </script>
 </body>
