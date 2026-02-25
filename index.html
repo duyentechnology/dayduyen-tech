@@ -4658,7 +4658,6 @@ Add any product information here..."></textarea>
         // Auth state listener - runs after all functions are defined
         db.auth.onAuthStateChange(async (event, session) => {
             console.log('🔐 Auth event:', event);
-            // Don't re-authenticate if user is logging out
             if (isLoggingOut) return;
             
             if (event === 'SIGNED_OUT') {
@@ -4669,41 +4668,66 @@ Add any product information here..."></textarea>
                 if (aboutBtn2) aboutBtn2.style.display = 'inline-block';
                 document.getElementById('userMenu').classList.remove('active');
                 showView('landing');
-            } else if (event === 'SIGNED_IN' && session && session.user) {
-                // Only handle fresh logins here
-                await setupUser(session.user);
-                showView('mode');
+                return;
+            }
+            
+            if (session && session.user) {
+                const user = session.user;
+                currentUser = { email: user.email, name: user.user_metadata?.full_name || user.email, id: user.id };
+                console.log('👤 User:', currentUser.email, 'ID:', currentUser.id);
+                document.getElementById('userEmail').textContent = user.email;
+                document.getElementById('headerBtn').style.display = 'none';
+                const aboutBtn = document.getElementById('headerAboutBtn');
+                if (aboutBtn) aboutBtn.style.display = 'none';
+                document.getElementById('userMenu').classList.add('active');
+                
+                // Load QR codes
+                try {
+                    console.log('🔍 Starting query...');
+                    const { data, error } = await db
+                        .from('qr_codes')
+                        .select('*')
+                        .eq('user_id', currentUser.id)
+                        .order('created_at', { ascending: false });
+                    
+                    console.log('📡 Query returned. Error:', error, 'Data count:', data ? data.length : 'null');
+                    
+                    if (error) {
+                        console.error('❌ Query error:', JSON.stringify(error));
+                    } else if (data) {
+                        savedQRCodes = data.map(row => ({
+                            dbId: row.id,
+                            id: row.id,
+                            url: row.url || 'https://duyen.io/q/' + row.id,
+                            label: row.label || 'QR Code',
+                            color: row.color || '#C85A3E',
+                            details: row.details || '',
+                            createdAt: row.created_at,
+                            updatedAt: row.updated_at || row.created_at,
+                            status: row.status || 'draft',
+                            includeLogo: row.include_logo !== false,
+                            media: row.media || [],
+                            files: row.files || [],
+                            photo: row.photo || null,
+                            scan_count: row.scan_count || 0,
+                            last_scanned_at: row.last_scanned_at || null
+                        }));
+                        console.log('✅ Mapped', savedQRCodes.length, 'QR codes');
+                    }
+                } catch(e) {
+                    console.error('💥 Load exception:', e.message, e);
+                }
+                
+                renderMyCodes();
+                updateQRCount();
+                
+                if (savedQRCodes.length > 0) {
+                    showView('myCodes');
+                } else {
+                    showView('mode');
+                }
             }
         });
-        
-        // Setup user and load QR codes
-        async function setupUser(user) {
-            currentUser = { email: user.email, name: user.user_metadata?.full_name || user.email, id: user.id };
-            console.log('👤 User:', currentUser.email, 'ID:', currentUser.id);
-            document.getElementById('userEmail').textContent = user.email;
-            document.getElementById('headerBtn').style.display = 'none';
-            const aboutBtn = document.getElementById('headerAboutBtn');
-            if (aboutBtn) aboutBtn.style.display = 'none';
-            document.getElementById('userMenu').classList.add('active');
-            await loadQRCodesFromSupabase();
-            console.log('📦 Loaded QR codes:', savedQRCodes.length);
-            renderMyCodes();
-            updateQRCount();
-        }
-        
-        // On page load, check if already logged in
-        (async function initSession() {
-            try {
-                const { data } = await db.auth.getSession();
-                console.log('🔄 Init session check:', data.session ? data.session.user.email : 'none');
-                if (data.session && data.session.user) {
-                    await setupUser(data.session.user);
-                    showView('myCodes');
-                }
-            } catch(e) {
-                console.error('Init session error:', e);
-            }
-        })();
 
     </script>
 </body>
