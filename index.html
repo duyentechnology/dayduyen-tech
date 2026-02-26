@@ -1,5 +1,7 @@
 
 
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -3916,21 +3918,34 @@ Add any product information here..."></textarea>
             }
         }
 
-        async function loadNotificationsDD() {
+        async function loadNotificationsDD(token) {
             try {
-                var { data: { session } } = await db.auth.getSession();
-                if (!session) return;
-                var user = session.user;
+                // Use passed token or try to get session (but not inside onAuthStateChange)
+                var accessToken = token;
+                if (!accessToken) {
+                    var { data: { session } } = await db.auth.getSession();
+                    if (!session) return;
+                    accessToken = session.access_token;
+                }
 
-                var { data, error } = await db
-                    .from('notifications')
-                    .select('*')
-                    .eq('user_id', user.id)
-                    .order('created_at', { ascending: false })
-                    .limit(20);
+                // Use fetch with token to avoid getSession deadlock
+                var resp = await fetch(
+                    SUPABASE_URL + '/rest/v1/notifications?select=*&order=created_at.desc&limit=20',
+                    {
+                        headers: {
+                            'apikey': SUPABASE_ANON_KEY,
+                            'Authorization': 'Bearer ' + accessToken,
+                            'Content-Type': 'application/json'
+                        }
+                    }
+                );
 
-                if (error) { console.error('Notif error:', error); return; }
-                notificationsDD = data || [];
+                if (resp.ok) {
+                    notificationsDD = await resp.json();
+                } else {
+                    console.error('Notif fetch error:', resp.status);
+                    notificationsDD = [];
+                }
                 renderNotificationsDD();
                 updateNotifBadgeDD();
             } catch(e) { console.error('Notif error:', e); }
@@ -4000,17 +4015,29 @@ Add any product information here..."></textarea>
             try {
                 var { data: { session } } = await db.auth.getSession();
                 if (!session) return;
-                await db.from('notifications').update({ read: true }).eq('user_id', session.user.id).eq('read', false);
+                var resp = await fetch(
+                    SUPABASE_URL + '/rest/v1/notifications?user_id=eq.' + session.user.id + '&read=eq.false',
+                    {
+                        method: 'PATCH',
+                        headers: {
+                            'apikey': SUPABASE_ANON_KEY,
+                            'Authorization': 'Bearer ' + session.access_token,
+                            'Content-Type': 'application/json',
+                            'Prefer': 'return=minimal'
+                        },
+                        body: JSON.stringify({ read: true })
+                    }
+                );
                 notificationsDD.forEach(function(n) { n.read = true; });
                 renderNotificationsDD();
                 updateNotifBadgeDD();
             } catch(e) { console.error('Mark all read error:', e); }
         }
 
-        function startNotifPollingDD() {
+        function startNotifPollingDD(token) {
             if (notifPollDD) clearInterval(notifPollDD);
-            loadNotificationsDD();
-            notifPollDD = setInterval(loadNotificationsDD, 30000);
+            loadNotificationsDD(token); // First load uses passed token
+            notifPollDD = setInterval(function() { loadNotificationsDD(); }, 30000); // Subsequent polls safe to use getSession
         }
 
         function stopNotifPollingDD() {
@@ -4957,7 +4984,7 @@ Add any product information here..."></textarea>
                 
                 renderMyCodes();
                 updateQRCount();
-                startNotifPollingDD(); // Start notification polling
+                startNotifPollingDD(session.access_token); // Pass token to avoid deadlock
                 
                 if (savedQRCodes.length > 0) {
                     showView('myCodes');
