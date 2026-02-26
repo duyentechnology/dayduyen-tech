@@ -1,6 +1,5 @@
 
 
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -86,6 +85,83 @@
             line-height: 1;
         }
         
+        /* Notifications */
+        .notif-bell-dd {
+            position: relative;
+            background: none;
+            border: none;
+            font-size: 1.3rem;
+            cursor: pointer;
+            padding: 0.4rem;
+            line-height: 1;
+        }
+        .notif-badge-dd {
+            position: absolute;
+            top: -2px;
+            right: -4px;
+            background: #C85A3E;
+            color: white;
+            font-size: 0.65rem;
+            font-weight: 700;
+            min-width: 18px;
+            height: 18px;
+            border-radius: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid white;
+        }
+        .notif-panel-dd {
+            display: none;
+            position: fixed;
+            top: 70px;
+            right: 1rem;
+            width: 340px;
+            max-height: 440px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 8px 40px rgba(61,46,36,0.18);
+            z-index: 200;
+            overflow: hidden;
+            border: 1px solid #E8DDD5;
+        }
+        .notif-panel-dd.open { display: block; }
+        .notif-panel-dd-header {
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid #E8DDD5;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .notif-panel-dd-header h3 { margin: 0; font-family: 'Crimson Pro', serif; font-size: 1.15rem; color: #3D2E24; }
+        .notif-mark-read-dd { background: none; border: none; color: #C85A3E; font-size: 0.8rem; font-weight: 600; cursor: pointer; }
+        .notif-mark-read-dd:hover { text-decoration: underline; }
+        .notif-list-dd { overflow-y: auto; max-height: 360px; }
+        .notif-item-dd {
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid #E8DDD5;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            gap: 0.75rem;
+            align-items: flex-start;
+        }
+        .notif-item-dd:hover { background: #FDF8F5; }
+        .notif-item-dd.unread { background: rgba(200,90,62,0.04); }
+        .notif-item-dd.unread::before { content: ''; width: 8px; height: 8px; background: #C85A3E; border-radius: 50%; flex-shrink: 0; margin-top: 0.4rem; }
+        .notif-icon-dd { font-size: 1.5rem; flex-shrink: 0; }
+        .notif-content-dd { flex: 1; min-width: 0; }
+        .notif-title-dd { font-weight: 600; font-size: 0.9rem; color: #3D2E24; margin-bottom: 0.2rem; }
+        .notif-msg-dd { font-size: 0.82rem; color: #5C4A3D; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .notif-time-dd { font-size: 0.72rem; color: #A09080; margin-top: 0.3rem; }
+        .notif-empty-dd { padding: 2.5rem 1.5rem; text-align: center; color: #A09080; }
+        .notif-overlay-dd { display: none; position: fixed; inset: 0; z-index: 199; }
+        .notif-overlay-dd.open { display: block; }
+
+        @media (max-width: 480px) {
+            .notif-panel-dd { right: 0.5rem; left: 0.5rem; width: auto; }
+        }
+
         .cta-button {
             background: #C85A3E;
             color: white;
@@ -1072,12 +1148,31 @@
             <button class="cta-button" id="headerBtn" onclick="handleHeaderCTA()">Log In</button>
             <div class="user-menu" id="userMenu">
                 <span class="user-email" id="userEmail"></span>
+                <button class="notif-bell-dd" id="notifBellDD" onclick="toggleNotifPanelDD()" title="Notifications">
+                    🔔
+                    <span class="notif-badge-dd" id="notifBadgeDD" style="display:none;">0</span>
+                </button>
                 <button class="cta-button" onclick="showView('mode')" style="background: white; color: #C85A3E; border: 2px solid #C85A3E;">+ New QR</button>
                 <button class="cta-button" onclick="showView('myCodes')" style="background: #3D2E24; color: white;">My QR Codes <span id="qrCount" style="background: #C85A3E; color: white; padding: 2px 8px; border-radius: 10px; font-size: 11px; margin-left: 4px;">0</span></button>
                 <button class="cta-button" onclick="logout()" style="background: #FAF0EA; color: #7D6E64;">Log Out</button>
             </div>
         </div>
     </header>
+
+    <!-- Notification overlay & panel -->
+    <div class="notif-overlay-dd" id="notifOverlayDD" onclick="toggleNotifPanelDD()"></div>
+    <div class="notif-panel-dd" id="notifPanelDD">
+        <div class="notif-panel-dd-header">
+            <h3>Notifications</h3>
+            <button class="notif-mark-read-dd" onclick="markAllNotifReadDD()">Mark all read</button>
+        </div>
+        <div class="notif-list-dd" id="notifListDD">
+            <div class="notif-empty-dd">
+                <div style="font-size:2rem; margin-bottom:0.5rem;">🔔</div>
+                <p>No notifications yet</p>
+            </div>
+        </div>
+    </div>
 
     <!-- Landing Page View -->
     <div id="landingView" class="view active">
@@ -3801,6 +3896,127 @@ Add any product information here..."></textarea>
             }
         }
         
+        // ==========================================
+        // NOTIFICATIONS
+        // ==========================================
+        var notificationsDD = [];
+        var notifPollDD = null;
+
+        function toggleNotifPanelDD() {
+            var panel = document.getElementById('notifPanelDD');
+            var overlay = document.getElementById('notifOverlayDD');
+            var isOpen = panel.classList.contains('open');
+            if (isOpen) {
+                panel.classList.remove('open');
+                overlay.classList.remove('open');
+            } else {
+                panel.classList.add('open');
+                overlay.classList.add('open');
+                loadNotificationsDD();
+            }
+        }
+
+        async function loadNotificationsDD() {
+            try {
+                var { data: { session } } = await db.auth.getSession();
+                if (!session) return;
+                var user = session.user;
+
+                var { data, error } = await db
+                    .from('notifications')
+                    .select('*')
+                    .eq('user_id', user.id)
+                    .order('created_at', { ascending: false })
+                    .limit(20);
+
+                if (error) { console.error('Notif error:', error); return; }
+                notificationsDD = data || [];
+                renderNotificationsDD();
+                updateNotifBadgeDD();
+            } catch(e) { console.error('Notif error:', e); }
+        }
+
+        function renderNotificationsDD() {
+            var list = document.getElementById('notifListDD');
+            if (!list) return;
+            if (notificationsDD.length === 0) {
+                list.innerHTML = '<div class="notif-empty-dd"><div style="font-size:2rem;margin-bottom:0.5rem;">🔔</div><p>No notifications yet</p><p style="font-size:0.8rem;color:#A09080;">When someone sends you a thank you, it\'ll show up here</p></div>';
+                return;
+            }
+            list.innerHTML = notificationsDD.map(function(n) {
+                var timeAgo = getTimeAgoDD(n.created_at);
+                var icon = n.type === 'thank_you' ? '💝' : '🔔';
+                var cls = n.read ? '' : ' unread';
+                return '<div class="notif-item-dd' + cls + '" onclick="openNotifDD(\'' + n.id + '\',\'' + (n.qr_code_id || '') + '\')">'
+                    + '<div class="notif-icon-dd">' + icon + '</div>'
+                    + '<div class="notif-content-dd">'
+                    + '<div class="notif-title-dd">' + escapeHtmlDD(n.title) + '</div>'
+                    + '<div class="notif-msg-dd">' + escapeHtmlDD(n.message || '') + '</div>'
+                    + '<div class="notif-time-dd">' + timeAgo + '</div>'
+                    + '</div></div>';
+            }).join('');
+        }
+
+        function escapeHtmlDD(t) { var d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+
+        function getTimeAgoDD(ds) {
+            var ms = Date.now() - new Date(ds).getTime();
+            var m = Math.floor(ms/60000), h = Math.floor(ms/3600000), d = Math.floor(ms/86400000);
+            if (m < 1) return 'Just now';
+            if (m < 60) return m + 'm ago';
+            if (h < 24) return h + 'h ago';
+            if (d < 7) return d + 'd ago';
+            return new Date(ds).toLocaleDateString();
+        }
+
+        function updateNotifBadgeDD() {
+            var badge = document.getElementById('notifBadgeDD');
+            if (!badge) return;
+            var count = notificationsDD.filter(function(n) { return !n.read; }).length;
+            if (count > 0) {
+                badge.textContent = count > 9 ? '9+' : count;
+                badge.style.display = 'flex';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+
+        async function openNotifDD(notifId, qrCodeId) {
+            try {
+                await db.from('notifications').update({ read: true }).eq('id', notifId);
+                notificationsDD.forEach(function(n) { if (n.id === notifId) n.read = true; });
+                renderNotificationsDD();
+                updateNotifBadgeDD();
+            } catch(e) { console.error('Mark read error:', e); }
+            
+            // Navigate to My QR Codes to see the thread
+            if (qrCodeId) {
+                toggleNotifPanelDD();
+                showView('myCodes');
+            }
+        }
+
+        async function markAllNotifReadDD() {
+            try {
+                var { data: { session } } = await db.auth.getSession();
+                if (!session) return;
+                await db.from('notifications').update({ read: true }).eq('user_id', session.user.id).eq('read', false);
+                notificationsDD.forEach(function(n) { n.read = true; });
+                renderNotificationsDD();
+                updateNotifBadgeDD();
+            } catch(e) { console.error('Mark all read error:', e); }
+        }
+
+        function startNotifPollingDD() {
+            if (notifPollDD) clearInterval(notifPollDD);
+            loadNotificationsDD();
+            notifPollDD = setInterval(loadNotificationsDD, 30000);
+        }
+
+        function stopNotifPollingDD() {
+            if (notifPollDD) { clearInterval(notifPollDD); notifPollDD = null; }
+        }
+
         // Initialize on page load
         window.addEventListener('DOMContentLoaded', function() {
             renderColorPresets();
@@ -4673,6 +4889,7 @@ Add any product information here..."></textarea>
             if (event === 'SIGNED_OUT') {
                 currentUser = null;
                 savedQRCodes = [];
+                stopNotifPollingDD(); // Stop notification polling
                 document.getElementById('headerBtn').style.display = 'block';
                 const aboutBtn2 = document.getElementById('headerAboutBtn');
                 if (aboutBtn2) aboutBtn2.style.display = 'inline-block';
@@ -4740,6 +4957,7 @@ Add any product information here..."></textarea>
                 
                 renderMyCodes();
                 updateQRCount();
+                startNotifPollingDD(); // Start notification polling
                 
                 if (savedQRCodes.length > 0) {
                     showView('myCodes');
