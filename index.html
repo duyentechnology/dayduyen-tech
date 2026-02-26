@@ -1,7 +1,6 @@
 
 
 
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -3920,15 +3919,15 @@ Add any product information here..."></textarea>
 
         async function loadNotificationsDD(token) {
             try {
-                // Use passed token or try to get session (but not inside onAuthStateChange)
                 var accessToken = token;
                 if (!accessToken) {
-                    var { data: { session } } = await db.auth.getSession();
-                    if (!session) return;
-                    accessToken = session.access_token;
+                    try {
+                        var { data: { session } } = await db.auth.getSession();
+                        if (!session) return;
+                        accessToken = session.access_token;
+                    } catch(e) { return; }
                 }
 
-                // Use fetch with token to avoid getSession deadlock
                 var resp = await fetch(
                     SUPABASE_URL + '/rest/v1/notifications?select=*&order=created_at.desc&limit=20',
                     {
@@ -3943,12 +3942,15 @@ Add any product information here..."></textarea>
                 if (resp.ok) {
                     notificationsDD = await resp.json();
                 } else {
-                    console.error('Notif fetch error:', resp.status);
+                    // Table might not exist yet — that's OK
                     notificationsDD = [];
                 }
                 renderNotificationsDD();
                 updateNotifBadgeDD();
-            } catch(e) { console.error('Notif error:', e); }
+            } catch(e) {
+                // Silently fail — notifications should never break the app
+                notificationsDD = [];
+            }
         }
 
         function renderNotificationsDD() {
@@ -4984,7 +4986,9 @@ Add any product information here..."></textarea>
                 
                 renderMyCodes();
                 updateQRCount();
-                startNotifPollingDD(session.access_token); // Pass token to avoid deadlock
+                // Defer notification polling — never block auth flow
+                var _notifToken = session.access_token;
+                setTimeout(function() { try { startNotifPollingDD(_notifToken); } catch(e) {} }, 2000);
                 
                 if (savedQRCodes.length > 0) {
                     showView('myCodes');
