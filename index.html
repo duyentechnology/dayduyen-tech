@@ -1,21 +1,106 @@
 
 
 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Duyền - Complete Demo</title>
+    <title>Duyên - Complete Demo</title>
     <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,300;0,400;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
+        :root {
+            --lantern-coral: #E8636F;
+            --lantern-rose: #D4487A;
+            --lantern-plum: #8B3A7F;
+            --lantern-gold: #E8B84A;
+            --lantern-amber: #D4823E;
+            --lantern-teal: #2AA8A0;
+            --lantern-jade: #3A8F6E;
+            --lantern-sky: #4A9EC4;
+            --viet-red: #DA251D;
+        }
+        
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+        }
+        
+        /* Splash Screen */
+        .duyen-splash {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 99999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            background: linear-gradient(135deg, var(--lantern-coral) 0%, var(--lantern-rose) 20%, var(--lantern-plum) 45%, var(--lantern-teal) 70%, var(--lantern-jade) 100%);
+            background-size: 400% 400%;
+            animation: splashGrad 8s ease infinite;
+            transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+        .duyen-splash.dismissed { opacity: 0; transform: scale(1.05); pointer-events: none; }
+        @keyframes splashGrad { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        .duyen-splash .sp-yuan { font-size: 80px; color: rgba(255,255,255,0.95); animation: spIn 0.8s ease-out; text-shadow: 0 4px 40px rgba(0,0,0,0.12); }
+        .duyen-splash .sp-word { font-family: 'Cormorant Garamond', serif; font-size: 52px; font-weight: 700; color: white; letter-spacing: 10px; margin-top: 8px; animation: spIn 0.8s ease-out 0.2s both; text-shadow: 0 2px 20px rgba(0,0,0,0.1); }
+        .duyen-splash .sp-tag { font-family: 'Outfit', sans-serif; font-size: 13px; font-weight: 300; color: rgba(255,255,255,0.75); letter-spacing: 4px; text-transform: uppercase; margin-top: 16px; animation: spIn 0.8s ease-out 0.4s both; }
+        @keyframes spIn { 0% { opacity: 0; transform: translateY(16px) scale(0.95); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
+        
+        /* Color Bar */
+        .lantern-bar { height: 3px; background: linear-gradient(90deg, var(--lantern-coral), var(--lantern-rose), var(--lantern-plum), var(--lantern-teal), var(--lantern-jade), var(--lantern-gold), var(--lantern-amber), var(--lantern-sky)); }
+        
+        /* Sticky Note Cards */
+        .lantern-card {
+            border-radius: 2px 2px 12px 12px;
+            padding: 36px 28px;
+            text-align: center;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.07);
+            opacity: 0;
+            transform: perspective(800px) rotateX(-90deg) translateY(80px) scale(0.85);
+            transform-origin: top center;
+            transition: opacity 0.9s cubic-bezier(0.34, 1.56, 0.64, 1), transform 0.9s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.3s, box-shadow 0.3s;
+        }
+        .lantern-card:nth-child(1), .lantern-card:nth-child(2) {
+            transform: perspective(800px) rotateX(-110deg) translateY(120px) scale(0.75);
+            transition: opacity 1.1s cubic-bezier(0.34, 1.56, 0.64, 1), transform 1.1s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.3s, box-shadow 0.3s;
+        }
+        .lantern-card.revealed { opacity: 1; transform: perspective(800px) rotateX(0deg) translateY(0) scale(1); }
+        .lantern-card.revealed:hover { transform: perspective(800px) rotateX(0deg) translateY(-6px) scale(1); box-shadow: 0 16px 40px rgba(0,0,0,0.12); }
+        .lantern-card .card-stripe { position: absolute; top: 0; left: 0; width: 100%; height: 10px; }
+        .lantern-card .icon-circle { width: 72px; height: 72px; border-radius: 18px; display: flex; align-items: center; justify-content: center; font-size: 34px; margin: 0 auto 18px; background: rgba(255,255,255,0.85); }
+        
+        /* Floating Lanterns */
+        .lantern-float {
+            position: absolute;
+            opacity: 0;
+            animation: riseLantern linear infinite;
+            z-index: 0;
+            filter: drop-shadow(0 0 12px var(--glow-color));
+        }
+        @keyframes riseLantern {
+            0% { opacity: 0; transform: translateY(100vh) rotate(-5deg) scale(0.6); }
+            5% { opacity: 0.8; }
+            50% { transform: translateY(0vh) rotate(3deg) scale(0.9); }
+            85% { opacity: 0.6; }
+            100% { opacity: 0; transform: translateY(-120vh) rotate(-3deg) scale(1); }
+        }
+
+        /* Lantern CTA */
+        .lantern-cta {
+            background: linear-gradient(135deg, var(--lantern-coral) 0%, var(--lantern-rose) 25%, var(--lantern-plum) 55%, var(--lantern-teal) 85%, var(--lantern-jade) 100%);
+            background-size: 300% 300%;
+            animation: splashGrad 8s ease infinite;
         }
         
         body {
@@ -60,7 +145,7 @@
         
         .logo-symbol {
             font-size: 36px;
-            color: #C85A3E;
+            color: #DA251D;
             line-height: 1;
         }
         
@@ -74,7 +159,7 @@
             font-family: 'Crimson Pro', Georgia, serif;
             font-size: 32px;
             font-weight: 600;
-            color: #C85A3E;
+            color: #DA251D;
             letter-spacing: 3px;
             line-height: 1;
         }
@@ -87,7 +172,7 @@
         }
         
         .cta-button {
-            background: #C85A3E;
+            background: var(--lantern-plum);
             color: white;
             padding: 12px 32px;
             border-radius: 12px;
@@ -99,7 +184,7 @@
         }
         
         .cta-button:hover {
-            background: #b04a2e;
+            background: #7A3270;
             transform: translateY(-2px);
         }
         
@@ -128,7 +213,7 @@
         
         .hero-symbol {
             font-size: 100px;
-            color: #C85A3E;
+            color: #DA251D;
             display: block;
             margin-bottom: 20px;
         }
@@ -137,7 +222,7 @@
             font-family: 'Crimson Pro', Georgia, serif;
             font-size: 64px;
             font-weight: 600;
-            color: #C85A3E;
+            color: #DA251D;
             letter-spacing: 4px;
             margin-bottom: 15px;
         }
@@ -162,7 +247,7 @@
         }
         
         .btn-primary {
-            background: #C85A3E;
+            background: linear-gradient(135deg, var(--lantern-rose), var(--lantern-plum));
             color: white;
             padding: 18px 48px;
             border-radius: 12px;
@@ -171,11 +256,11 @@
             font-size: 18px;
             border: none;
             cursor: pointer;
-            box-shadow: 0 4px 15px rgba(200, 90, 62, 0.3);
+            box-shadow: 0 4px 15px rgba(139,58,127,0.3);
         }
         
         .btn-primary:hover {
-            background: #b04a2e;
+            background: linear-gradient(135deg, #C43D6D, #7A3270);
             transform: translateY(-2px);
         }
         
@@ -214,7 +299,7 @@
         
         .auth-logo .symbol {
             font-size: 60px;
-            color: #C85A3E;
+            color: #DA251D;
             display: block;
             margin-bottom: 10px;
         }
@@ -223,7 +308,7 @@
             font-family: 'Crimson Pro', Georgia, serif;
             font-size: 36px;
             font-weight: 600;
-            color: #C85A3E;
+            color: #DA251D;
             letter-spacing: 3px;
         }
         
@@ -265,7 +350,7 @@
         .btn-auth {
             width: 100%;
             padding: 16px;
-            background: #C85A3E;
+            background: var(--lantern-plum);
             color: white;
             border: none;
             border-radius: 12px;
@@ -410,7 +495,7 @@
         }
         
         .mode-button {
-            background: #C85A3E;
+            background: var(--lantern-plum);
             color: white;
             padding: 12px 24px;
             border-radius: 8px;
@@ -888,7 +973,7 @@
         }
         
         .card-action-edit {
-            background: #C85A3E;
+            background: var(--lantern-plum);
             color: white;
         }
         
@@ -918,7 +1003,7 @@
         }
         
         .btn-secondary:hover {
-            background: #C85A3E;
+            background: var(--lantern-plum);
             color: white;
         }
         
@@ -1011,9 +1096,9 @@
         }
         
         .qr-download-btn:hover {
-            background: #C85A3E;
+            background: var(--lantern-plum);
             color: white;
-            border-color: #C85A3E;
+            border-color: var(--lantern-plum);
         }
         /* Animated Thread Background */
         .thread-bg {
@@ -1048,6 +1133,13 @@
     </style>
 </head>
 <body>
+    <!-- Splash Screen -->
+    <div class="duyen-splash" id="duyenSplash">
+        <div class="sp-yuan">緣</div>
+        <div class="sp-word">DUYÊN</div>
+        <div class="sp-tag">Weaving the tapestry of life</div>
+    </div>
+    <div class="lantern-bar"></div>
 
 <!-- Animated Thread Background -->
 <div class="thread-bg">
@@ -1064,7 +1156,7 @@
             <div class="logo-header-content" onclick="showView('landing')">
                 <span class="logo-symbol">緣</span>
                 <div class="logo-text-wrapper">
-                    <span class="logo-text">DUYỀN</span>
+                    <span class="logo-text">DUYÊN</span>
                     <span class="logo-tagline">Weaving the tapestry of life</span>
                 </div>
             </div>
@@ -1072,8 +1164,8 @@
             <button class="cta-button" id="headerBtn" onclick="handleHeaderCTA()">Log In</button>
             <div class="user-menu" id="userMenu">
                 <span class="user-email" id="userEmail"></span>
-                <button class="cta-button" onclick="showView('mode')" style="background: white; color: #C85A3E; border: 2px solid #C85A3E;">+ New QR</button>
-                <button class="cta-button" onclick="showView('myCodes')" style="background: #3D2E24; color: white;">My QR Codes <span id="qrCount" style="background: #C85A3E; color: white; padding: 2px 8px; border-radius: 10px; font-size: 11px; margin-left: 4px;">0</span></button>
+                <button class="cta-button" onclick="showView('mode')" style="background: white; color: var(--lantern-plum); border: 2px solid var(--lantern-plum);">+ New QR</button>
+                <button class="cta-button" onclick="showView('myCodes')" style="background: #2E2A28; color: white;">My QR Codes <span id="qrCount" style="background: var(--lantern-plum); color: white; padding: 2px 8px; border-radius: 10px; font-size: 11px; margin-left: 4px;">0</span></button>
                 <button class="cta-button" onclick="logout()" style="background: #FAF0EA; color: #7D6E64;">Log Out</button>
             </div>
         </div>
@@ -1081,169 +1173,123 @@
 
     <!-- Landing Page View -->
     <div id="landingView" class="view active">
-        <section class="hero">
-            <span class="hero-symbol">緣</span>
-            <div class="hero-text">DUYỀN</div>
-            <p class="hero-tagline">Weaving the tapestry of life</p>
-            
-            <h1>Create QR Codes That Preserve What Matters</h1>
-            
-            <p class="hero-description">
-                More than just a link. Duyền QR codes connect physical moments to lasting digital memories. 
-                Perfect for businesses who want to add meaning to their products, and individuals who want 
-                to preserve the stories behind life's special moments.
-            </p>
-            
-            <button class="btn-primary" onclick="handleHeaderCTA()">Start Creating</button>
+        <section class="hero" id="lanternHeroSection" style="background: #000000; padding: 80px 28px 72px; text-align: center; position: relative; overflow: hidden; min-height: 80vh; display: flex; align-items: center; justify-content: center;">
+            <div style="position: relative; z-index: 1;">
+                <div style="font-size: 100px; color: rgba(255,255,255,0.95); margin-bottom: 8px; text-shadow: 0 0 60px rgba(232,184,74,0.35);">緣</div>
+                <div style="font-family: 'Cormorant Garamond', serif; font-size: 28px; font-weight: 700; color: rgba(255,255,255,0.4); letter-spacing: 12px; margin-bottom: 36px;">DUYÊN</div>
+                <h1 style="font-family: 'Cormorant Garamond', serif; font-size: 2.8rem; font-weight: 700; color: white; line-height: 1.12; margin-bottom: 24px; max-width: 620px; margin-left: auto; margin-right: auto;">Create QR Codes That Preserve What Matters</h1>
+                <p style="font-size: 1.05rem; font-weight: 300; color: rgba(255,255,255,0.55); max-width: 520px; margin: 0 auto 36px; line-height: 1.8;">
+                    More than just a link. Duyên QR codes connect physical moments to lasting digital memories. 
+                    Perfect for businesses who want to add meaning to their products, and individuals who want 
+                    to preserve the stories behind life's special moments.
+                </p>
+                <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+                    <button class="btn-primary" onclick="handleHeaderCTA()" style="background: white; color: #1A1715; box-shadow: 0 4px 30px rgba(255,255,255,0.12);">Start Creating</button>
+                    <button onclick="document.querySelector('.who-section-lp').scrollIntoView({behavior:'smooth'})" style="font-family: 'Outfit', sans-serif; font-size: 16px; font-weight: 600; padding: 16px 40px; border-radius: 12px; background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.75); border: 1px solid rgba(255,255,255,0.15); cursor: pointer;">See How It Works</button>
+                </div>
+            </div>
         </section>
         
         
         <!-- Use Cases -->
-        <section style="padding: 80px 40px; background: #FDF8F5;">
-            <div style="max-width: 900px; margin: 0 auto; text-align: center;">
-                <h2 style="font-family: 'Crimson Pro', Georgia, serif; font-size: 42px; margin-bottom: 20px;">Who Uses Duyên?</h2>
+        <section class="who-section-lp" style="padding: 80px 24px; background: white;">
+            <div style="text-align: center; margin-bottom: 48px;">
+                <h2 style="font-family: 'Cormorant Garamond', serif; font-size: 2.6rem; font-weight: 700; margin-bottom: 10px;">Who Uses <span style="color: #DA251D; letter-spacing: 3px;">DUYÊN</span>?</h2>
+                <p style="font-size: 1.15rem; font-weight: 300; color: #908882;">Ways businesses and individuals preserve what matters</p>
             </div>
             
-            <div style="max-width: 1200px; margin: 40px auto 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 40px;">
-                <div style="background: white; border-radius: 20px; padding: 40px; box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
-                    <div style="font-size: 48px; margin-bottom: 20px;">🌹</div>
-                    <h3 style="font-size: 24px; font-weight: 600; margin-bottom: 15px;">Florists & Gift Shops</h3>
-                    <p style="color: #7D6E64; line-height: 1.7; margin-bottom: 15px;">
-                        Include a QR code on gift cards. Recipients scan to watch a video of you arranging the bouquet, 
-                        read the sender's message, and get care instructions.
-                    </p>
-                    <p style="font-style: italic; color: #C85A3E; font-size: 15px;">
-                        "When the flowers fade, the memory doesn't."
-                    </p>
+            <div style="max-width: 1060px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px;">
+                <div class="lantern-card" style="background: linear-gradient(180deg, #FFB3B8 0%, #FF5C6A 35%, #D41E3C 100%); border-radius: 20px;">
+                    <div class="icon-circle" style="background: rgba(255,255,255,0.4);">🌹</div>
+                    <h3 style="font-size: 1.35rem; font-weight: 600; margin-bottom: 10px; color: #2E2A28;">Florists & Gift Shops</h3>
+                    <p style="color: rgba(255,255,255,0.9); line-height: 1.7; font-size: 1.1rem; margin-bottom: 14px;">Include a QR code on gift cards. Recipients scan to watch a video of you arranging the bouquet, read the sender's message, and get care instructions.</p>
+                    <p style="font-style: italic; color: rgba(255,255,255,0.7); font-size: 1.05rem;">"When the flowers fade, the memory doesn't."</p>
                 </div>
                 
-                <div style="background: white; border-radius: 20px; padding: 40px; box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
-                    <div style="font-size: 48px; margin-bottom: 20px;">👕</div>
-                    <h3 style="font-size: 24px; font-weight: 600; margin-bottom: 15px;">E-commerce & Fashion</h3>
-                    <p style="color: #7D6E64; line-height: 1.7; margin-bottom: 15px;">
-                        Add QR codes to product tags. Share your sustainability story, fabric origins, care guides, 
-                        and repair services—meeting California SB 707 requirements.
-                    </p>
-                    <p style="font-style: italic; color: #C85A3E; font-size: 15px;">
-                        "Turn disposable fashion into cherished items with stories."
-                    </p>
+                <div class="lantern-card" style="background: linear-gradient(180deg, #80F0E8 0%, #20C4B8 35%, #0A726A 100%); border-radius: 20px;">
+                    <div class="icon-circle" style="background: rgba(255,255,255,0.4);">👕</div>
+                    <h3 style="font-size: 1.35rem; font-weight: 600; margin-bottom: 10px; color: #2E2A28;">E-commerce & Fashion</h3>
+                    <p style="color: rgba(255,255,255,0.9); line-height: 1.7; font-size: 1.1rem; margin-bottom: 14px;">Add QR codes to product tags. Share your sustainability story, fabric origins, care guides, and repair services—meeting California SB 707 requirements.</p>
+                    <p style="font-style: italic; color: rgba(255,255,255,0.7); font-size: 1.05rem;">"Turn disposable fashion into cherished items with stories."</p>
                 </div>
                 
-                <div style="background: white; border-radius: 20px; padding: 40px; box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
-                    <div style="font-size: 48px; margin-bottom: 20px;">☕</div>
-                    <h3 style="font-size: 24px; font-weight: 600; margin-bottom: 15px;">Restaurants & Cafes</h3>
-                    <p style="color: #7D6E64; line-height: 1.7; margin-bottom: 15px;">
-                        Table QR codes that customers can save. They preserve the memory of a special date night, 
-                        anniversary dinner, or coffee shop where they wrote their novel.
-                    </p>
-                    <p style="font-style: italic; color: #C85A3E; font-size: 15px;">
-                        "Places become part of your story."
-                    </p>
+                <div class="lantern-card" style="background: linear-gradient(180deg, #90E8B0 0%, #38B868 35%, #186838 100%); border-radius: 20px;">
+                    <div class="icon-circle" style="background: rgba(255,255,255,0.4);">☕</div>
+                    <h3 style="font-size: 1.35rem; font-weight: 600; margin-bottom: 10px; color: #2E2A28;">Restaurants & Cafes</h3>
+                    <p style="color: rgba(255,255,255,0.9); line-height: 1.7; font-size: 1.1rem; margin-bottom: 14px;">Table QR codes that customers can save. They preserve the memory of a special date night, anniversary dinner, or coffee shop where they wrote their novel.</p>
+                    <p style="font-style: italic; color: rgba(255,255,255,0.7); font-size: 1.05rem;">"Places become part of your story."</p>
                 </div>
                 
-                <div style="background: white; border-radius: 20px; padding: 40px; box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
-                    <div style="font-size: 48px; margin-bottom: 20px;">✂️</div>
-                    <h3 style="font-size: 24px; font-weight: 600; margin-bottom: 15px;">Service Providers</h3>
-                    <p style="color: #7D6E64; line-height: 1.7; margin-bottom: 15px;">
-                        Hair stylists, nail artists, photographers—give clients a QR card with before/after photos, 
-                        care tips, and your contact info for their next appointment.
-                    </p>
-                    <p style="font-style: italic; color: #C85A3E; font-size: 15px;">
-                        "Stay connected beyond the appointment."
-                    </p>
+                <div class="lantern-card" style="background: linear-gradient(180deg, #A0DEFF 0%, #38B0E8 35%, #105880 100%); border-radius: 20px;">
+                    <div class="icon-circle" style="background: rgba(255,255,255,0.4);">✂️</div>
+                    <h3 style="font-size: 1.35rem; font-weight: 600; margin-bottom: 10px; color: #2E2A28;">Service Providers</h3>
+                    <p style="color: rgba(255,255,255,0.9); line-height: 1.7; font-size: 1.1rem; margin-bottom: 14px;">Hair stylists, nail artists, photographers—give clients a QR card with before/after photos, care tips, and your contact info for their next appointment.</p>
+                    <p style="font-style: italic; color: rgba(255,255,255,0.7); font-size: 1.05rem;">"Stay connected beyond the appointment."</p>
                 </div>
                 
-                <div style="background: white; border-radius: 20px; padding: 40px; box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
-                    <div style="font-size: 48px; margin-bottom: 20px;">🎨</div>
-                    <h3 style="font-size: 24px; font-weight: 600; margin-bottom: 15px;">Makers & Artisans</h3>
-                    <p style="color: #7D6E64; line-height: 1.7; margin-bottom: 15px;">
-                        Include QR codes with handmade items. Share your process, materials, story, and care instructions. 
-                        Turn your craft into a cherished heirloom.
-                    </p>
-                    <p style="font-style: italic; color: #C85A3E; font-size: 15px;">
-                        "Your story makes your work priceless."
-                    </p>
+                <div class="lantern-card" style="background: linear-gradient(180deg, #E8A0E0 0%, #B040B8 35%, #581060 100%); border-radius: 20px;">
+                    <div class="icon-circle" style="background: rgba(255,255,255,0.4);">🎨</div>
+                    <h3 style="font-size: 1.35rem; font-weight: 600; margin-bottom: 10px; color: #2E2A28;">Makers & Artisans</h3>
+                    <p style="color: rgba(255,255,255,0.9); line-height: 1.7; font-size: 1.1rem; margin-bottom: 14px;">Include QR codes with handmade items. Share your process, materials, story, and care instructions. Turn your craft into a cherished heirloom.</p>
+                    <p style="font-style: italic; color: rgba(255,255,255,0.7); font-size: 1.05rem;">"Your story makes your work priceless."</p>
                 </div>
                 
-                <div style="background: white; border-radius: 20px; padding: 40px; box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
-                    <div style="font-size: 48px; margin-bottom: 20px;">💝</div>
-                    <h3 style="font-size: 24px; font-weight: 600; margin-bottom: 15px;">Individuals & Families</h3>
-                    <p style="color: #7D6E64; line-height: 1.7; margin-bottom: 15px;">
-                        Create memory cards for special gifts. Add photos, voice messages, and stories that the recipient 
-                        can keep forever—long after the physical gift is gone.
-                    </p>
-                    <p style="font-style: italic; color: #C85A3E; font-size: 15px;">
-                        "Gifts become memories, memories become tapestries."
-                    </p>
+                <div class="lantern-card" style="background: linear-gradient(180deg, #FFC580 0%, #F08020 35%, #983800 100%); border-radius: 20px;">
+                    <div class="icon-circle" style="background: rgba(255,255,255,0.4);">💝</div>
+                    <h3 style="font-size: 1.35rem; font-weight: 600; margin-bottom: 10px; color: #2E2A28;">Individuals & Families</h3>
+                    <p style="color: rgba(255,255,255,0.9); line-height: 1.7; font-size: 1.1rem; margin-bottom: 14px;">Create memory cards for special gifts. Add photos, voice messages, and stories that the recipient can keep forever—long after the physical gift is gone.</p>
+                    <p style="font-style: italic; color: rgba(255,255,255,0.7); font-size: 1.05rem;">"Gifts become memories, memories become tapestries."</p>
                 </div>
             </div>
         </section>
         
         <!-- How It Works -->
-        <section style="background: white; padding: 80px 40px;">
-            <div style="max-width: 900px; margin: 0 auto;">
-                <h2 style="font-family: 'Crimson Pro', Georgia, serif; font-size: 42px; text-align: center; margin-bottom: 50px;">How It Works</h2>
-                
-                <div style="display: grid; gap: 40px;">
-                    <div style="display: flex; gap: 30px; align-items: flex-start;">
-                        <div style="flex-shrink: 0; width: 60px; height: 60px; background: linear-gradient(135deg, #C85A3E 0%, #8B1538 100%); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 600;">1</div>
-                        <div>
-                            <h3 style="font-size: 22px; margin-bottom: 10px;">Generate Your QR Code</h3>
-                            <p style="color: #7D6E64; line-height: 1.8;">
-                                Create a unique QR code in seconds. Customize with your colors, add your business name, 
-                                and choose from Avery label templates for easy printing.
-                            </p>
-                        </div>
-                    </div>
-                    
-                    <div style="display: flex; gap: 30px; align-items: flex-start;">
-                        <div style="flex-shrink: 0; width: 60px; height: 60px; background: linear-gradient(135deg, #C85A3E 0%, #8B1538 100%); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 600;">2</div>
-                        <div>
-                            <h3 style="font-size: 22px; margin-bottom: 10px;">Attach to Your Product or Card</h3>
-                            <p style="color: #7D6E64; line-height: 1.8;">
-                                Print on stickers, cards, tags, or packaging. Each QR code is unique and links to a 
-                                beautiful landing page on duyen.io.
-                            </p>
-                        </div>
-                    </div>
-                    
-                    <div style="display: flex; gap: 30px; align-items: flex-start;">
-                        <div style="flex-shrink: 0; width: 60px; height: 60px; background: linear-gradient(135deg, #C85A3E 0%, #8B1538 100%); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 600;">3</div>
-                        <div>
-                            <h3 style="font-size: 22px; margin-bottom: 10px;">Add Your Content</h3>
-                            <p style="color: #7D6E64; line-height: 1.8;">
-                                Upload photos, videos, messages, care instructions, or contact information. Create the 
-                                experience you want recipients to discover.
-                            </p>
-                        </div>
-                    </div>
-                    
-                    <div style="display: flex; gap: 30px; align-items: flex-start;">
-                        <div style="flex-shrink: 0; width: 60px; height: 60px; background: linear-gradient(135deg, #C85A3E 0%, #8B1538 100%); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 600;">4</div>
-                        <div>
-                            <h3 style="font-size: 22px; margin-bottom: 10px;">Recipient Scans & Saves</h3>
-                            <p style="color: #7D6E64; line-height: 1.8;">
-                                When someone scans your QR code, they see your beautiful story. They can save it to their 
-                                personal Duyên archive—a private collection they can search and cherish forever.
-                            </p>
-                        </div>
-                    </div>
+        <section style="background: #F8F6F3; padding: 80px 24px;">
+            <div style="text-align: center; margin-bottom: 48px;">
+                <h2 style="font-family: 'Cormorant Garamond', serif; font-size: 2.6rem; font-weight: 700; margin-bottom: 10px;">How <span style="color: #DA251D; letter-spacing: 3px;">DUYÊN</span> Works</h2>
+                <p style="font-size: 1.15rem; font-weight: 300; color: #908882;">From creation to lasting memory in four simple steps</p>
+            </div>
+            <div style="max-width: 1060px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px;">
+                <div style="background: linear-gradient(180deg, #FFB3B8 0%, #FF5C6A 35%, #D41E3C 100%); border-radius: 16px; padding: 32px 24px; text-align: center;">
+                    <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(255,255,255,0.4); color: #2E2A28; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 18px; margin: 0 auto 16px;">1</div>
+                    <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 10px; color: #2E2A28;">Generate Your QR Code</h3>
+                    <p style="font-size: 1.05rem; font-weight: 300; color: rgba(255,255,255,0.9); line-height: 1.7;">Create a unique QR code in seconds. Customize with your colors, add your business name, and choose from Avery label templates for easy printing.</p>
+                </div>
+                <div style="background: linear-gradient(180deg, #80F0E8 0%, #20C4B8 35%, #0A726A 100%); border-radius: 16px; padding: 32px 24px; text-align: center;">
+                    <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(255,255,255,0.4); color: #2E2A28; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 18px; margin: 0 auto 16px;">2</div>
+                    <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 10px; color: #2E2A28;">Attach to Your Product or Card</h3>
+                    <p style="font-size: 1.05rem; font-weight: 300; color: rgba(255,255,255,0.9); line-height: 1.7;">Print on stickers, cards, tags, or packaging. Each QR code is unique and links to a beautiful landing page on duyen.io.</p>
+                </div>
+                <div style="background: linear-gradient(180deg, #E8A0E0 0%, #B040B8 35%, #581060 100%); border-radius: 16px; padding: 32px 24px; text-align: center;">
+                    <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(255,255,255,0.4); color: #2E2A28; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 18px; margin: 0 auto 16px;">3</div>
+                    <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 10px; color: #2E2A28;">Add Your Content</h3>
+                    <p style="font-size: 1.05rem; font-weight: 300; color: rgba(255,255,255,0.9); line-height: 1.7;">Upload photos, videos, messages, care instructions, or contact information. Create the experience you want recipients to discover.</p>
+                </div>
+                <div style="background: linear-gradient(180deg, #90E8B0 0%, #38B868 35%, #186838 100%); border-radius: 16px; padding: 32px 24px; text-align: center;">
+                    <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(255,255,255,0.4); color: #2E2A28; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 18px; margin: 0 auto 16px;">4</div>
+                    <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 10px; color: #2E2A28;">Recipient Scans & Saves</h3>
+                    <p style="font-size: 1.05rem; font-weight: 300; color: rgba(255,255,255,0.9); line-height: 1.7;">When someone scans your QR code, they see your beautiful story. They can save it to their personal Duyên archive—a private collection they can search and cherish forever.</p>
                 </div>
             </div>
         </section>
         
         <!-- Final CTA -->
-        <section style="background: linear-gradient(135deg, #C85A3E 0%, #8B1538 100%); padding: 80px 40px; text-align: center; color: white;">
-            <h2 style="font-family: 'Crimson Pro', Georgia, serif; font-size: 42px; margin-bottom: 20px;">Ready to Start Weaving?</h2>
-            <p style="font-size: 20px; margin-bottom: 40px; opacity: 0.9;">Create your first Duyên QR code in less than 60 seconds</p>
-            <button onclick="handleHeaderCTA()" style="background: white; color: #C85A3E; padding: 18px 48px; border-radius: 12px; border: none; font-weight: 600; font-size: 18px; cursor: pointer;">Create Your QR Code</button>
+        <section style="padding: 60px 24px; background: white; display: flex; justify-content: center;">
+            <div style="background: linear-gradient(180deg, #F0A0D0 0%, #C838A0 35%, #481040 100%); padding: 56px 32px; text-align: center; max-width: 1060px; width: 100%; border-radius: 24px;">
+                <h2 style="font-family: 'Cormorant Garamond', serif; font-size: 2.6rem; font-weight: 700; margin-bottom: 14px; color: white;">Ready to Start Weaving?</h2>
+                <p style="font-size: 1.2rem; font-weight: 300; margin-bottom: 32px; color: rgba(255,255,255,0.8);">Create your first Duyên QR code in less than 60 seconds.</p>
+                <button onclick="handleHeaderCTA()" style="background: white; color: #2E2A28; padding: 16px 40px; border-radius: 12px; border: none; font-weight: 600; font-size: 16px; cursor: pointer; box-shadow: 0 4px 20px rgba(0,0,0,0.15); font-family: 'Outfit', sans-serif;">Create Your QR Code</button>
+            </div>
         </section>
         
         <!-- Footer -->
-        <footer style="background: #3D2E24; color: rgba(255, 255, 255, 0.8); padding: 60px 40px 30px;">
+        <footer style="background: #2E2A28; color: rgba(255, 255, 255, 0.8); padding: 60px 40px 30px;">
             <div style="max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 40px; margin-bottom: 40px;">
                 <div>
-                    <h3 style="color: white; margin-bottom: 20px; font-size: 18px;">緣 DUYỀN</h3>
+                    <div style="display: flex; align-items: flex-start; gap: 12px; margin-bottom: 20px;">
+                        <span style="font-size: 36px; color: #DA251D; line-height: 1;">緣</span>
+                        <span style="font-family: 'Cormorant Garamond', serif; font-size: 32px; font-weight: 700; color: #DA251D; letter-spacing: 3px; line-height: 1;">DUYÊN</span>
+                    </div>
                     <p>Weaving the tapestry of life</p>
                     <p style="margin-top: 20px;">
                         Creating meaningful connections through QR codes that preserve what matters.
@@ -1674,46 +1720,48 @@ Add any product information here..."></textarea>
 
     <!-- About View -->
     <div id="aboutView" class="view">
-        <div style="max-width: 800px; margin: 0 auto; padding: 60px 40px;">
-            <button type="button" id="aboutBackBtn" style="background: none; border: none; color: #C85A3E; font-weight: 600; font-size: 15px; cursor: pointer; margin-bottom: 30px;">← Back</button>
-            
-            <h2 style="font-family: 'Crimson Pro', Georgia, serif; font-size: 42px; text-align: center; margin-bottom: 40px; color: #3D2E24;">About Duyên</h2>
-            
-            <p style="font-size: 18px; color: #555; line-height: 2; margin-bottom: 25px;">
-                Duyên was born in the quiet moments between destinations. While driving for Lyft during the pandemic, my passengers carried flowers, gifts, wrapped boxes — proof that someone, somewhere, was thinking of someone else. Bouquets to anniversaries. Care packages to new parents. A single rose to a doorstep in Oakland.
-            </p>
-            
-            <p style="font-size: 18px; color: #555; line-height: 2; margin-bottom: 25px;">
-                Every ride, I watched love show up. And every ride, I watched it disappear. The flowers wilted. The cards got lost. The love was real — why does the evidence have to be temporary?
-            </p>
-            
-            <div style="background: linear-gradient(135deg, #fff3e0 0%, #ffe8e0 100%); border-left: 4px solid #C85A3E; padding: 30px; border-radius: 12px; margin: 40px 0;">
-                <p style="color: #3D2E24; font-size: 18px; line-height: 1.9; margin: 0;">
-                    In Vietnamese, <strong style="color: #C85A3E;">duyên</strong> is the invisible thread that explains why certain people, places, and things enter your life and stay. Not quite fate, not quite chance. The reason your grandmother's ring feels like more than gold. Why a stranger's kindness, years later, still sits warm in your chest.
+        <div style="background: linear-gradient(135deg, var(--lantern-rose) 0%, var(--lantern-plum) 40%, #5A2A6A 70%, var(--lantern-teal) 100%); min-height: 100vh;">
+            <div style="max-width: 800px; margin: 0 auto; padding: 60px 40px;">
+                <button type="button" id="aboutBackBtn" style="background: rgba(255,255,255,0.15); border: none; color: white; font-weight: 600; font-size: 15px; cursor: pointer; margin-bottom: 30px; padding: 10px 20px; border-radius: 8px; backdrop-filter: blur(4px);">← Back</button>
+                
+                <h2 style="font-family: 'Cormorant Garamond', serif; font-size: 42px; text-align: center; margin-bottom: 40px; color: white;">About Duyên</h2>
+                
+                <p style="font-size: 18px; color: rgba(255,255,255,0.85); line-height: 2; margin-bottom: 25px;">
+                    Duyên was born in the quiet moments between destinations. While driving for Lyft during the pandemic, my passengers carried flowers, gifts, wrapped boxes — proof that someone, somewhere, was thinking of someone else. Bouquets to anniversaries. Care packages to new parents. A single rose to a doorstep in Oakland.
+                </p>
+                
+                <p style="font-size: 18px; color: rgba(255,255,255,0.85); line-height: 2; margin-bottom: 25px;">
+                    Every ride, I watched love show up. And every ride, I watched it disappear. The flowers wilted. The cards got lost. The love was real — why does the evidence have to be temporary?
+                </p>
+                
+                <div style="background: rgba(255,255,255,0.12); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.2); border-radius: 20px; padding: 40px 36px; margin: 44px 0;">
+                    <p style="color: white; font-size: 21px; line-height: 2; font-family: 'Cormorant Garamond', serif; font-style: italic; text-align: center; margin: 0;">
+                        In Vietnamese, <strong style="font-style: normal;">duyên</strong> is the invisible thread that explains why certain people, places, and things enter your life and stay. Not quite fate, not quite chance. The reason your grandmother's ring feels like more than gold. Why a stranger's kindness, years later, still sits warm in your chest.
+                    </p>
+                </div>
+                
+                <p style="font-size: 18px; color: rgba(255,255,255,0.85); line-height: 2; margin-bottom: 25px;">
+                    That is why Duyên exists. We give meaningful connections a place to live.
+                </p>
+                
+                <p style="font-size: 18px; color: rgba(255,255,255,0.85); line-height: 2; margin-bottom: 25px;">
+                    Scan a card tucked into a bouquet and you don't just see who sent it — you hear their voice, read their message, save the moment. Scan a tag on a handmade jacket and you see where it was made, who made it, how to repair it. Add your own photos, your own memories. When it wears out, you don't throw it away — the pattern lives, the story continues.
+                </p>
+                
+                <p style="font-size: 18px; color: rgba(255,255,255,0.85); line-height: 2; margin-bottom: 25px;">
+                    Every moment you save becomes another thread. We're building it all for your life tapestry — woven from the people, places, and things that made you who you are.
+                </p>
+                
+                <p style="font-size: 22px; color: white; line-height: 2; text-align: center; margin-top: 40px; font-family: 'Cormorant Garamond', serif; font-style: italic;">
+                    Not everything is chance. Some things are meant to be woven in.<br>
+                    <strong>Duyên is where they stay.</strong>
+                </p>
+                
+                <p style="text-align: right; margin-top: 40px; font-size: 16px; color: white;">
+                    — <strong>Trinh Dao</strong><br>
+                    <span style="color: rgba(255,255,255,0.6); font-size: 14px;">Founder, Duyên</span>
                 </p>
             </div>
-            
-            <p style="font-size: 18px; color: #555; line-height: 2; margin-bottom: 25px;">
-                That is why Duyên exists. We give meaningful connections a place to live.
-            </p>
-            
-            <p style="font-size: 18px; color: #555; line-height: 2; margin-bottom: 25px;">
-                Scan a card tucked into a bouquet and you don't just see who sent it — you hear their voice, read their message, save the moment. Scan a tag on a handmade jacket and you see where it was made, who made it, how to repair it. Add your own photos, your own memories. When it wears out, you don't throw it away — the pattern lives, the story continues.
-            </p>
-            
-            <p style="font-size: 18px; color: #555; line-height: 2; margin-bottom: 25px;">
-                Every moment you save becomes another thread. We're building it all for your life tapestry — woven from the people, places, and things that made you who you are.
-            </p>
-            
-            <p style="font-size: 20px; color: #3D2E24; line-height: 2; text-align: center; margin-top: 40px; font-style: italic;">
-                Not everything is chance. Some things are meant to be woven in.<br>
-                <strong style="color: #C85A3E;">Duyên is where they stay.</strong>
-            </p>
-            
-            <p style="text-align: right; margin-top: 40px; font-size: 16px; color: #3D2E24;">
-                — <strong>Trinh Dao</strong><br>
-                <span style="color: #9A8478; font-size: 14px;">Founder, Duyên</span>
-            </p>
         </div>
     </div>
 
@@ -1827,7 +1875,7 @@ Add any product information here..."></textarea>
             <button type="button" id="authModalClose" style="position: absolute; top: 16px; right: 16px; background: none; border: none; font-size: 24px; color: #9A8478; cursor: pointer; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 50; transition: color 0.2s;">✕</button>
             <div class="auth-logo">
                 <span class="symbol">緣</span>
-                <span class="text">DUYỀN</span>
+                <span class="text">DUYÊN</span>
             </div>
             
             <div id="signupForm">
@@ -2034,7 +2082,7 @@ Add any product information here..."></textarea>
         
         // Color presets
         const colorPresets = [
-            '#C85A3E', // burgundy (default - Duyền red)
+            '#C85A3E', // burgundy (default - Duyên red)
             '#000000', // black
             '#1a202c', // dark gray
             '#3D2E24', // slate
@@ -4752,5 +4800,74 @@ Add any product information here..."></textarea>
         });
 
     </script>
+<script>
+    // Splash screen
+    setTimeout(function() { 
+        var s = document.getElementById('duyenSplash');
+        if (s) s.classList.add('dismissed');
+        setTimeout(function() { if (s) s.style.display = 'none'; }, 600);
+    }, 2800);
+    
+    // Sticky note scroll reveal
+    var lcObserver = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry) {
+            if (entry.isIntersecting) entry.target.classList.add('revealed');
+        });
+    }, { threshold: 0.15 });
+    document.querySelectorAll('.lantern-card').forEach(function(card, i) {
+        var delays = [0, 0.18, 0.36, 0.52, 0.66, 0.78];
+        card.style.transitionDelay = (delays[i] || (i * 0.14)) + 's';
+        lcObserver.observe(card);
+    });
+
+    // Floating Lanterns Hero
+    (function() {
+        var hero = document.getElementById('lanternHeroSection');
+        if (!hero) return;
+        var colors = [
+            { fill: '#FF7A85', glow: '#FF7A85', accent: '#C41E4A' },
+            { fill: '#E84A8A', glow: '#E84A8A', accent: '#B33565' },
+            { fill: '#C86ABF', glow: '#C86ABF', accent: '#6E1878' },
+            { fill: '#90E8B0', glow: '#38B868', accent: '#186838' },
+            { fill: '#FF9E4A', glow: '#FF9E4A', accent: '#C85A00' },
+            { fill: '#3DDBD2', glow: '#3DDBD2', accent: '#0E8A83' },
+            { fill: '#3A8F6E', glow: '#3A8F6E', accent: '#2D7358' },
+            { fill: '#5CC8F0', glow: '#5CC8F0', accent: '#1878B0' },
+        ];
+        function makeLanternSVG(color, size) {
+            var s = size, bodyH = s * 0.6, bodyW = s * 0.5, topH = s * 0.12, cx = s / 2;
+            return '<svg width="'+s+'" height="'+s+'" viewBox="0 0 '+s+' '+s+'" fill="none">' +
+                '<rect x="'+(cx-bodyW*0.2)+'" y="'+(s*0.08)+'" width="'+(bodyW*0.4)+'" height="'+topH+'" rx="2" fill="'+color.accent+'"/>' +
+                '<line x1="'+cx+'" y1="0" x2="'+cx+'" y2="'+(s*0.08)+'" stroke="'+color.accent+'" stroke-width="1.5"/>' +
+                '<ellipse cx="'+cx+'" cy="'+(s*0.08+topH+bodyH*0.45)+'" rx="'+(bodyW*0.5)+'" ry="'+(bodyH*0.5)+'" fill="'+color.fill+'" opacity="0.85"/>' +
+                '<ellipse cx="'+cx+'" cy="'+(s*0.08+topH+bodyH*0.4)+'" rx="'+(bodyW*0.3)+'" ry="'+(bodyH*0.35)+'" fill="white" opacity="0.15"/>' +
+                '<line x1="'+cx+'" y1="'+(s*0.08+topH)+'" x2="'+cx+'" y2="'+(s*0.08+topH+bodyH*0.9)+'" stroke="'+color.accent+'" stroke-width="0.8" opacity="0.4"/>' +
+                '<rect x="'+(cx-bodyW*0.15)+'" y="'+(s*0.08+topH+bodyH*0.85)+'" width="'+(bodyW*0.3)+'" height="'+(topH*0.7)+'" rx="2" fill="'+color.accent+'"/>' +
+                '<line x1="'+cx+'" y1="'+(s*0.08+topH+bodyH*0.85+topH*0.7)+'" x2="'+cx+'" y2="'+(s-2)+'" stroke="'+color.fill+'" stroke-width="1.2" opacity="0.6"/>' +
+                '<circle cx="'+cx+'" cy="'+(s-2)+'" r="2" fill="'+color.fill+'" opacity="0.5"/></svg>';
+        }
+        function spawnLantern(instant) {
+            var el = document.createElement('div');
+            el.className = 'lantern-float';
+            var color = colors[Math.floor(Math.random() * colors.length)];
+            var size = 40 + Math.random() * 50;
+            var duration = 10 + Math.random() * 16;
+            var left = 5 + Math.random() * 85;
+            el.innerHTML = makeLanternSVG(color, size);
+            if (instant) {
+                var offset = Math.random() * 0.6;
+                el.style.cssText = 'left:'+left+'%;bottom:-'+size+'px;animation-duration:'+duration+'s;animation-delay:-'+(duration*offset)+'s;--glow-color:'+color.glow+';';
+            } else {
+                el.style.cssText = 'left:'+left+'%;bottom:-'+size+'px;animation-duration:'+duration+'s;animation-delay:0s;--glow-color:'+color.glow+';';
+            }
+            hero.appendChild(el);
+            setTimeout(function() { el.remove(); }, duration * 1000);
+        }
+        setTimeout(function() {
+            for (var i = 0; i < 20; i++) spawnLantern(true);
+            setInterval(spawnLantern, 900);
+        }, 4500);
+    })();
+</script>
 </body>
 </html>
