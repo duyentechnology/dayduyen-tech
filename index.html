@@ -464,7 +464,7 @@
         
         .mode-card {
             background: white;
-            border: 2px solid #E8DDD6;
+            border: 3px solid var(--lantern-teal);
             border-radius: 20px;
             padding: 40px;
             text-align: center;
@@ -474,19 +474,23 @@
         
         .mode-card:hover {
             transform: translateY(-5px);
-            border-color: #3D2E24;
-            box-shadow: 0 10px 30px rgba(61, 46, 36, 0.12);
+            border-color: var(--lantern-teal);
+            box-shadow: 0 10px 30px rgba(42, 168, 160, 0.2);
         }
         
         .mode-icon {
             font-size: 60px;
             margin-bottom: 20px;
+            background: none;
+            border: none;
+            box-shadow: none;
         }
         
         .mode-title {
             font-size: 24px;
             font-weight: 600;
             margin-bottom: 15px;
+            color: #1A1410;
         }
         
         .mode-description {
@@ -496,7 +500,7 @@
         }
         
         .mode-button {
-            background: #1A1410;
+            background: var(--lantern-teal);
             color: white;
             padding: 12px 24px;
             border-radius: 8px;
