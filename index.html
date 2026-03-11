@@ -336,15 +336,14 @@
         .form-group input {
             width: 100%;
             padding: 14px 18px;
-            border: 2px solid var(--lantern-plum);
+            border: 2px solid #E8DDD6;
             border-radius: 12px;
             font-size: 16px;
         }
         
         .form-group input:focus {
             outline: none;
-            border-color: var(--lantern-plum);
-            box-shadow: 0 0 0 3px rgba(139, 58, 127, 0.12);
+            border-color: #C85A3E;
         }
         
         .btn-auth {
@@ -361,7 +360,7 @@
         }
         
         .btn-auth:hover {
-            background: #6E2D65;
+            background: #b04a2e;
         }
         
         .auth-toggle {
@@ -386,12 +385,12 @@
             gap: 10px;
             width: 100%;
             padding: 14px;
-            border: 2px solid var(--lantern-plum);
+            border: 2px solid #E8DDD6;
             border-radius: 12px;
             background: white;
             font-size: 15px;
             font-weight: 600;
-            color: var(--lantern-plum);
+            color: #3D2E24;
             cursor: pointer;
             transition: all 0.3s;
             font-family: inherit;
@@ -399,10 +398,9 @@
         }
 
         .btn-social:hover {
-            background: var(--lantern-plum);
-            color: white;
+            border-color: #B08968;
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(139, 58, 127, 0.2);
+            box-shadow: 0 4px 12px rgba(61, 46, 36, 0.08);
         }
 
         .auth-divider {
@@ -1167,7 +1165,7 @@
                 <span class="user-email" id="userEmail"></span>
                 <button class="cta-button" onclick="showView('mode')" style="background: white; color: var(--lantern-plum); border: 2px solid var(--lantern-plum);">+ New QR</button>
                 <button class="cta-button" onclick="showView('myCodes')" style="background: #2E2A28; color: white;">My QR Codes <span id="qrCount" style="background: var(--lantern-plum); color: white; padding: 2px 8px; border-radius: 10px; font-size: 11px; margin-left: 4px;">0</span></button>
-                <button class="cta-button" onclick="logout()" style="background: #FAF0EA; color: #7D6E64;">Log Out</button>
+                <button class="cta-button" onclick="logout()" style="background: var(--lantern-plum); color: white;">Log Out</button>
             </div>
         </div>
     </header>
