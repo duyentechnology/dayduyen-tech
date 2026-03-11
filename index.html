@@ -1367,7 +1367,7 @@
                 <div style="background: #F8F5FC; border-radius: 16px; padding: 30px; margin: 30px 0; border: 3px solid var(--lantern-plum); box-shadow: 0 4px 20px rgba(139, 58, 127, 0.1);">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                         <h4 style="font-size: 22px; font-weight: 700; color: var(--lantern-plum); margin: 0;">📦 Product Data Upload</h4>
-                        <span style="background: linear-gradient(135deg, var(--lantern-plum) 0%, #8B1538 100%); color: white; padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 700; box-shadow: 0 4px 12px rgba(200, 90, 62, 0.3);">
+                        <span style="background: var(--lantern-plum); color: white; padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 700; box-shadow: 0 4px 12px rgba(139, 58, 127, 0.3);">
                             ✨ Coming Soon: AI will extract info
                         </span>
                     </div>
@@ -1465,7 +1465,7 @@ Add any product information here..."></textarea>
                 <div style="background: #F8F5FC; border-radius: 16px; padding: 30px; margin: 30px 0; border: 3px solid var(--lantern-plum); box-shadow: 0 4px 20px rgba(139, 58, 127, 0.1);">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                         <h4 style="font-size: 22px; font-weight: 700; color: var(--lantern-plum); margin: 0;">📦 Product Data Upload</h4>
-                        <span style="background: linear-gradient(135deg, var(--lantern-plum) 0%, #8B1538 100%); color: white; padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 700; box-shadow: 0 4px 12px rgba(200, 90, 62, 0.3);">
+                        <span style="background: var(--lantern-plum); color: white; padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 700; box-shadow: 0 4px 12px rgba(139, 58, 127, 0.3);">
                             ✨ Coming Soon: AI will extract info
                         </span>
                     </div>
@@ -1485,7 +1485,7 @@ Add any product information here..."></textarea>
                     <div id="productDataForms" style="margin-top: 25px;"></div>
                     
                     <div style="text-align: center; margin-top: 25px;">
-                        <button type="button" onclick="toggleProductData()" style="background: linear-gradient(135deg, var(--lantern-plum) 0%, #b04a2e 100%); color: white; border: none; padding: 16px 40px; border-radius: 12px; font-weight: 700; cursor: pointer; font-size: 16px; box-shadow: 0 4px 15px rgba(200, 90, 62, 0.4); transition: all 0.3s;">
+                        <button type="button" onclick="toggleProductData()" style="background: var(--lantern-plum); color: white; border: none; padding: 16px 40px; border-radius: 12px; font-weight: 700; cursor: pointer; font-size: 16px; box-shadow: 0 4px 15px rgba(139, 58, 127, 0.3); transition: all 0.3s;">
                             <span id="toggleProductDataText">📋 Show Product Upload Forms</span>
                         </button>
                     </div>
@@ -1862,7 +1862,7 @@ Add any product information here..."></textarea>
     <!-- Data Viewer Modal -->
     <div id="dataViewerModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 9999; overflow-y: auto; padding: 20px;">
         <div style="max-width: 600px; margin: 40px auto; background: white; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 18px 24px; background: linear-gradient(135deg, var(--lantern-plum) 0%, #8B1538 100%); color: white;">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 18px 24px; background: var(--lantern-plum); color: white;">
                 <h3 id="dataViewerTitle" style="margin: 0; font-size: 18px;">Attached Data</h3>
                 <button type="button" id="dataViewerClose" style="background: rgba(255,255,255,0.2); border: none; color: white; width: 36px; height: 36px; border-radius: 50%; font-size: 18px; cursor: pointer; font-weight: bold;">✕</button>
             </div>
@@ -2020,7 +2020,7 @@ Add any product information here..."></textarea>
 
         let currentUser = null;
         let currentMode = null;
-        let selectedColor = '#8B3A7F';
+        let selectedColor = '#8B3A7F'; // lantern-plum hex
         let generatedQRCodes = [];
         let savedQRCodes = [];
         let editingQRIndex = null;
@@ -2939,7 +2939,7 @@ Add any product information here..."></textarea>
             if (prefix) prefix.value = '';
             
             // Reset color to default
-            selectedColor = 'var(--lantern-plum)';
+            selectedColor = '#8B3A7F';
             document.getElementById('colorPicker').value = 'var(--lantern-plum)';
             document.getElementById('hexInput').value = 'var(--lantern-plum)';
             renderColorPresets();
