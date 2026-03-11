@@ -336,14 +336,15 @@
         .form-group input {
             width: 100%;
             padding: 14px 18px;
-            border: 2px solid #E8DDD6;
+            border: 2px solid var(--lantern-plum);
             border-radius: 12px;
             font-size: 16px;
         }
         
         .form-group input:focus {
             outline: none;
-            border-color: #C85A3E;
+            border-color: var(--lantern-plum);
+            box-shadow: 0 0 0 3px rgba(139,58,127,0.12);
         }
         
         .btn-auth {
@@ -360,7 +361,7 @@
         }
         
         .btn-auth:hover {
-            background: #b04a2e;
+            background: #6E2D65;
         }
         
         .auth-toggle {
@@ -385,12 +386,12 @@
             gap: 10px;
             width: 100%;
             padding: 14px;
-            border: 2px solid #E8DDD6;
+            border: 2px solid var(--lantern-plum);
             border-radius: 12px;
             background: white;
             font-size: 15px;
             font-weight: 600;
-            color: #3D2E24;
+            color: var(--lantern-plum);
             cursor: pointer;
             transition: all 0.3s;
             font-family: inherit;
@@ -398,9 +399,10 @@
         }
 
         .btn-social:hover {
-            border-color: #B08968;
+            background: var(--lantern-plum);
+            color: white;
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(61, 46, 36, 0.08);
+            box-shadow: 0 4px 12px rgba(139, 58, 127, 0.2);
         }
 
         .auth-divider {
@@ -472,8 +474,8 @@
         
         .mode-card:hover {
             transform: translateY(-5px);
-            border-color: #C85A3E;
-            box-shadow: 0 10px 30px rgba(200, 90, 62, 0.15);
+            border-color: #3D2E24;
+            box-shadow: 0 10px 30px rgba(61, 46, 36, 0.12);
         }
         
         .mode-icon {
@@ -494,7 +496,7 @@
         }
         
         .mode-button {
-            background: var(--lantern-plum);
+            background: #1A1410;
             color: white;
             padding: 12px 24px;
             border-radius: 8px;
@@ -762,16 +764,16 @@
         .qr-card {
             background: white;
             border-radius: 16px;
-            border: 2px solid #E8DDD6;
+            border: 2px solid var(--lantern-plum);
             overflow: hidden;
             transition: all 0.3s;
             cursor: pointer;
         }
         
         .qr-card:hover {
-            border-color: #C85A3E;
+            border-color: var(--lantern-plum);
             transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(200, 90, 62, 0.15);
+            box-shadow: 0 8px 25px rgba(139, 58, 127, 0.15);
         }
         
         .qr-card-preview {
@@ -878,8 +880,8 @@
         }
         
         .qr-card.batch-mode.batch-selected {
-            border-color: #C85A3E;
-            box-shadow: 0 0 0 3px rgba(200, 90, 62, 0.2);
+            border-color: var(--lantern-plum);
+            box-shadow: 0 0 0 3px rgba(139, 58, 127, 0.2);
         }
         
         .qr-card-data {
@@ -972,13 +974,14 @@
         }
         
         .card-action-edit {
-            background: var(--lantern-plum);
+            background: #1A1410;
             color: white;
         }
         
         .card-action-download {
-            background: #E8DDD6;
-            color: #3D2E24;
+            background: white;
+            color: var(--lantern-plum);
+            border: 2px solid var(--lantern-plum);
         }
         
         .photo-preview {
@@ -1613,7 +1616,7 @@ Add any product information here..."></textarea>
                         <option value="active">Active</option>
                         <option value="draft">Drafts</option>
                     </select>
-                    <button type="button" id="batchEditToggle" class="btn-primary" style="background: #3D2E24;">✏️ Batch Edit</button>
+                    <button type="button" id="batchEditToggle" class="btn-primary" style="background: #1A1410;">✏️ Batch Edit</button>
                     <button class="btn-primary" onclick="showView('mode')">+ New QR Code</button>
                 </div>
             </div>
