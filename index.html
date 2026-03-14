@@ -2126,6 +2126,12 @@ Add any product information here..."></textarea>
             document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
             document.getElementById(view + 'View').classList.add('active');
             if (view === 'myCodes') renderMyCodes();
+            // Save view to URL hash so refresh restores position
+            if (view === 'landing') {
+                history.replaceState(null, '', window.location.pathname);
+            } else {
+                history.replaceState(null, '', '#' + view);
+            }
         }
         
         function handleHeaderCTA() {
@@ -4817,7 +4823,12 @@ Add any product information here..."></textarea>
                 renderMyCodes();
                 updateQRCount();
                 
-                if (savedQRCodes.length > 0) {
+                // Restore view from URL hash if present
+                var hash = window.location.hash.replace('#', '');
+                var validViews = ['myCodes', 'mode', 'generator', 'about', 'editQR'];
+                if (hash && validViews.includes(hash)) {
+                    showView(hash);
+                } else if (savedQRCodes.length > 0) {
                     showView('myCodes');
                 } else if (event === 'SIGNED_IN') {
                     showView('mode');
