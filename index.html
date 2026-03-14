@@ -642,25 +642,25 @@
         }
         
         .photo-upload-area {
-            border: 3px dashed #C85A3E;
+            border: 3px dashed var(--lantern-plum);
             border-radius: 12px;
             padding: 40px;
             text-align: center;
-            background: linear-gradient(135deg, #fff5f5 0%, #ffe5e5 100%);
+            background: linear-gradient(135deg, #f9f4f9 0%, #f0e5f0 100%);
             cursor: pointer;
             transition: all 0.3s;
             margin-bottom: 20px;
         }
         
         .photo-upload-area:hover {
-            background: linear-gradient(135deg, #ffe5e5 0%, #ffd5d5 100%);
-            border-color: #b04a2e;
+            background: linear-gradient(135deg, #f0e5f0 0%, #e8d5e8 100%);
+            border-color: #6e2d65;
             transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(200, 90, 62, 0.2);
+            box-shadow: 0 8px 20px rgba(139, 58, 127, 0.2);
         }
         
         .file-upload-area {
-            border: 3px dashed #3D2E24;
+            border: 3px dashed var(--lantern-teal);
             border-radius: 12px;
             padding: 30px;
             text-align: center;
@@ -1921,10 +1921,6 @@ Add any product information here..."></textarea>
                 <button class="btn-social" onclick="handleGoogleAuth()">
                     <span style="font-size: 1.3rem;">🔵</span> Continue with Google
                 </button>
-                <button class="btn-social" onclick="handleAppleAuth()">
-                    <span style="font-size: 1.3rem;">🍎</span> Continue with Apple
-                </button>
-
                 <div class="auth-divider">or sign up with email</div>
                 
                 <div class="form-group">
@@ -1959,10 +1955,6 @@ Add any product information here..."></textarea>
                 <button class="btn-social" onclick="handleGoogleAuth()">
                     <span style="font-size: 1.3rem;">🔵</span> Continue with Google
                 </button>
-                <button class="btn-social" onclick="handleAppleAuth()">
-                    <span style="font-size: 1.3rem;">🍎</span> Continue with Apple
-                </button>
-
                 <div class="auth-divider">or log in with email</div>
                 
                 <div class="form-group">
@@ -2055,7 +2047,7 @@ Add any product information here..."></textarea>
 
         let currentUser = null;
         let currentMode = null;
-        let selectedColor = '#C85A3E';
+        let selectedColor = '#8B3A7F';
         let generatedQRCodes = [];
         let savedQRCodes = [];
         let editingQRIndex = null;
@@ -2118,16 +2110,16 @@ Add any product information here..."></textarea>
         
         // Color presets
         const colorPresets = [
-            '#C85A3E', // burgundy (default - Duyên red)
-            '#000000', // black
-            '#1a202c', // dark gray
-            '#3D2E24', // slate
-            '#3182ce', // blue
-            '#81B29A', // green
-            '#dd6b20', // orange
-            '#9f7aea', // purple
-            '#e53e3e', // red
-            '#d69e2e'  // gold
+            '#8B3A7F', // lantern-plum
+            '#2AA8A0', // lantern-teal
+            '#3A8F6E', // lantern-jade
+            '#E8636F', // lantern-coral
+            '#D4487A', // lantern-rose
+            '#4A9EC4', // lantern-sky
+            '#E8B84A', // lantern-gold
+            '#D4823E', // lantern-amber
+            '#1A1410', // black
+            '#3D2E24', // charcoal
         ];
         
         function showView(view) {
@@ -2974,7 +2966,7 @@ Add any product information here..."></textarea>
             if (prefix) prefix.value = '';
             
             // Reset color to default
-            selectedColor = '#C85A3E';
+            selectedColor = '#8B3A7F';
             document.getElementById('colorPicker').value = '#C85A3E';
             document.getElementById('hexInput').value = '#C85A3E';
             renderColorPresets();
