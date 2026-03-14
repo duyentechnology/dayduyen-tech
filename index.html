@@ -4759,7 +4759,13 @@ Add any product information here..."></textarea>
                 const aboutBtn2 = document.getElementById('headerAboutBtn');
                 if (aboutBtn2) aboutBtn2.style.display = 'inline-block';
                 document.getElementById('userMenu').classList.remove('active');
-                showView('landing');
+                // If hash is about, restore it even when logged out
+                var hashOut = window.location.hash.replace('#', '');
+                if (hashOut === 'about') {
+                    showView('about');
+                } else {
+                    showView('landing');
+                }
                 return;
             }
             
@@ -4845,6 +4851,12 @@ Add any product information here..."></textarea>
         var s = document.getElementById('duyenSplash');
         if (s) s.classList.add('dismissed');
         setTimeout(function() { if (s) s.style.display = 'none'; }, 600);
+        // After splash, restore hash view if already authenticated
+        var hash = window.location.hash.replace('#', '');
+        var validViews = ['myCodes', 'mode', 'generator', 'about', 'editQR'];
+        if (hash && validViews.includes(hash) && currentUser) {
+            showView(hash);
+        }
     }, 2800);
     
 
