@@ -3908,6 +3908,88 @@ Add any product information here..."></textarea>
             if (countEl) countEl.textContent = savedQRCodes.length;
         }
         
+        // ── CLAIM QR CODE FROM DUYEN.IO REDIRECT ──────────────────────────
+        async function handleClaim(qrId) {
+            if (!qrId || !currentUser) return;
+
+            var already = savedQRCodes.find(function(c) { return c.id === qrId || c.dbId === qrId; });
+            if (already) {
+                showClaimBanner({ label: already.label, url: already.url, id: qrId }, true);
+                return;
+            }
+
+            try {
+                var { data, error } = await db
+                    .from('qr_codes')
+                    .select('id, label, url, business_user_id')
+                    .eq('id', qrId)
+                    .single();
+
+                if (error || !data) { showClaimBanner(null, false); return; }
+
+                if (data.business_user_id && data.business_user_id !== currentUser.id) {
+                    showClaimBanner(data, 'taken');
+                    return;
+                }
+
+                showClaimBanner(data, false);
+            } catch(e) {
+                console.error('Claim lookup error:', e);
+            }
+        }
+
+        function showClaimBanner(qrData, alreadyOwned) {
+            var existing = document.getElementById('claimBanner');
+            if (existing) existing.remove();
+
+            var banner = document.createElement('div');
+            banner.id = 'claimBanner';
+            banner.style.cssText = 'background:linear-gradient(135deg,#f9f4f9,#f0e5f0);border:2px solid #8B3A7F;border-radius:16px;padding:1.25rem 1.5rem;margin-bottom:1.5rem;';
+
+            if (!qrData) {
+                banner.innerHTML = '<p style="color:#8B3A7F;font-weight:600;margin:0;">⚠️ QR code not found.</p>';
+            } else if (alreadyOwned === true) {
+                banner.innerHTML = '<p style="color:#8B3A7F;font-weight:600;margin:0;">✅ <strong>' + (qrData.label || 'This QR code') + '</strong> is already in your account.</p>';
+            } else if (alreadyOwned === 'taken') {
+                banner.innerHTML = '<p style="color:#8B3A7F;font-weight:600;margin:0;">🔒 This QR code has already been claimed by another account.</p>';
+            } else {
+                banner.innerHTML =
+                    '<div style="font-size:1.1rem;font-weight:700;color:#3d1a38;margin-bottom:0.5rem;">📦 Claim This QR Code</div>' +
+                    '<p style="color:#5D4E44;font-size:0.9rem;margin:0 0 1rem;"><strong>' + (qrData.label || 'Unnamed Card') + '</strong><br>' +
+                    '<span style="font-size:0.78rem;color:#9A8478;">' + (qrData.url || '') + '</span></p>' +
+                    '<button onclick="saveClaimToAccount(\'' + qrData.id + '\')" style="background:#8B3A7F;color:white;border:none;border-radius:12px;padding:10px 24px;font-size:0.9rem;font-weight:600;cursor:pointer;">✅ Save to My Account</button>' +
+                    '<button onclick="document.getElementById(\'claimBanner\').remove();window.history.replaceState(null,\'\',window.location.pathname);" style="background:none;border:none;color:#9A8478;font-size:0.85rem;cursor:pointer;margin-left:1rem;">Dismiss</button>';
+            }
+
+            var grid = document.getElementById('myCodesGrid');
+            if (grid && grid.parentNode) grid.parentNode.insertBefore(banner, grid);
+        }
+
+        async function saveClaimToAccount(qrId) {
+            if (!currentUser) return;
+            try {
+                var { error } = await db
+                    .from('qr_codes')
+                    .update({ business_user_id: currentUser.id, source: 'business' })
+                    .eq('id', qrId);
+
+                if (error) { alert('Error claiming. Please try again.'); return; }
+
+                window.history.replaceState(null, '', window.location.pathname);
+                var banner = document.getElementById('claimBanner');
+                if (banner) {
+                    banner.style.background = 'linear-gradient(135deg,#f0fdf4,#dcfce7)';
+                    banner.style.borderColor = '#16a34a';
+                    banner.innerHTML = '<p style="color:#16a34a;font-weight:600;margin:0;">✅ QR code saved to your account!</p>';
+                }
+                setTimeout(function() { window.location.reload(); }, 2000);
+            } catch(e) {
+                console.error('Claim save error:', e);
+                alert('Something went wrong. Please try again.');
+            }
+        }
+        // ────────────────────────────────────────────────────────────────────
+
         function renderMyCodes() {
             var grid = document.getElementById('myCodesGrid');
             var emptyState = document.getElementById('myCodesEmpty');
@@ -4827,7 +4909,11 @@ Add any product information here..."></textarea>
                 // Restore view from URL hash if present
                 var hash = window.location.hash.replace('#', '');
                 var validViews = ['myCodes', 'mode', 'generator', 'about', 'editQR'];
-                if (hash && validViews.includes(hash)) {
+                if (hash && hash.startsWith('claim/')) {
+                    var claimId = hash.replace('claim/', '').trim();
+                    showView('myCodes');
+                    handleClaim(claimId);
+                } else if (hash && validViews.includes(hash)) {
                     showView(hash);
                 } else if (savedQRCodes.length > 0) {
                     showView('myCodes');
