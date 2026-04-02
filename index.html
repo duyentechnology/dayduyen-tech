@@ -1904,6 +1904,14 @@ Add any product information here..."></textarea>
     <div class="auth-modal" id="authModal">
         <div class="auth-container" style="position: relative;">
             <button type="button" id="authModalClose" style="position: absolute; top: 16px; right: 16px; background: none; border: none; font-size: 24px; color: #9A8478; cursor: pointer; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 50; transition: color 0.2s;">✕</button>
+
+            <!-- Shown only when arriving from a QR code scan -->
+            <div id="claimContextMsg" style="display:none; background:linear-gradient(135deg,#f9f4f9,#f0e5f0); border:2px solid #8B3A7F; border-radius:14px; padding:1rem 1.25rem; margin-bottom:1.25rem; text-align:center;">
+                <div style="font-size:1.5rem; margin-bottom:0.4rem;">📦</div>
+                <div style="font-weight:700; color:#3d1a38; font-size:0.95rem; margin-bottom:0.25rem;">You scanned a Duyên QR card</div>
+                <div style="color:#7D6E64; font-size:0.82rem; line-height:1.5;">Create a free account or log in to claim this card, track scans, and add your business info.</div>
+            </div>
+
             <div class="auth-logo">
                 <span class="symbol">緣</span>
                 <span class="text">DUYÊN</span>
@@ -4935,7 +4943,18 @@ Add any product information here..."></textarea>
         // After splash, restore hash view if already authenticated
         var hash = window.location.hash.replace('#', '');
         var validViews = ['myCodes', 'mode', 'generator', 'about', 'editQR'];
-        if (hash && validViews.includes(hash) && currentUser) {
+        if (hash && hash.startsWith('claim/')) {
+            if (!currentUser) {
+                // Not logged in — show auth modal with claim-specific messaging
+                document.getElementById('claimContextMsg').style.display = 'block';
+                document.getElementById('signupForm').style.display = 'block';
+                document.getElementById('loginForm').style.display = 'none';
+                document.getElementById('verifyForm').style.display = 'none';
+                document.getElementById('authModalClose').style.display = 'none';
+                document.getElementById('authModal').classList.add('active');
+            }
+            // If logged in, onAuthStateChange will handle the claim
+        } else if (hash && validViews.includes(hash) && currentUser) {
             showView(hash);
         }
     }, 2800);
