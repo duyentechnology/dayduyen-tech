@@ -5443,25 +5443,26 @@ Add any product information here..."></textarea>
                 renderMyCodes();
                 updateQRCount();
 
-                // Load business profile in background
-                loadBizProfileFromSupabase();
-
-                // Restore view from URL hash if present
-                var hash = window.location.hash.replace('#', '');
-                var validViews = ['myCodes', 'mode', 'generator', 'about', 'editQR', 'bizDashboard', 'bizProfile', 'bizScanChoice', 'bizBatchScan'];
-                if (hash && hash.startsWith('claim/')) {
-                    var claimId = hash.replace('claim/', '').trim();
-                    showView('myCodes');
-                    handleClaim(claimId);
-                } else if (hash && validViews.includes(hash)) {
-                    showView(hash);
-                } else if (savedQRCodes.length > 0) {
-                    showView('myCodes');
-                } else if (event === 'SIGNED_IN') {
-                    showView('mode');
-                } else {
-                    showView('myCodes');
-                }
+                // Load business profile FIRST, then navigate
+                loadBizProfileFromSupabase().then(function() {
+                    var hash = window.location.hash.replace('#', '');
+                    var validViews = ['myCodes', 'mode', 'generator', 'about', 'editQR', 'bizDashboard', 'bizProfile', 'bizScanChoice', 'bizBatchScan'];
+                    if (hash && hash.startsWith('claim/')) {
+                        var claimId = hash.replace('claim/', '').trim();
+                        showView('myCodes');
+                        handleClaim(claimId);
+                    } else if (hash && validViews.includes(hash)) {
+                        showView(hash);
+                    } else if (!bizProfileData) {
+                        // No profile yet — first timer, guide them to dashboard
+                        showView('bizDashboard');
+                    } else if (savedQRCodes.length > 0) {
+                        // Returning user with QR codes
+                        showView('myCodes');
+                    } else {
+                        showView('bizDashboard');
+                    }
+                });
             }
         });
 
