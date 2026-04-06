@@ -1168,8 +1168,8 @@
             <button class="cta-button" id="headerBtn" onclick="handleHeaderCTA()">Log In</button>
             <div class="user-menu" id="userMenu">
                 <span class="user-email" id="userEmail"></span>
-                <button class="cta-button" onclick="showView('mode')" style="background: white; color: #8B3A7F; border: 2px solid var(--lantern-plum);">+ New QR</button>
-                <button class="cta-button" onclick="showView('myCodes')" style="background: #2E2A28; color: white;">My QR Codes <span id="qrCount" style="background: #8B3A7F; color: white; padding: 2px 8px; border-radius: 10px; font-size: 11px; margin-left: 4px;">0</span></button>
+                <button class="cta-button" id="adminNewQR" onclick="showView('mode')" style="background: white; color: #8B3A7F; border: 2px solid var(--lantern-plum); display:none;">+ New QR</button>
+                <button class="cta-button" id="adminMyCodes" onclick="showView('myCodes')" style="background: #2E2A28; color: white; display:none;">My QR Codes <span id="qrCount" style="background: #8B3A7F; color: white; padding: 2px 8px; border-radius: 10px; font-size: 11px; margin-left: 4px;">0</span></button>
                 <button class="cta-button" onclick="showView('bizDashboard')" style="background: #8B3A7F; color: white;">My Dashboard</button>
                 <button class="cta-button" onclick="logout()" style="background: #FAF0EA; color: #7D6E64;">Log Out</button>
             </div>
@@ -2325,7 +2325,28 @@ Add any product information here..."></textarea>
             '#6B4FA0', // violet
         ];
         
+        var ADMIN_EMAIL = 'redruffles@live.com';
+        var GENERATOR_VIEWS = ['mode', 'generator', 'myCodes', 'editQR'];
+
+        function isAdmin() {
+            return currentUser && currentUser.email === ADMIN_EMAIL;
+        }
+
+        function applyAdminNav() {
+            var newQR    = document.getElementById('adminNewQR');
+            var myCodes  = document.getElementById('adminMyCodes');
+            var show = isAdmin();
+            if (newQR)   newQR.style.display   = show ? 'inline-block' : 'none';
+            if (myCodes) myCodes.style.display  = show ? 'inline-block' : 'none';
+        }
+
         function showView(view) {
+            // Block generator views for non-admins
+            if (GENERATOR_VIEWS.includes(view) && !isAdmin()) {
+                console.warn('Access denied to generator view:', view);
+                showView('bizDashboard');
+                return;
+            }
             document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
             var el = document.getElementById(view + 'View');
             if (!el) { console.warn('View not found:', view); return; }
@@ -2344,7 +2365,7 @@ Add any product information here..."></textarea>
         
         function handleHeaderCTA() {
             if (currentUser) {
-                showView('mode');
+                isAdmin() ? showView('myCodes') : showView('bizDashboard');
             } else {
                 document.getElementById('signupForm').style.display = 'none';
                 document.getElementById('loginForm').style.display = 'block';
@@ -5392,6 +5413,7 @@ Add any product information here..."></textarea>
                 const aboutBtn = document.getElementById('headerAboutBtn');
                 if (aboutBtn) aboutBtn.style.display = 'none';
                 document.getElementById('userMenu').classList.add('active');
+                applyAdminNav();
                 
                 // Load QR codes using token from callback (NOT getSession which deadlocks)
                 try {
