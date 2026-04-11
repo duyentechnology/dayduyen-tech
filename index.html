@@ -2593,9 +2593,10 @@ Add any product information here..."></textarea>
             
             if (error) { alert('❌ ' + error.message); return; }
             
-            document.getElementById('verifyEmail').textContent = email;
+            // No email verification required — onAuthStateChange will route the user
             document.getElementById('signupForm').style.display = 'none';
-            document.getElementById('verifyForm').style.display = 'block';
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('authModal').style.display = 'none';
         }
         
         function checkPasswordMatch() {
