@@ -2438,7 +2438,7 @@ Add any product information here..."></textarea>
             }
         });
 
-        let currentUser = null;
+        var currentUser = null;
         let currentMode = null;
         let selectedColor = '#8B3A7F';
         let generatedQRCodes = [];
@@ -3421,9 +3421,6 @@ Add any product information here..."></textarea>
             var modal = document.getElementById('bizProfileSuccessModal');
             if (modal) modal.style.display = 'none';
             showView('bizDashboard');
-        }
-
-
         }
 
         function populateBizProfile() {
@@ -5901,6 +5898,14 @@ Add any product information here..."></textarea>
             // If logged in, onAuthStateChange will handle the claim
         } else if (hash && validViews.includes(hash) && currentUser) {
             showView(hash);
+        } else if (!currentUser) {
+            // Not logged in — always show login modal so business users don't land on the marketing page
+            document.getElementById('claimContextMsg').style.display = 'none';
+            document.getElementById('signupForm').style.display = 'none';
+            document.getElementById('loginForm').style.display = 'block';
+            document.getElementById('verifyForm').style.display = 'none';
+            document.getElementById('authModalClose').style.display = 'none';
+            document.getElementById('authModal').classList.add('active');
         }
     }, 2800);
     
