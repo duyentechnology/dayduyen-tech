@@ -3410,7 +3410,7 @@ Add any product information here..."></textarea>
 
                 console.log('💾 Saving profile for user:', user.id);
                 var { error: saveError } = await db.from('profiles')
-                    .upsert({ id: user.id, business_profile: bizProfileData, updated_at: new Date().toISOString() }, { onConflict: 'id' });
+                    .upsert({ id: user.id, business_profile: bizProfileData }, { onConflict: 'id' });
 
                 if (saveError) {
                     console.error('❌ Profile save error:', saveError.message, saveError);
