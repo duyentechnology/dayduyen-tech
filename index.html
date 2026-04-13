@@ -1812,8 +1812,20 @@ Add any product information here..."></textarea>
         <div class="generator" style="max-width: 600px;">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
                 <h2 style="font-family:'Cormorant Garamond',serif;font-size:1.8rem;font-weight:700;color:#8B3A7F;margin:0;">Business Profile</h2>
-                <button type="button" onclick="showView('bizDashboard')" style="background:#fff;color:#8B3A7F;border:2px solid #8B3A7F;padding:8px 18px;border-radius:10px;font-family:'Outfit',sans-serif;font-weight:600;font-size:13px;cursor:pointer;">← Dashboard</button>
+                <button id="bizProfileBackBtn" type="button" onclick="showView('bizDashboard')" style="background:#fff;color:#8B3A7F;border:2px solid #8B3A7F;padding:8px 18px;border-radius:10px;font-family:'Outfit',sans-serif;font-weight:600;font-size:13px;cursor:pointer;">← Dashboard</button>
             </div>
+
+            <!-- First-timer welcome banner (hidden for returning users) -->
+            <div id="bizProfileWelcome" style="display:none;background:linear-gradient(135deg,#f9f4f9,#f0e5f0);border:1.5px solid #C9A0C4;border-radius:14px;padding:18px 20px;margin-bottom:24px;">
+                <div style="font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:700;color:#8B3A7F;margin-bottom:6px;">Welcome to DUYÊN 緣</div>
+                <div style="font-size:13px;color:#7D6E64;line-height:1.6;font-family:'Outfit',sans-serif;">Let's set up your business profile. This appears on every card you send — your customers will see it when they scan.</div>
+                <div style="display:flex;gap:8px;margin-top:12px;">
+                    <div style="background:#8B3A7F;color:#fff;border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600;font-family:'Outfit',sans-serif;">① Set Up</div>
+                    <div style="background:#E8DDD6;color:#9A8478;border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600;font-family:'Outfit',sans-serif;">② Preview</div>
+                    <div style="background:#E8DDD6;color:#9A8478;border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600;font-family:'Outfit',sans-serif;">③ Dashboard</div>
+                </div>
+            </div>
+
             <p style="color:#9A8478;font-size:14px;margin-bottom:24px;font-family:'Outfit',sans-serif;">Set up once — auto-loads on every QR card you activate</p>
 
             <!-- Logo upload -->
@@ -1866,8 +1878,33 @@ Add any product information here..."></textarea>
 
             <div style="display:flex;gap:12px;">
                 <button type="button" onclick="showBizProfilePreview()" style="flex:1;background:#fff;color:#8B3A7F;border:2px solid #8B3A7F;border-radius:12px;padding:14px;font-family:'Outfit',sans-serif;font-weight:600;font-size:15px;cursor:pointer;">👁 Preview</button>
-                <button class="btn-primary" onclick="saveBizProfile()" style="flex:2;font-size:15px;padding:14px;">Save Profile →</button>
+                <button class="btn-primary" id="bizProfileSaveBtn" onclick="saveBizProfile()" style="flex:2;font-size:15px;padding:14px;">Save Profile →</button>
             </div>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         BUSINESS NAME PROMPT MODAL
+    ========================================== -->
+    <div id="bizNamePromptModal" style="display:none;position:fixed;inset:0;background:rgba(46,42,40,0.65);z-index:10000;display:none;align-items:center;justify-content:center;padding:24px;backdrop-filter:blur(4px);">
+        <div style="background:#fff;border-radius:20px;padding:28px 24px;max-width:360px;width:100%;box-shadow:0 20px 60px rgba(46,42,40,.35);text-align:center;">
+            <div style="font-size:36px;margin-bottom:12px;">🏢</div>
+            <div style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:#2E2A28;margin-bottom:8px;">What's your business called?</div>
+            <div style="font-size:13px;color:#9A8478;font-family:'Outfit',sans-serif;margin-bottom:20px;line-height:1.5;">This is the name your customers will see on every card.</div>
+            <input id="bizNamePromptInput" type="text" placeholder="e.g. Saigon Blossoms" style="width:100%;border:2px solid #8B3A7F;border-radius:10px;padding:12px 14px;font-family:'Outfit',sans-serif;font-size:15px;color:#2E2A28;outline:none;margin-bottom:16px;box-sizing:border-box;text-align:center;">
+            <button onclick="confirmBizName()" style="width:100%;background:#8B3A7F;color:#fff;border:none;border-radius:12px;padding:14px;font-family:'Outfit',sans-serif;font-weight:700;font-size:15px;cursor:pointer;">Continue →</button>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         PROFILE SAVE SUCCESS MODAL (first-timers)
+    ========================================== -->
+    <div id="bizProfileSuccessModal" style="display:none;position:fixed;inset:0;background:rgba(46,42,40,0.65);z-index:10000;align-items:center;justify-content:center;padding:24px;backdrop-filter:blur(4px);">
+        <div style="background:#fff;border-radius:20px;padding:32px 24px;max-width:360px;width:100%;box-shadow:0 20px 60px rgba(46,42,40,.35);text-align:center;">
+            <div style="font-size:48px;margin-bottom:16px;">✅</div>
+            <div style="font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:700;color:#2E2A28;margin-bottom:8px;" id="bizSuccessName">You're all set!</div>
+            <div style="font-size:13px;color:#9A8478;font-family:'Outfit',sans-serif;margin-bottom:24px;line-height:1.6;">Your profile is live. Now head to your dashboard to activate your first card.</div>
+            <button onclick="bizSuccessToDashboard()" style="width:100%;background:#8B3A7F;color:#fff;border:none;border-radius:12px;padding:14px;font-family:'Outfit',sans-serif;font-weight:700;font-size:15px;cursor:pointer;">Go to My Dashboard →</button>
         </div>
     </div>
 
@@ -2522,7 +2559,16 @@ Add any product information here..."></textarea>
             el.classList.add('active');
             if (view === 'myCodes') renderMyCodes();
             if (view === 'bizDashboard') loadDashboard();
-            if (view === 'bizProfile') populateBizProfile();
+            if (view === 'bizProfile') {
+                populateBizProfile();
+                // Show/hide elements based on whether this is first-time setup
+                var backBtn   = document.getElementById('bizProfileBackBtn');
+                var welcome   = document.getElementById('bizProfileWelcome');
+                var saveBtn   = document.getElementById('bizProfileSaveBtn');
+                if (backBtn)  backBtn.style.display  = bizIsFirstTime ? 'none' : '';
+                if (welcome)  welcome.style.display  = bizIsFirstTime ? 'block' : 'none';
+                if (saveBtn)  saveBtn.textContent     = bizIsFirstTime ? 'Save & Continue →' : 'Save Profile →';
+            }
             if (view === 'bizBatchScan') initBatchScan();
             if (view === 'profile') populateProfilePage();
             // Save view to URL hash
@@ -3270,6 +3316,7 @@ Add any product information here..."></textarea>
         // ==========================================
 
         var bizProfileData = null;
+        var bizIsFirstTime = false;
         var dashPromoPhotoFiles = [];
         var batchScannedIds = [];
         var batchHtml5Scanner = null;
@@ -3289,8 +3336,32 @@ Add any product information here..."></textarea>
 
         async function saveBizProfile() {
             var name = (document.getElementById('bizName') || {}).value || '';
-            if (!name.trim()) { alert('Please enter your business name'); return; }
-            var btn = document.querySelector('[onclick="saveBizProfile()"]');
+            // If no business name — show the friendly name prompt modal
+            if (!name.trim()) {
+                var modal = document.getElementById('bizNamePromptModal');
+                if (modal) { modal.style.display = 'flex'; }
+                var inp = document.getElementById('bizNamePromptInput');
+                if (inp) { inp.value = ''; setTimeout(function(){ inp.focus(); }, 100); }
+                return;
+            }
+            await _doSaveBizProfile(name.trim());
+        }
+
+        function confirmBizName() {
+            var inp = document.getElementById('bizNamePromptInput');
+            var name = inp ? inp.value.trim() : '';
+            if (!name) { if (inp) inp.focus(); return; }
+            // Copy name into the main form field
+            var bizNameEl = document.getElementById('bizName');
+            if (bizNameEl) bizNameEl.value = name;
+            // Close prompt modal
+            var modal = document.getElementById('bizNamePromptModal');
+            if (modal) modal.style.display = 'none';
+            _doSaveBizProfile(name);
+        }
+
+        async function _doSaveBizProfile(name) {
+            var btn = document.getElementById('bizProfileSaveBtn');
             if (btn) { btn.textContent = '⏳ Saving...'; btn.disabled = true; }
             try {
                 var street = (document.getElementById('bizStreet') || {}).value || '';
@@ -3303,7 +3374,7 @@ Add any product information here..."></textarea>
                 var fullAddress = [addrLine, cityLine].filter(v => v).join(', ');
 
                 bizProfileData = {
-                    name: sanitize(name.trim()),
+                    name: sanitize(name),
                     description: sanitize((document.getElementById('bizDesc')    || {}).value || ''),
                     email:       (document.getElementById('bizEmail')   || {}).value || '',
                     phone:       (document.getElementById('bizPhone')   || {}).value || '',
@@ -3327,13 +3398,32 @@ Add any product information here..."></textarea>
                     if (error) console.warn('Profile save error:', error.message);
                     else console.log('✅ Biz profile saved to Supabase');
                 }
-                showView('bizDashboard');
+
+                if (bizIsFirstTime) {
+                    // Show success modal for first-timers
+                    bizIsFirstTime = false;
+                    var nameEl = document.getElementById('bizSuccessName');
+                    if (nameEl) nameEl.textContent = name + ' is ready! 🎉';
+                    var successModal = document.getElementById('bizProfileSuccessModal');
+                    if (successModal) successModal.style.display = 'flex';
+                } else {
+                    showView('bizDashboard');
+                }
             } catch(e) {
                 console.error('saveBizProfile error:', e);
                 alert('Error saving profile. Please try again.');
             } finally {
-                if (btn) { btn.textContent = 'Save Profile →'; btn.disabled = false; }
+                if (btn) { btn.textContent = bizIsFirstTime ? 'Save & Continue →' : 'Save Profile →'; btn.disabled = false; }
             }
+        }
+
+        function bizSuccessToDashboard() {
+            var modal = document.getElementById('bizProfileSuccessModal');
+            if (modal) modal.style.display = 'none';
+            showView('bizDashboard');
+        }
+
+
         }
 
         function populateBizProfile() {
@@ -5776,12 +5866,12 @@ Add any product information here..."></textarea>
                     } else if (hash && validViews.includes(hash)) {
                         showView(hash);
                     } else if (!bizProfileData) {
-                        // No profile yet — first timer, guide them to dashboard
-                        showView('bizDashboard');
-                    } else if (savedQRCodes.length > 0) {
-                        // Returning user with QR codes
-                        showView('myCodes');
+                        // First-timer — must set up profile before anything else
+                        bizIsFirstTime = true;
+                        showView('bizProfile');
                     } else {
+                        // Returning user — go to dashboard
+                        bizIsFirstTime = false;
                         showView('bizDashboard');
                     }
                 });
