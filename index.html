@@ -5859,6 +5859,7 @@ Add any product information here..."></textarea>
                 loadBizProfileFromSupabase().then(function() {
                     var hash = window.location.hash.replace('#', '');
                     var validViews = ['myCodes', 'mode', 'generator', 'about', 'editQR', 'bizDashboard', 'bizProfile', 'bizScanChoice', 'bizBatchScan', 'profile'];
+                    console.log('🧭 Routing — bizProfileData:', bizProfileData, '| hash:', hash);
                     if (hash && hash.startsWith('claim/')) {
                         var claimId = hash.replace('claim/', '').trim();
                         showView('myCodes');
@@ -5866,11 +5867,11 @@ Add any product information here..."></textarea>
                     } else if (hash && validViews.includes(hash)) {
                         showView(hash);
                     } else if (!bizProfileData) {
-                        // First-timer — must set up profile before anything else
+                        console.log('🆕 First-timer → bizProfile');
                         bizIsFirstTime = true;
                         showView('bizProfile');
                     } else {
-                        // Returning user — go to dashboard
+                        console.log('🔁 Returning user → bizDashboard');
                         bizIsFirstTime = false;
                         showView('bizDashboard');
                     }
