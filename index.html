@@ -1901,10 +1901,19 @@ Add any product information here..."></textarea>
     ========================================== -->
     <div id="bizProfileSuccessModal" style="display:none;position:fixed;inset:0;background:rgba(46,42,40,0.65);z-index:10000;align-items:center;justify-content:center;padding:24px;backdrop-filter:blur(4px);">
         <div style="background:#fff;border-radius:20px;padding:32px 24px;max-width:360px;width:100%;box-shadow:0 20px 60px rgba(46,42,40,.35);text-align:center;">
-            <div style="font-size:48px;margin-bottom:16px;">✅</div>
+            <div style="font-size:48px;margin-bottom:12px;">✅</div>
             <div style="font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:700;color:#2E2A28;margin-bottom:8px;" id="bizSuccessName">You're all set!</div>
-            <div style="font-size:13px;color:#9A8478;font-family:'Outfit',sans-serif;margin-bottom:24px;line-height:1.6;">Your profile is live. Now head to your dashboard to activate your first card.</div>
-            <button onclick="bizSuccessToDashboard()" style="width:100%;background:#8B3A7F;color:#fff;border:none;border-radius:12px;padding:14px;font-family:'Outfit',sans-serif;font-weight:700;font-size:15px;cursor:pointer;">Go to My Dashboard →</button>
+            <div style="font-size:13px;color:#9A8478;font-family:'Outfit',sans-serif;margin-bottom:24px;line-height:1.6;">Your profile is saved. Now let's activate your card — hold it up and scan it to link it to your account.</div>
+
+            <!-- Activate card option -->
+            <div style="background:linear-gradient(135deg,#f9f4f9,#f0e5f0);border:2px solid #8B3A7F;border-radius:14px;padding:18px;margin-bottom:12px;cursor:pointer;" onclick="bizSuccessActivate()">
+                <div style="font-size:28px;margin-bottom:6px;">📷</div>
+                <div style="font-family:'Outfit',sans-serif;font-weight:700;color:#8B3A7F;font-size:15px;margin-bottom:4px;">Scan to Activate Card</div>
+                <div style="font-size:12px;color:#9A8478;line-height:1.4;">Point your camera at the QR card you just received to link it to your profile</div>
+            </div>
+
+            <!-- Skip option -->
+            <button onclick="bizSuccessToDashboard()" style="width:100%;background:#fff;color:#9A8478;border:1.5px solid #E8DDD6;border-radius:12px;padding:12px;font-family:'Outfit',sans-serif;font-weight:600;font-size:13px;cursor:pointer;">Do this later → Dashboard</button>
         </div>
     </div>
 
@@ -3449,6 +3458,12 @@ Add any product information here..."></textarea>
             var modal = document.getElementById('bizProfileSuccessModal');
             if (modal) modal.style.display = 'none';
             showView('bizDashboard');
+        }
+
+        function bizSuccessActivate() {
+            var modal = document.getElementById('bizProfileSuccessModal');
+            if (modal) modal.style.display = 'none';
+            showView('bizBatchScan');
         }
 
         function populateBizProfile() {
