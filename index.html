@@ -3321,11 +3321,17 @@ Add any product information here..."></textarea>
         var batchScannedIds = [];
         var batchHtml5Scanner = null;
 
-        async function loadBizProfileFromSupabase() {
+        async function loadBizProfileFromSupabase(accessToken) {
             try {
-                var { data: sessionData } = await db.auth.getSession();
-                var user = sessionData && sessionData.session && sessionData.session.user;
-                if (!user) return;
+                var token = accessToken;
+                if (!token) {
+                    var { data: sessionData } = await db.auth.getSession();
+                    var u = sessionData && sessionData.session && sessionData.session.user;
+                    if (!u) return;
+                    token = sessionData.session.access_token;
+                }
+                var user = currentUser;
+                if (!user || !user.id) return;
                 var { data, error } = await db.from('profiles').select('business_profile').eq('id', user.id).single();
                 if (!error && data && data.business_profile && data.business_profile.name) {
                     bizProfileData = data.business_profile;
@@ -5856,23 +5862,29 @@ Add any product information here..."></textarea>
                 updateQRCount();
 
                 // Load business profile FIRST, then navigate
-                loadBizProfileFromSupabase().then(function() {
+                loadBizProfileFromSupabase(session.access_token).then(function() {
                     var hash = window.location.hash.replace('#', '');
                     var validViews = ['myCodes', 'mode', 'generator', 'about', 'editQR', 'bizDashboard', 'bizProfile', 'bizScanChoice', 'bizBatchScan', 'profile'];
-                    console.log('🧭 Routing — bizProfileData:', bizProfileData, '| hash:', hash);
+                    console.log('🧭 Routing — bizProfileData:', JSON.stringify(bizProfileData), '| hash:', hash);
+
+                    // First-timer check always wins — no profile = must set up first
+                    if (!bizProfileData || !bizProfileData.name) {
+                        console.log('🆕 First-timer → bizProfile');
+                        bizIsFirstTime = true;
+                        showView('bizProfile');
+                        return;
+                    }
+
+                    // Returning user — respect hash or default to dashboard
+                    bizIsFirstTime = false;
                     if (hash && hash.startsWith('claim/')) {
                         var claimId = hash.replace('claim/', '').trim();
                         showView('myCodes');
                         handleClaim(claimId);
                     } else if (hash && validViews.includes(hash)) {
                         showView(hash);
-                    } else if (!bizProfileData) {
-                        console.log('🆕 First-timer → bizProfile');
-                        bizIsFirstTime = true;
-                        showView('bizProfile');
                     } else {
                         console.log('🔁 Returning user → bizDashboard');
-                        bizIsFirstTime = false;
                         showView('bizDashboard');
                     }
                 });
