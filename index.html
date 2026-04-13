@@ -3403,15 +3403,32 @@ Add any product information here..."></textarea>
 
                 var { data: sessionData } = await db.auth.getSession();
                 var user = sessionData && sessionData.session && sessionData.session.user;
-                if (user) {
-                    var { error } = await db.from('profiles')
-                        .upsert({ id: user.id, business_profile: bizProfileData, updated_at: new Date().toISOString() }, { onConflict: 'id' });
-                    if (error) console.warn('Profile save error:', error.message);
-                    else console.log('✅ Biz profile saved to Supabase');
+                if (!user) {
+                    alert('❌ Session expired. Please log in again.');
+                    return;
                 }
 
+                console.log('💾 Saving profile for user:', user.id);
+                var { error: saveError } = await db.from('profiles')
+                    .upsert({ id: user.id, business_profile: bizProfileData, updated_at: new Date().toISOString() }, { onConflict: 'id' });
+
+                if (saveError) {
+                    console.error('❌ Profile save error:', saveError.message, saveError);
+                    alert('❌ Could not save profile: ' + saveError.message + '\n\nPlease screenshot this and share with support.');
+                    return;
+                }
+
+                // Verify the save actually stuck
+                var { data: verify, error: verifyError } = await db.from('profiles').select('business_profile').eq('id', user.id).single();
+                if (verifyError || !verify || !verify.business_profile || !verify.business_profile.name) {
+                    console.error('❌ Save appeared to succeed but profile not found on re-read');
+                    alert('❌ Profile did not save correctly. Please try again.');
+                    return;
+                }
+
+                console.log('✅ Biz profile saved and verified:', verify.business_profile.name);
+
                 if (bizIsFirstTime) {
-                    // Show success modal for first-timers
                     bizIsFirstTime = false;
                     var nameEl = document.getElementById('bizSuccessName');
                     if (nameEl) nameEl.textContent = name + ' is ready! 🎉';
