@@ -3327,9 +3327,12 @@ Add any product information here..."></textarea>
                 var user = sessionData && sessionData.session && sessionData.session.user;
                 if (!user) return;
                 var { data, error } = await db.from('profiles').select('business_profile').eq('id', user.id).single();
-                if (!error && data && data.business_profile) {
+                if (!error && data && data.business_profile && data.business_profile.name) {
                     bizProfileData = data.business_profile;
                     console.log('✅ Biz profile loaded:', bizProfileData.name);
+                } else {
+                    bizProfileData = null;
+                    console.log('ℹ️ No business profile found — first-time setup required');
                 }
             } catch(e) { console.warn('Could not load biz profile:', e); }
         }
