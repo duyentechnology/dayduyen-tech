@@ -3382,12 +3382,14 @@ Add any product information here..."></textarea>
                 var cityLine = [city, state, zip].filter(v => v.trim()).join(' ');
                 var fullAddress = [addrLine, cityLine].filter(v => v).join(', ');
 
+                var website = (document.getElementById('bizWebsite') || {}).value || '';
+                if (website && !website.match(/^https?:\/\//)) website = 'https://' + website;
                 bizProfileData = {
                     name: sanitize(name),
                     description: sanitize((document.getElementById('bizDesc')    || {}).value || ''),
                     email:       (document.getElementById('bizEmail')   || {}).value || '',
                     phone:       (document.getElementById('bizPhone')   || {}).value || '',
-                    website:     (document.getElementById('bizWebsite') || {}).value || '',
+                    website:     website,
                     address:     { street, apt, city, state, zip, full: fullAddress },
                     social: {
                         facebook:  (document.getElementById('socFacebook')  || {}).value || '',
@@ -3472,6 +3474,7 @@ Add any product information here..."></textarea>
             var phone   = (document.getElementById('bizPhone')   || {}).value || '';
             var email   = (document.getElementById('bizEmail')   || {}).value || '';
             var website = (document.getElementById('bizWebsite') || {}).value || '';
+            if (website && !website.match(/^https?:\/\//)) website = 'https://' + website;
             var street  = (document.getElementById('bizStreet')  || {}).value || '';
             var apt     = (document.getElementById('bizApt')     || {}).value || '';
             var city    = (document.getElementById('bizCity')    || {}).value || '';
