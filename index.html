@@ -3811,7 +3811,7 @@ Add any product information here..."></textarea>
                     batchHtml5Scanner = new Html5Qrcode('batchQrReader');
                     batchHtml5Scanner.start(
                         { facingMode: 'environment' },
-                        { fps: 10, qrbox: { width: 180, height: 180 } },
+                        { fps: 15 },
                         function(url) { onBatchQRDetected(url); },
                         function() {}
                     ).catch(function(e){ console.warn('Batch camera error:', e); });
