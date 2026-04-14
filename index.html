@@ -2056,7 +2056,7 @@ Add any product information here..."></textarea>
             </div>
             <p style="color:#9A8478;font-size:14px;margin-bottom:24px;font-family:'Outfit',sans-serif;">Choose how you'd like to activate your QR cards</p>
 
-            <div onclick="showView('myCodes')" style="border:1.5px solid #E8DDD6;border-radius:16px;padding:20px;margin-bottom:14px;cursor:pointer;">
+            <div onclick="showView('bizBatchScan')" style="border:1.5px solid #E8DDD6;border-radius:16px;padding:20px;margin-bottom:14px;cursor:pointer;">
                 <div style="font-size:28px;margin-bottom:8px;">📱</div>
                 <div style="font-weight:700;font-size:16px;color:#2E2A28;margin-bottom:5px;font-family:'Outfit',sans-serif;">Scan One Card</div>
                 <div style="font-size:13px;color:#9A8478;line-height:1.5;font-family:'Outfit',sans-serif;">Open camera, scan a single QR card, and activate it with your business profile.</div>
@@ -3803,44 +3803,69 @@ Add any product information here..."></textarea>
             var counter = document.getElementById('batchCounter');
             if (counter) counter.textContent = '0 cards scanned';
 
-            function launchCamera() {
-                // Clear any leftover DOM Html5Qrcode injected previously
-                var reader = document.getElementById('batchQrReader');
-                if (reader) reader.innerHTML = '';
-                try {
-                    batchHtml5Scanner = new Html5Qrcode('batchQrReader');
-                    batchHtml5Scanner.start(
-                        { facingMode: 'environment' },
-                        { fps: 15 },
-                        function(url) { onBatchQRDetected(url); },
-                        function() {}
-                    ).catch(function(e){ console.warn('Batch camera error:', e); });
-                } catch(e) { console.warn('Batch init error:', e); }
-            }
+            var reader = document.getElementById('batchQrReader');
+            if (!reader) return;
+            reader.innerHTML = '';
 
-            function startCamera() {
-                // Wait for any existing scanner to fully stop before creating new one
-                if (batchHtml5Scanner) {
-                    batchHtml5Scanner.stop().catch(function(){}).finally(function() {
-                        batchHtml5Scanner = null;
-                        launchCamera();
-                    });
-                } else {
-                    launchCamera();
+            // Native video + jsQR — more reliable on iOS than Html5Qrcode
+            var video = document.createElement('video');
+            video.setAttribute('playsinline', '');
+            video.setAttribute('autoplay', '');
+            video.setAttribute('muted', '');
+            video.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:4px;';
+            var canvas = document.createElement('canvas');
+            canvas.style.display = 'none';
+            reader.appendChild(video);
+            reader.appendChild(canvas);
+
+            var scannerState = { stream: null, animFrame: null, stopped: false, lastScan: 0 };
+            batchHtml5Scanner = scannerState;
+
+            function tick() {
+                if (scannerState.stopped) return;
+                if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                    var now = Date.now();
+                    // Throttle to ~15fps
+                    if (now - scannerState.lastScan > 66) {
+                        scannerState.lastScan = now;
+                        canvas.width  = video.videoWidth;
+                        canvas.height = video.videoHeight;
+                        var ctx = canvas.getContext('2d');
+                        ctx.drawImage(video, 0, 0);
+                        var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                        if (window.jsQR) {
+                            var code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'dontInvert' });
+                            if (code && code.data) onBatchQRDetected(code.data);
+                        }
+                    }
                 }
+                scannerState.animFrame = requestAnimationFrame(tick);
             }
 
-            // Small delay so the view finishes rendering before camera starts
+            function startScanning() {
+                if (window.jsQR) { tick(); return; }
+                var s = document.createElement('script');
+                s.src = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js';
+                s.onload = tick;
+                s.onerror = function() { console.warn('Could not load jsQR'); };
+                document.head.appendChild(s);
+            }
+
             setTimeout(function() {
-                if (typeof Html5Qrcode !== 'undefined') {
-                    startCamera();
-                } else {
-                    var s = document.createElement('script');
-                    s.src = 'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js';
-                    s.onload = startCamera;
-                    s.onerror = function() { console.warn('Could not load QR scanner library'); };
-                    document.head.appendChild(s);
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    reader.innerHTML = '<div style="color:#fff;font-size:13px;text-align:center;padding:20px;">Camera not supported on this browser.</div>';
+                    return;
                 }
+                navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } } })
+                    .then(function(stream) {
+                        scannerState.stream = stream;
+                        video.srcObject = stream;
+                        video.play().then(startScanning).catch(function(e) { console.warn('Video play error:', e); });
+                    })
+                    .catch(function(e) {
+                        console.warn('Camera error:', e);
+                        reader.innerHTML = '<div style="color:#fff;font-size:13px;text-align:center;padding:20px;">Camera access denied.<br>Please allow camera in Settings and try again.</div>';
+                    });
             }, 150);
         }
 
@@ -3864,7 +3889,12 @@ Add any product information here..."></textarea>
             if (batchScannedIds.length === 0) {
                 alert('No cards scanned yet. Point the camera at a QR code first.'); return;
             }
-            if (batchHtml5Scanner) { batchHtml5Scanner.stop().catch(function(){}); batchHtml5Scanner = null; }
+            if (batchHtml5Scanner) {
+                if (batchHtml5Scanner.animFrame) cancelAnimationFrame(batchHtml5Scanner.animFrame);
+                if (batchHtml5Scanner.stream) batchHtml5Scanner.stream.getTracks().forEach(function(t) { t.stop(); });
+                batchHtml5Scanner.stopped = true;
+                batchHtml5Scanner = null;
+            }
 
             if (!bizProfileData) {
                 alert('Please set up your business profile first.');
