@@ -3870,15 +3870,16 @@ Add any product information here..."></textarea>
         }
 
         function onBatchQRDetected(url) {
-            var match = url.match(/\/q\/([a-z0-9]+)/i);
-            var id = match ? match[1] : url;
-            if (batchScannedIds.indexOf(id) > -1) return;
-            batchScannedIds.push(id);
+            // Deduplicate by full URL
+            if (batchScannedIds.indexOf(url) > -1) return;
+            batchScannedIds.push(url);
             var chips = document.getElementById('batchChips');
             if (chips) {
                 var chip = document.createElement('div');
                 chip.style.cssText = 'background:rgba(139,58,127,0.7);border:1px solid #8B3A7F;border-radius:20px;padding:3px 11px;font-size:11px;color:#fff;font-family:Outfit,sans-serif;';
-                chip.textContent = 'QR #' + id.substring(0,6);
+                // Show short label from URL if possible, else truncate
+                var match = url.match(/\/q\/([a-z0-9]+)/i);
+                chip.textContent = 'QR #' + (match ? match[1].substring(0,6) : url.substring(0,8));
                 chips.appendChild(chip);
             }
             var counter = document.getElementById('batchCounter');
@@ -3918,11 +3919,25 @@ Add any product information here..."></textarea>
                     updated_at: new Date().toISOString()
                 };
                 var succeeded = 0;
+                var failed = 0;
                 for (var i = 0; i < batchScannedIds.length; i++) {
-                    var { error } = await db.from('qr_codes').update(updateData).eq('id', batchScannedIds[i]);
-                    if (!error) succeeded++;
+                    var scannedUrl = batchScannedIds[i];
+                    var { data: updRows, error } = await db.from('qr_codes')
+                        .update(updateData)
+                        .eq('url', scannedUrl)
+                        .select('id');
+                    if (!error && updRows && updRows.length > 0) {
+                        succeeded++;
+                    } else {
+                        failed++;
+                        console.warn('Card not found or not updated for URL:', scannedUrl, error);
+                    }
                 }
-                alert('✅ ' + succeeded + ' of ' + batchScannedIds.length + ' cards activated successfully!');
+                if (succeeded > 0) {
+                    alert('✅ ' + succeeded + ' of ' + batchScannedIds.length + ' cards activated!');
+                } else {
+                    alert('⚠️ No cards were activated. The scanned QR codes were not found in the system.\n\nMake sure you are scanning Duyên cards.');
+                }
                 showView('bizDashboard');
             } catch(e) {
                 console.error('finishBatchScan error:', e);
