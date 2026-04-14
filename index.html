@@ -3803,29 +3803,45 @@ Add any product information here..."></textarea>
             var counter = document.getElementById('batchCounter');
             if (counter) counter.textContent = '0 cards scanned';
 
-            function startCamera() {
+            function launchCamera() {
+                // Clear any leftover DOM Html5Qrcode injected previously
+                var reader = document.getElementById('batchQrReader');
+                if (reader) reader.innerHTML = '';
                 try {
-                    if (batchHtml5Scanner) { batchHtml5Scanner.stop().catch(function(){}); batchHtml5Scanner = null; }
                     batchHtml5Scanner = new Html5Qrcode('batchQrReader');
                     batchHtml5Scanner.start(
                         { facingMode: 'environment' },
-                        { fps: 10, qrbox: { width: 200, height: 200 } },
+                        { fps: 10, qrbox: { width: 180, height: 180 } },
                         function(url) { onBatchQRDetected(url); },
                         function() {}
                     ).catch(function(e){ console.warn('Batch camera error:', e); });
                 } catch(e) { console.warn('Batch init error:', e); }
             }
 
-            if (typeof Html5Qrcode !== 'undefined') {
-                startCamera();
-            } else {
-                // Lazy-load the library then start
-                var s = document.createElement('script');
-                s.src = 'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js';
-                s.onload = startCamera;
-                s.onerror = function() { console.warn('Could not load QR scanner library'); };
-                document.head.appendChild(s);
+            function startCamera() {
+                // Wait for any existing scanner to fully stop before creating new one
+                if (batchHtml5Scanner) {
+                    batchHtml5Scanner.stop().catch(function(){}).finally(function() {
+                        batchHtml5Scanner = null;
+                        launchCamera();
+                    });
+                } else {
+                    launchCamera();
+                }
             }
+
+            // Small delay so the view finishes rendering before camera starts
+            setTimeout(function() {
+                if (typeof Html5Qrcode !== 'undefined') {
+                    startCamera();
+                } else {
+                    var s = document.createElement('script');
+                    s.src = 'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js';
+                    s.onload = startCamera;
+                    s.onerror = function() { console.warn('Could not load QR scanner library'); };
+                    document.head.appendChild(s);
+                }
+            }, 150);
         }
 
         function onBatchQRDetected(url) {
