@@ -1836,6 +1836,10 @@ Add any product information here..."></textarea>
                 <div style="font-size:11px;color:#9A8478;margin-top:3px;">Shows on every card you send</div>
             </div>
 
+            <label style="display:block;font-size:11px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px;">Profile Nickname</label>
+            <input type="text" id="bizProfileLabel" placeholder='e.g. "Main Store" or "Holiday Campaign"' class="input-field" style="margin-bottom:4px;">
+            <p style="font-size:11px;color:#9A8478;margin:0 0 16px;font-family:'Outfit',sans-serif;">Only you see this — helps you tell profiles apart</p>
+
             <label style="display:block;font-size:11px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px;">Business Name *</label>
             <input type="text" id="bizName" placeholder="e.g. Saigon Blossoms" class="input-field" style="margin-bottom:14px;">
 
@@ -1978,6 +1982,15 @@ Add any product information here..."></textarea>
                     <div id="dashBizName" style="font-weight:700;color:#3D2E24;font-size:15px;">My Business</div>
                     <div id="dashBizAddress" style="font-size:12px;color:#9A8478;margin-top:2px;"></div>
                 </div>
+            </div>
+
+            <!-- My Profiles -->
+            <div style="margin-bottom:20px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                    <div style="font-family:'Cormorant Garamond',serif;font-size:17px;font-weight:700;color:#2E2A28;">My Profiles</div>
+                    <button onclick="startNewProfile()" style="font-size:12px;font-weight:600;color:#8B3A7F;background:#f0e5f0;border:none;border-radius:20px;padding:5px 14px;cursor:pointer;font-family:'Outfit',sans-serif;">+ New Profile</button>
+                </div>
+                <div id="dashProfilesList" style="display:flex;flex-direction:column;gap:8px;"></div>
             </div>
 
             <!-- Stats -->
@@ -3326,29 +3339,33 @@ Add any product information here..."></textarea>
 
         var bizProfileData = null;
         var bizIsFirstTime = false;
+        var bizProfiles = [];
+        var currentProfileId = null;
         var dashPromoPhotoFiles = [];
         var batchScannedIds = [];
         var batchHtml5Scanner = null;
 
         async function loadBizProfileFromSupabase(accessToken) {
             try {
-                var token = accessToken;
-                if (!token) {
-                    var { data: sessionData } = await db.auth.getSession();
-                    var u = sessionData && sessionData.session && sessionData.session.user;
-                    if (!u) return;
-                    token = sessionData.session.access_token;
-                }
                 var user = currentUser;
                 if (!user || !user.id) return;
-                var { data, error } = await db.from('profiles').select('business_profile').eq('id', user.id).single();
-                if (!error && data && data.business_profile && data.business_profile.name) {
-                    bizProfileData = data.business_profile;
-                    console.log('✅ Biz profile loaded:', bizProfileData.name);
-                } else {
-                    bizProfileData = null;
-                    console.log('ℹ️ No business profile found — first-time setup required');
+                var { data, error } = await db.from('profiles').select('business_profile, business_profiles').eq('id', user.id).single();
+                if (error) { console.warn('Could not load profiles:', error.message); return; }
+
+                // Load profiles array
+                bizProfiles = (data && Array.isArray(data.business_profiles) && data.business_profiles.length > 0)
+                    ? data.business_profiles : [];
+
+                // Migrate old single profile into array if needed
+                if (bizProfiles.length === 0 && data && data.business_profile && data.business_profile.name) {
+                    var migrated = Object.assign({ profileId: 'profile_' + Date.now(), profileLabel: data.business_profile.name }, data.business_profile);
+                    bizProfiles = [migrated];
+                    console.log('🔄 Migrated old profile to array');
                 }
+
+                bizProfileData = bizProfiles.length > 0 ? bizProfiles[0] : null;
+                if (bizProfileData) currentProfileId = bizProfileData.profileId || null;
+                console.log('✅ Profiles loaded:', bizProfiles.length);
             } catch(e) { console.warn('Could not load biz profile:', e); }
         }
 
@@ -3382,6 +3399,7 @@ Add any product information here..."></textarea>
             var btn = document.getElementById('bizProfileSaveBtn');
             if (btn) { btn.textContent = '⏳ Saving...'; btn.disabled = true; }
             try {
+                var profileLabel = ((document.getElementById('bizProfileLabel') || {}).value || '').trim() || name;
                 var street = (document.getElementById('bizStreet') || {}).value || '';
                 var apt    = (document.getElementById('bizApt')    || {}).value || '';
                 var city   = (document.getElementById('bizCity')   || {}).value || '';
@@ -3393,7 +3411,11 @@ Add any product information here..."></textarea>
 
                 var website = (document.getElementById('bizWebsite') || {}).value || '';
                 if (website && !website.match(/^https?:\/\//)) website = 'https://' + website;
-                bizProfileData = {
+
+                var profileId = currentProfileId || ('profile_' + Date.now());
+                var newProfile = {
+                    profileId: profileId,
+                    profileLabel: sanitize(profileLabel),
                     name: sanitize(name),
                     description: sanitize((document.getElementById('bizDesc')    || {}).value || ''),
                     email:       (document.getElementById('bizEmail')   || {}).value || '',
@@ -3410,16 +3432,19 @@ Add any product information here..."></textarea>
                     }
                 };
 
+                // Update existing or add new to array
+                var idx = bizProfiles.findIndex(function(p) { return p.profileId === profileId; });
+                if (idx > -1) { bizProfiles[idx] = newProfile; } else { bizProfiles.push(newProfile); }
+                bizProfileData = newProfile;
+                currentProfileId = profileId;
+
                 var { data: sessionData } = await db.auth.getSession();
                 var user = sessionData && sessionData.session && sessionData.session.user;
-                if (!user) {
-                    alert('❌ Session expired. Please log in again.');
-                    return;
-                }
+                if (!user) { alert('❌ Session expired. Please log in again.'); return; }
 
-                console.log('💾 Saving profile for user:', user.id);
+                console.log('💾 Saving profiles for user:', user.id, '| count:', bizProfiles.length);
                 var { error: saveError } = await db.from('profiles')
-                    .upsert({ id: user.id, business_profile: bizProfileData }, { onConflict: 'id' });
+                    .upsert({ id: user.id, business_profile: bizProfileData, business_profiles: bizProfiles }, { onConflict: 'id' });
 
                 if (saveError) {
                     console.error('❌ Profile save error:', saveError.message, saveError);
@@ -3428,14 +3453,14 @@ Add any product information here..."></textarea>
                 }
 
                 // Verify the save actually stuck
-                var { data: verify, error: verifyError } = await db.from('profiles').select('business_profile').eq('id', user.id).single();
-                if (verifyError || !verify || !verify.business_profile || !verify.business_profile.name) {
-                    console.error('❌ Save appeared to succeed but profile not found on re-read');
+                var { data: verify, error: verifyError } = await db.from('profiles').select('business_profiles').eq('id', user.id).single();
+                if (verifyError || !verify || !Array.isArray(verify.business_profiles)) {
+                    console.error('❌ Save appeared to succeed but profiles not found on re-read');
                     alert('❌ Profile did not save correctly. Please try again.');
                     return;
                 }
 
-                console.log('✅ Biz profile saved and verified:', verify.business_profile.name);
+                console.log('✅ Profiles saved and verified:', verify.business_profiles.length);
 
                 if (bizIsFirstTime) {
                     bizIsFirstTime = false;
@@ -3466,6 +3491,40 @@ Add any product information here..."></textarea>
             showView('bizBatchScan');
         }
 
+        function editProfile(profileId) {
+            var p = bizProfiles.find(function(x) { return x.profileId === profileId; });
+            if (p) { bizProfileData = p; currentProfileId = profileId; }
+            showView('bizProfile');
+        }
+
+        function startNewProfile() {
+            bizProfileData = null;
+            currentProfileId = null;
+            showView('bizProfile');
+        }
+
+        function renderProfilesList() {
+            var container = document.getElementById('dashProfilesList');
+            if (!container) return;
+            if (!bizProfiles || bizProfiles.length === 0) {
+                container.innerHTML = '<p style="color:#9A8478;font-size:13px;font-family:\'Outfit\',sans-serif;">No profiles saved yet.</p>';
+                return;
+            }
+            container.innerHTML = bizProfiles.map(function(p) {
+                var label = sanitize(p.profileLabel || p.name || 'Untitled Profile');
+                var name  = sanitize(p.name || '');
+                var isActive = bizProfileData && bizProfileData.profileId === p.profileId;
+                return '<div style="background:#fff;border:1.5px solid ' + (isActive ? '#8B3A7F' : '#E8DDD6') + ';border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:12px;">' +
+                    '<div style="flex:1;min-width:0;">' +
+                        '<div style="font-size:14px;font-weight:700;color:#2E2A28;font-family:\'Outfit\',sans-serif;">' + label + '</div>' +
+                        (name && name !== label ? '<div style="font-size:12px;color:#9A8478;margin-top:2px;font-family:\'Outfit\',sans-serif;">' + name + '</div>' : '') +
+                        (isActive ? '<span style="display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;margin-top:4px;background:#f0e5f0;color:#8B3A7F;">Active</span>' : '') +
+                    '</div>' +
+                    '<button onclick="editProfile(\'' + p.profileId + '\')" style="flex-shrink:0;background:#fff;color:#8B3A7F;border:1.5px solid #8B3A7F;border-radius:8px;padding:6px 14px;font-family:\'Outfit\',sans-serif;font-weight:600;font-size:12px;cursor:pointer;">Edit</button>' +
+                '</div>';
+            }).join('');
+        }
+
         function showActivateBanner() {
             // Remove any existing banner first
             var old = document.getElementById('activateCardBanner');
@@ -3492,6 +3551,7 @@ Add any product information here..."></textarea>
         function populateBizProfile() {
             if (!bizProfileData) return;
             var _f = function(id, val) { var el = document.getElementById(id); if(el) el.value = val || ''; };
+            _f('bizProfileLabel', bizProfileData.profileLabel || bizProfileData.name || '');
             _f('bizName',     bizProfileData.name);
             _f('bizDesc',     bizProfileData.description);
             _f('bizEmail',    bizProfileData.email);
@@ -3615,6 +3675,7 @@ Add any product information here..."></textarea>
                 if (nm) nm.textContent = name;
                 if (ad) ad.textContent = bizProfileData.address && bizProfileData.address.full ? bizProfileData.address.full : '';
             }
+            renderProfilesList();
             try {
                 var { data: sessionData } = await db.auth.getSession();
                 var user = sessionData && sessionData.session && sessionData.session.user;
