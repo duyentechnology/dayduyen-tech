@@ -2330,11 +2330,15 @@ Add any product information here..."></textarea>
             
             <div id="signupForm">
                 <h2 class="auth-title">Create Your Account</h2>
-                <p class="auth-subtitle">Start weaving your tapestry of memories</p>
+                <p class="auth-subtitle">Set up your digital storefront in minutes</p>
+                <p style="font-size:13px;color:#9A8478;text-align:center;margin-top:-8px;margin-bottom:18px;">Connect with every customer, one scan at a time</p>
 
                 <button class="btn-social" onclick="handleGoogleAuth()">
-                    <span style="font-size: 1.3rem;">🔵</span> Continue with Google
+                    <svg width="18" height="18" viewBox="0 0 48 48" style="vertical-align:middle;"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59a14.5 14.5 0 010-9.18l-7.98-6.19a24.01 24.01 0 000 21.56l7.98-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg> Continue with Google
                 </button>
+                <div class="auth-toggle">
+                    Already have an account? <button onclick="toggleAuth()">Log In</button>
+                </div>
                 <div class="auth-divider">or sign up with email</div>
                 
                 <div class="form-group">
@@ -2358,18 +2362,18 @@ Add any product information here..."></textarea>
                 <button class="btn-auth" onclick="signup()">Create Account</button>
                 <p style="font-size:11px;color:#9A8478;text-align:center;margin-top:10px;line-height:1.6;">By signing up you agree to our <a href="/terms.html" target="_blank" rel="noopener noreferrer" style="color:#8B3A7F;">Terms of Service</a> and <a href="/privacy.html" target="_blank" rel="noopener noreferrer" style="color:#8B3A7F;">Privacy Policy</a></p>
                 
-                <div class="auth-toggle">
-                    Already have an account? <button onclick="toggleAuth()">Log In</button>
-                </div>
             </div>
             
             <div id="loginForm" style="display: none;">
                 <h2 class="auth-title">Welcome Back</h2>
-                <p class="auth-subtitle">Continue weaving your tapestry</p>
+                <p class="auth-subtitle">Your digital storefront awaits</p>
 
                 <button class="btn-social" onclick="handleGoogleAuth()">
-                    <span style="font-size: 1.3rem;">🔵</span> Continue with Google
+                    <svg width="18" height="18" viewBox="0 0 48 48" style="vertical-align:middle;"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59a14.5 14.5 0 010-9.18l-7.98-6.19a24.01 24.01 0 000 21.56l7.98-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg> Continue with Google
                 </button>
+                <div class="auth-toggle">
+                    Don't have an account? <button onclick="toggleAuth()">Sign Up</button>
+                </div>
                 <div class="auth-divider">or log in with email</div>
                 
                 <div class="form-group">
@@ -2383,9 +2387,6 @@ Add any product information here..."></textarea>
                 
                 <button class="btn-auth" onclick="login()">Log In</button>
                 
-                <div class="auth-toggle">
-                    Don't have an account? <button onclick="toggleAuth()">Sign Up</button>
-                </div>
             </div>
             
             <div id="verifyForm" style="display: none;">
