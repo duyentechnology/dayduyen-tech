@@ -2680,10 +2680,6 @@ Add any product information here..."></textarea>
             await db.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: 'https://dayduyen.tech' } });
         }
 
-        async function handleAppleAuth() {
-            await db.auth.signInWithOAuth({ provider: 'apple', options: { redirectTo: 'https://dayduyen.tech' } });
-        }
-
         function toggleAuth() {
             const signup = document.getElementById('signupForm');
             const login = document.getElementById('loginForm');
@@ -4081,51 +4077,6 @@ Add any product information here..."></textarea>
             }
         }
 
-        async function loadQRCodesFromSupabase() {
-            if (!currentUser) return;
-            try {
-                var { data: sessData } = await db.auth.getSession();
-                var token = sessData?.session?.access_token;
-                if (!token) return;
-                
-                var resp = await fetch(
-                    SUPABASE_URL + '/rest/v1/qr_codes?user_id=eq.' + currentUser.id + '&order=created_at.desc',
-                    {
-                        headers: {
-                            'apikey': SUPABASE_ANON_KEY,
-                            'Authorization': 'Bearer ' + token,
-                            'Content-Type': 'application/json'
-                        }
-                    }
-                );
-                if (!resp.ok) return;
-                var data = await resp.json();
-                
-                savedQRCodes = data.map(function(row) {
-                    return {
-                        dbId: row.id,
-                        id: row.id,
-                        url: row.url || 'https://duyen.io/q/' + row.id,
-                        label: row.label || 'QR Code',
-                        color: row.color || '#8B3A7F',
-                        details: row.details || '',
-                        createdAt: row.created_at,
-                        updatedAt: row.updated_at || row.created_at,
-                        status: row.status || 'draft',
-                        includeLogo: row.include_logo !== false,
-                        media: row.media || [],
-                        files: row.files || [],
-                        photo: row.photo || null,
-                        scan_count: row.scan_count || 0,
-                        last_scanned_at: row.last_scanned_at || null
-                    };
-                });
-                updateQRCount();
-            } catch(e) {
-                console.warn('Could not load QR codes:', e);
-            }
-        }
-
         function selectMode(mode) {
             currentMode = mode;
             
@@ -4568,10 +4519,6 @@ Add any product information here..."></textarea>
                     // Silent fail — overlay is the fallback
                 }
             }
-        }
-
-        function fallbackDownload(dataUrl, filename) {
-            showSaveOverlay(dataUrl, filename);
         }
 
         function triggerPNGDownload(storeKey) {
