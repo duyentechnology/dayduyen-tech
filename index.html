@@ -6047,11 +6047,13 @@ Add any product information here..."></textarea>
         }
 
         // Auth state listener - runs after all functions are defined
+        var hasRoutedOnLoad = false;
         db.auth.onAuthStateChange(async (event, session) => {
             console.log('🔐 Auth event:', event);
             if (isLoggingOut) return;
             
             if (event === 'SIGNED_OUT') {
+                hasRoutedOnLoad = false;
                 currentUser = null;
                 savedQRCodes = [];
                 document.getElementById('headerBtn').style.display = 'block';
@@ -6070,7 +6072,6 @@ Add any product information here..."></textarea>
             
             if (session && session.user) {
                 const user = session.user;
-                var isFreshLogin = (event === 'SIGNED_IN' || event === 'INITIAL_SESSION');
                 currentUser = { email: user.email, name: user.user_metadata?.full_name || user.email, id: user.id };
                 console.log('👤 User:', currentUser.email, 'ID:', currentUser.id);
                 document.getElementById('userEmail').textContent = user.email;
@@ -6135,39 +6136,54 @@ Add any product information here..."></textarea>
 
                 // Load business profile FIRST, then navigate
                 loadBizProfileFromSupabase(session.access_token).then(function() {
-                    // Token refresh / tab refocus — keep the user on their current page
-                    if (!isFreshLogin) {
-                        console.log('🔁 Token refresh — staying on current view');
+                    // Only route once per page load. Subsequent auth events
+                    // (token refresh, tab return) leave the user where they are.
+                    if (hasRoutedOnLoad) {
+                        console.log('🔁 Skipping re-route — already routed this load');
                         return;
                     }
 
                     var hash = window.location.hash.replace('#', '');
                     var validViews = ['myCodes', 'mode', 'generator', 'about', 'editQR', 'bizDashboard', 'bizProfile', 'bizScanChoice', 'bizBatchScan', 'profile'];
-                    console.log('🧭 Routing — bizProfileData:', JSON.stringify(bizProfileData), '| hash:', hash);
+                    var isBrandNewLogin = (event === 'SIGNED_IN');
+                    console.log('🧭 Routing — bizProfileData:', JSON.stringify(bizProfileData), '| hash:', hash, '| event:', event);
 
-                    // First-timer check always wins — no profile = must set up first
-                    if (!bizProfileData || !bizProfileData.name) {
+                    // First-timer redirect ONLY on a brand-new login,
+                    // not on every page reload (avoids the jumping bug).
+                    if (isBrandNewLogin && (!bizProfileData || !bizProfileData.name)) {
                         console.log('🆕 First-timer → bizProfile');
                         bizIsFirstTime = true;
                         showView('bizProfile');
+                        hasRoutedOnLoad = true;
                         return;
                     }
 
-                    // Returning user — respect hash or default to dashboard
                     bizIsFirstTime = false;
+
                     if (hash && hash.startsWith('claim/')) {
                         var claimId = hash.replace('claim/', '').trim();
                         showView('myCodes');
                         handleClaim(claimId);
-                    } else if (hash && validViews.includes(hash)) {
+                        hasRoutedOnLoad = true;
+                        return;
+                    }
+                    if (hash && validViews.includes(hash)) {
                         showView(hash);
-                    } else {
-                        // Plain visit — could be from scanning a card
-                        // Show dashboard but with a banner prompting card activation
-                        console.log('🔁 Returning user → bizDashboard');
+                        hasRoutedOnLoad = true;
+                        return;
+                    }
+
+                    if (isBrandNewLogin) {
+                        console.log('🔁 New login → bizDashboard');
                         showView('bizDashboard');
                         showActivateBanner();
+                        hasRoutedOnLoad = true;
+                        return;
                     }
+
+                    // Page reload mid-session, no hash — leave current view alone.
+                    console.log('🔁 Page reload — leaving view untouched');
+                    hasRoutedOnLoad = true;
                 });
             }
         });
@@ -6659,11 +6675,12 @@ Add any product information here..."></textarea>
     })();
 </script>
 <script>
-    // Close avatar dropdown when clicking outside
+    // Close avatar dropdown when clicking outside the avatar wrapper
     document.addEventListener('click', function(e) {
         var dd = document.getElementById('userDropdown');
-        var av = document.getElementById('userAvatarBtn');
-        if (dd && dd.classList.contains('open') && !dd.contains(e.target) && e.target !== av) {
+        if (!dd || !dd.classList.contains('open')) return;
+        var wrap = e.target.closest && e.target.closest('.user-avatar-wrap');
+        if (!wrap) {
             dd.classList.remove('open');
         }
     });
