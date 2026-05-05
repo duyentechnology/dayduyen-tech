@@ -64,22 +64,6 @@
         /* Color Bar */
         .lantern-bar { height: 3px; background: linear-gradient(90deg, var(--lantern-coral), var(--lantern-rose), var(--lantern-plum), var(--lantern-teal), var(--lantern-jade), var(--lantern-gold), var(--lantern-amber), var(--lantern-sky)); }
         
-        /* Sticky Note Cards */
-        .lantern-card {
-            border-radius: 2px 2px 12px 12px;
-            padding: 36px 28px;
-            text-align: center;
-            cursor: pointer;
-            position: relative;
-            overflow: hidden;
-            box-shadow: 0 6px 16px rgba(0,0,0,0.07);
-            opacity: 1;
-            transition: box-shadow 0.3s, transform 0.3s;
-        }
-        .lantern-card:hover { transform: translateY(-4px); box-shadow: 0 16px 40px rgba(0,0,0,0.12); }
-        .lantern-card .card-stripe { position: absolute; top: 0; left: 0; width: 100%; height: 10px; }
-        .lantern-card .icon-circle { width: 72px; height: 72px; border-radius: 18px; display: flex; align-items: center; justify-content: center; font-size: 34px; margin: 0 auto 18px; background: rgba(255,255,255,0.85); }
-        
         /* Floating Lanterns */
         .lantern-float {
             position: absolute;
@@ -96,13 +80,6 @@
             100% { opacity: 0; transform: translateY(-120vh) rotate(-3deg) scale(1.05); }
         }
 
-        /* Lantern CTA */
-        .lantern-cta {
-            background: linear-gradient(135deg, var(--lantern-coral) 0%, var(--lantern-rose) 25%, var(--lantern-plum) 55%, var(--lantern-teal) 85%, var(--lantern-jade) 100%);
-            background-size: 300% 300%;
-            animation: splashGrad 8s ease infinite;
-        }
-        
         body {
             font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
             background: #FDF8F5;
@@ -280,39 +257,9 @@
             margin: 0 auto;
         }
         
-        .hero-symbol {
-            font-size: 100px;
-            color: #DA251D;
-            display: block;
-            margin-bottom: 20px;
-        }
-        
-        .hero-text {
-            font-family: 'Crimson Pro', Georgia, serif;
-            font-size: 64px;
-            font-weight: 600;
-            color: #DA251D;
-            letter-spacing: 4px;
-            margin-bottom: 15px;
-        }
-        
-        .hero-tagline {
-            font-size: 20px;
-            color: #7D6E64;
-            font-style: italic;
-            margin-bottom: 40px;
-        }
-        
         .hero h1 {
             font-size: 42px;
             margin-bottom: 25px;
-        }
-        
-        .hero-description {
-            font-size: 20px;
-            color: #7D6E64;
-            line-height: 1.8;
-            margin-bottom: 40px;
         }
         
         .btn-primary {
@@ -687,16 +634,6 @@
             cursor: pointer;
         }
         
-        /* Product Data Forms */
-        .product-data-card {
-            background: white;
-            border-radius: 16px;
-            padding: 25px;
-            margin-bottom: 20px;
-            border: 3px solid var(--lantern-plum);
-            box-shadow: 0 6px 20px rgba(139, 58, 127, 0.15);
-        }
-        
         .product-data-header {
             display: flex;
             justify-content: space-between;
@@ -898,47 +835,6 @@
         .qr-badge.active { background: #dcfce7; color: #166534; }
         .qr-badge.draft { background: #fee2e2; color: #991b1b; }
         
-        .batch-field-group {
-            background: white;
-            border-radius: 12px;
-            border: 2px solid #E8DDD6;
-            margin-bottom: 12px;
-            overflow: hidden;
-            transition: border-color 0.3s;
-        }
-        
-        .batch-field-toggle {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 14px 18px;
-            cursor: pointer;
-            user-select: none;
-            font-weight: 600;
-            font-size: 14px;
-            color: #3D2E24;
-        }
-        
-        .batch-field-toggle input[type="checkbox"] {
-            width: 20px;
-            height: 20px;
-            accent-color: #8B3A7F;
-            cursor: pointer;
-        }
-        
-        .batch-field-content {
-            display: none;
-            padding: 0 18px 18px;
-        }
-        
-        .batch-field-group.field-active {
-            border-color: #8B3A7F;
-        }
-        
-        .batch-field-group.field-active .batch-field-content {
-            display: block;
-        }
-        
         .qr-card.batch-mode {
             position: relative;
         }
@@ -1054,31 +950,6 @@
             color: #3D2E24;
         }
         
-        .photo-preview {
-            max-width: 200px;
-            max-height: 200px;
-            border-radius: 8px;
-            margin: 10px auto;
-            display: block;
-            border: 3px solid var(--lantern-plum);
-        }
-        
-        .btn-secondary {
-            background: white;
-            color: #8B3A7F;
-            border: 2px solid var(--lantern-plum);
-            padding: 12px 24px;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        
-        .btn-secondary:hover {
-            background: #8B3A7F;
-            color: white;
-        }
-        
         .download-btn {
             display: flex;
             flex-direction: column;
@@ -1173,6 +1044,24 @@
         .tpl-modal-actions { display: flex; gap: 10px; margin-top: 20px; }
         .tpl-btn-save { flex: 1; background: #8B3A7F; color: #fff; border: none; padding: 12px; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; font-family: 'Outfit', sans-serif; }
         .tpl-btn-cancel { flex: 1; background: #fff; color: #5a4a44; border: 1px solid #ece4de; padding: 12px; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; font-family: 'Outfit', sans-serif; }
+        /* Margin grid + paper preview */
+        .tpl-custom-dims { display: none; margin-top: 8px; align-items: center; gap: 8px; padding: 10px; background: #faf6f3; border-radius: 8px; border: 1px dashed #d4c8be; }
+        .tpl-custom-dims.show { display: flex; }
+        .tpl-margin-grid { display: grid; grid-template-columns: 64px 1fr 64px; grid-template-rows: auto auto auto; gap: 8px; align-items: center; justify-items: center; margin: 16px auto; max-width: 320px; }
+        .tpl-mb { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+        .tpl-mb input { background: #faf6f3; border: 1px solid #d4c8be; border-radius: 6px; padding: 6px 4px; font-size: 13px; width: 56px; text-align: center; font-family: inherit; color: #2E2A28; font-weight: 500; }
+        .tpl-mb input:focus { outline: none; border-color: #8B3A7F; background: #fff; }
+        .tpl-mb .tpl-mtag { font-size: 10px; color: #8a7a72; letter-spacing: 0.04em; text-transform: uppercase; }
+        .tpl-mb-top { grid-column: 2; grid-row: 1; }
+        .tpl-mb-bot { grid-column: 2; grid-row: 3; }
+        .tpl-mb-left { grid-column: 1; grid-row: 2; }
+        .tpl-mb-right { grid-column: 3; grid-row: 2; }
+        .tpl-paper-wrap { grid-column: 2; grid-row: 2; display: flex; align-items: center; justify-content: center; min-height: 240px; }
+        .tpl-paper { position: relative; background: #fff; border: 1px solid #c5b5ad; box-shadow: 0 3px 10px rgba(46,42,40,0.10); border-radius: 2px; }
+        .tpl-cells { position: absolute; inset: 0; }
+        .tpl-cell { position: absolute; background: rgba(139,58,127,0.20); border-radius: 1.5px; }
+        .tpl-total { font-size: 11px; color: #8B3A7F; font-weight: 500; margin-left: 6px; }
+        .tpl-warn { color: #DA251D; font-size: 12px; text-align: center; margin: 4px 0 8px; display: none; }
 
         
         .product-data-item {
@@ -2432,7 +2321,7 @@ Add any product information here..."></textarea>
     <div class="tpl-modal" id="tplFormModal">
         <div class="tpl-modal-card">
             <h3 class="tpl-modal-h" id="tplFormTitle">New template</h3>
-            <p class="tpl-modal-sub">Tell us about the label sheet you'll print on.</p>
+            <p class="tpl-modal-sub">Pick the sheet you'll print on, then set margins and labels.</p>
 
             <div class="tpl-fld">
                 <label class="tpl-fld-label">Template name</label>
@@ -2442,29 +2331,63 @@ Add any product information here..."></textarea>
             <div class="tpl-fld">
                 <label class="tpl-fld-label">Sheet size</label>
                 <div class="tpl-seg">
-                    <button type="button" class="tpl-seg-btn tpl-sheet-seg active" data-sheet="letter" onclick="setTplSheet('letter')">Letter (8.5×11)</button>
+                    <button type="button" class="tpl-seg-btn tpl-sheet-seg active" data-sheet="letter" onclick="setTplSheet('letter')">Letter</button>
                     <button type="button" class="tpl-seg-btn tpl-sheet-seg" data-sheet="a4" onclick="setTplSheet('a4')">A4</button>
+                    <button type="button" class="tpl-seg-btn tpl-sheet-seg" data-sheet="custom" onclick="setTplSheet('custom')">Custom</button>
+                </div>
+                <div class="tpl-custom-dims" id="tplCustomDims">
+                    <input type="number" class="tpl-num" id="tplSheetW" value="8.5" step="0.1" min="1">
+                    <span class="tpl-x">×</span>
+                    <input type="number" class="tpl-num" id="tplSheetH" value="11" step="0.1" min="1">
+                    <span class="tpl-hint">inches</span>
                 </div>
             </div>
+
+            <div class="tpl-margin-grid">
+                <div class="tpl-mb tpl-mb-top">
+                    <input type="number" id="tplMt" value="0.625" step="0.05" min="0">
+                    <span class="tpl-mtag">↑ top "</span>
+                </div>
+                <div class="tpl-mb tpl-mb-left">
+                    <input type="number" id="tplMl" value="0.875" step="0.05" min="0">
+                    <span class="tpl-mtag">← left "</span>
+                </div>
+                <div class="tpl-paper-wrap">
+                    <div class="tpl-paper" id="tplPaper">
+                        <div class="tpl-cells" id="tplCells"></div>
+                    </div>
+                </div>
+                <div class="tpl-mb tpl-mb-right">
+                    <input type="number" id="tplMr" value="0.875" step="0.05" min="0">
+                    <span class="tpl-mtag">right → "</span>
+                </div>
+                <div class="tpl-mb tpl-mb-bot">
+                    <input type="number" id="tplMb" value="0.625" step="0.05" min="0">
+                    <span class="tpl-mtag">bottom ↓ "</span>
+                </div>
+            </div>
+
+            <p class="tpl-warn" id="tplWarn">Labels overflow the page</p>
 
             <div class="tpl-fld">
                 <label class="tpl-fld-label">Each label (inches)</label>
                 <div class="tpl-row">
-                    <input type="number" class="tpl-num" id="tplLabelW" value="2" step="0.1" min="0.1">
+                    <input type="number" class="tpl-num" id="tplLabelW" value="1.5" step="0.1" min="0.1">
                     <span class="tpl-x">×</span>
-                    <input type="number" class="tpl-num" id="tplLabelH" value="2" step="0.1" min="0.1">
+                    <input type="number" class="tpl-num" id="tplLabelH" value="1.5" step="0.1" min="0.1">
                 </div>
             </div>
 
             <div class="tpl-fld">
-                <label class="tpl-fld-label">How many fit per page</label>
+                <label class="tpl-fld-label">Grid</label>
                 <div class="tpl-row" style="margin-bottom: 6px;">
-                    <input type="number" class="tpl-num" id="tplCols" value="3" min="1" step="1">
+                    <input type="number" class="tpl-num" id="tplCols" value="4" min="1" step="1">
                     <span class="tpl-hint">columns</span>
                 </div>
                 <div class="tpl-row">
-                    <input type="number" class="tpl-num" id="tplRows" value="4" min="1" step="1">
+                    <input type="number" class="tpl-num" id="tplRows" value="6" min="1" step="1">
                     <span class="tpl-hint">rows</span>
+                    <span class="tpl-total" id="tplTotal">= 24 per page</span>
                 </div>
             </div>
 
@@ -6247,9 +6170,88 @@ Add any product information here..."></textarea>
         var customPrintTemplates = [];
         var editingTemplateId = null;
 
+        var tplCurrentSheet = 'letter';
         function setTplSheet(sheet) {
+            tplCurrentSheet = sheet;
             document.querySelectorAll('.tpl-sheet-seg').forEach(function(b) {
                 b.classList.toggle('active', b.dataset.sheet === sheet);
+            });
+            var cd = document.getElementById('tplCustomDims');
+            if (cd) cd.classList.toggle('show', sheet === 'custom');
+            renderTplPreview();
+        }
+
+        function getTplSheetDims() {
+            if (tplCurrentSheet === 'letter') return { w: 8.5, h: 11 };
+            if (tplCurrentSheet === 'a4') return { w: 8.27, h: 11.69 };
+            var cw = parseFloat(document.getElementById('tplSheetW').value) || 8.5;
+            var ch = parseFloat(document.getElementById('tplSheetH').value) || 11;
+            return { w: cw, h: ch };
+        }
+
+        function tplNum(id, fb) {
+            var el = document.getElementById(id);
+            if (!el) return fb;
+            var v = parseFloat(el.value);
+            return isNaN(v) ? fb : v;
+        }
+
+        function renderTplPreview() {
+            var paper = document.getElementById('tplPaper');
+            var cells = document.getElementById('tplCells');
+            var total = document.getElementById('tplTotal');
+            var warn = document.getElementById('tplWarn');
+            if (!paper || !cells) return;
+            var sd = getTplSheetDims();
+            var SHEET_W = sd.w, SHEET_H = sd.h;
+            var MAX_W = 170, MAX_H = 220;
+            var aspect = SHEET_W / SHEET_H;
+            var maxAspect = MAX_W / MAX_H;
+            var pw, ph;
+            if (aspect > maxAspect) { pw = MAX_W; ph = MAX_W / aspect; }
+            else { ph = MAX_H; pw = MAX_H * aspect; }
+            paper.style.width = pw + 'px';
+            paper.style.height = ph + 'px';
+            var SCALE = pw / SHEET_W;
+            var lw = tplNum('tplLabelW', 1.5), lh = tplNum('tplLabelH', 1.5);
+            var c = Math.max(1, parseInt(document.getElementById('tplCols').value) || 1);
+            var r = Math.max(1, parseInt(document.getElementById('tplRows').value) || 1);
+            var gx = tplNum('tplGapX', 0), gy = tplNum('tplGapY', 0);
+            var mt = tplNum('tplMt', 0), ml = tplNum('tplMl', 0);
+            var mr = tplNum('tplMr', 0), mb = tplNum('tplMb', 0);
+            cells.innerHTML = '';
+            var totalW = c * lw + (c - 1) * gx;
+            var totalH = r * lh + (r - 1) * gy;
+            var fits = (ml + totalW + mr <= SHEET_W + 0.001) && (mt + totalH + mb <= SHEET_H + 0.001);
+            if (warn) warn.style.display = fits ? 'none' : 'block';
+            for (var row = 0; row < r; row++) {
+                for (var col = 0; col < c; col++) {
+                    var x = (ml + col * (lw + gx)) * SCALE;
+                    var y = (mt + row * (lh + gy)) * SCALE;
+                    var w = lw * SCALE, h = lh * SCALE;
+                    if (x + w > pw + 0.5 || y + h > ph + 0.5) continue;
+                    var cell = document.createElement('div');
+                    cell.className = 'tpl-cell';
+                    if (document.getElementById('tplRound') && document.getElementById('tplRound').checked) cell.style.borderRadius = '50%';
+                    cell.style.left = x + 'px';
+                    cell.style.top = y + 'px';
+                    cell.style.width = w + 'px';
+                    cell.style.height = h + 'px';
+                    cells.appendChild(cell);
+                }
+            }
+            if (total) total.textContent = '= ' + (c * r) + ' per page';
+        }
+
+        function wireTplFormInputs() {
+            var ids = ['tplLabelW','tplLabelH','tplCols','tplRows','tplGapX','tplGapY','tplMt','tplMl','tplMr','tplMb','tplSheetW','tplSheetH','tplRound'];
+            ids.forEach(function(id) {
+                var el = document.getElementById(id);
+                if (el && !el.dataset.tplWired) {
+                    el.addEventListener('input', renderTplPreview);
+                    el.addEventListener('change', renderTplPreview);
+                    el.dataset.tplWired = '1';
+                }
             });
         }
 
@@ -6282,7 +6284,7 @@ Add any product information here..."></textarea>
             customPrintTemplates.forEach(function(t) {
                 var labelDesc = t.round_corners ? t.label_width + '" round' : t.label_width + '" × ' + t.label_height + '"';
                 var perSheet = (t.cols * t.rows);
-                var sheet = t.sheet_size === 'a4' ? 'A4' : 'Letter';
+                var sheet = t.sheet_size === 'a4' ? 'A4' : (t.sheet_size === 'custom' ? ((t.sheet_width || 8.5) + '×' + (t.sheet_height || 11) + '"') : 'Letter');
                 html += '<div class="tpl-card">';
                 html += '<p class="tpl-card-name">' + escapeHtml(t.name) + '</p>';
                 html += '<p class="tpl-card-meta">' + labelDesc + ' · ' + perSheet + ' per ' + sheet + ' sheet</p>';
@@ -6299,15 +6301,28 @@ Add any product information here..."></textarea>
             editingTemplateId = template ? template.id : null;
             document.getElementById('tplFormTitle').textContent = template ? 'Edit template' : 'New template';
             document.getElementById('tplName').value = template ? template.name : '';
-            document.getElementById('tplLabelW').value = template ? template.label_width : '2';
-            document.getElementById('tplLabelH').value = template ? template.label_height : '2';
-            document.getElementById('tplCols').value = template ? template.cols : '3';
-            document.getElementById('tplRows').value = template ? template.rows : '4';
+            document.getElementById('tplLabelW').value = template ? template.label_width : '1.5';
+            document.getElementById('tplLabelH').value = template ? template.label_height : '1.5';
+            document.getElementById('tplCols').value = template ? template.cols : '4';
+            document.getElementById('tplRows').value = template ? template.rows : '6';
             document.getElementById('tplGapX').value = template ? (template.gap_x || 0) : '0.25';
             document.getElementById('tplGapY').value = template ? (template.gap_y || 0) : '0';
+            document.getElementById('tplMt').value = template ? (template.margin_top != null ? template.margin_top : 0.625) : '0.625';
+            document.getElementById('tplMl').value = template ? (template.margin_left != null ? template.margin_left : 0.875) : '0.875';
+            document.getElementById('tplMb').value = template ? (template.margin_bottom != null ? template.margin_bottom : 0.625) : '0.625';
+            document.getElementById('tplMr').value = template ? (template.margin_right != null ? template.margin_right : 0.875) : '0.875';
             document.getElementById('tplRound').checked = template ? !!template.round_corners : false;
+            if (template && template.sheet_size === 'custom') {
+                document.getElementById('tplSheetW').value = template.sheet_width != null ? template.sheet_width : 8.5;
+                document.getElementById('tplSheetH').value = template.sheet_height != null ? template.sheet_height : 11;
+            } else {
+                document.getElementById('tplSheetW').value = '8.5';
+                document.getElementById('tplSheetH').value = '11';
+            }
             setTplSheet(template ? template.sheet_size : 'letter');
             document.getElementById('tplFormModal').classList.add('active');
+            wireTplFormInputs();
+            renderTplPreview();
         }
 
         function closeTemplateForm() {
@@ -6324,22 +6339,30 @@ Add any product information here..."></textarea>
             var rows = parseInt(document.getElementById('tplRows').value);
             var gapX = parseFloat(document.getElementById('tplGapX').value) || 0;
             var gapY = parseFloat(document.getElementById('tplGapY').value) || 0;
+            var mt = parseFloat(document.getElementById('tplMt').value) || 0;
+            var ml = parseFloat(document.getElementById('tplMl').value) || 0;
+            var mb = parseFloat(document.getElementById('tplMb').value) || 0;
+            var mr = parseFloat(document.getElementById('tplMr').value) || 0;
             var round = document.getElementById('tplRound').checked;
             var sheetBtn = document.querySelector('.tpl-sheet-seg.active');
             var sheet = sheetBtn ? sheetBtn.dataset.sheet : 'letter';
+            var sheetDims = getTplSheetDims();
+            var sheetW = sheetDims.w, sheetH = sheetDims.h;
 
             if (!name) { alert('Please give your template a name.'); return; }
             if (!labelW || labelW <= 0) { alert('Label width must be greater than 0.'); return; }
             if (!labelH || labelH <= 0) { alert('Label height must be greater than 0.'); return; }
             if (!cols || cols < 1) { alert('Columns must be at least 1.'); return; }
             if (!rows || rows < 1) { alert('Rows must be at least 1.'); return; }
+            if (sheet === 'custom' && (sheetW <= 0 || sheetH <= 0)) {
+                alert('Custom sheet width and height must be greater than 0.');
+                return;
+            }
 
-            var sheetW = sheet === 'a4' ? 8.27 : 8.5;
-            var sheetH = sheet === 'a4' ? 11.69 : 11;
             var totalW = cols * labelW + (cols - 1) * gapX;
             var totalH = rows * labelH + (rows - 1) * gapY;
-            if (totalW > sheetW || totalH > sheetH) {
-                alert('These labels won\'t fit on a ' + (sheet === 'a4' ? 'A4' : 'Letter') + ' sheet. Reduce label size or count.');
+            if (ml + totalW + mr > sheetW + 0.001 || mt + totalH + mb > sheetH + 0.001) {
+                alert('These labels + margins won\'t fit on the sheet. Adjust margins, label size, or count.');
                 return;
             }
 
@@ -6347,12 +6370,18 @@ Add any product information here..."></textarea>
                 user_id: currentUser.id,
                 name: name,
                 sheet_size: sheet,
+                sheet_width: sheetW,
+                sheet_height: sheetH,
                 label_width: labelW,
                 label_height: labelH,
                 cols: cols,
                 rows: rows,
                 gap_x: gapX,
                 gap_y: gapY,
+                margin_top: mt,
+                margin_left: ml,
+                margin_bottom: mb,
+                margin_right: mr,
                 round_corners: round
             };
 
@@ -6404,12 +6433,14 @@ Add any product information here..."></textarea>
             }
             var t = customPrintTemplates.find(function(x) { return x.id === id; });
             if (!t) return;
-            var sheetW = t.sheet_size === 'a4' ? 8.27 : 8.5;
-            var sheetH = t.sheet_size === 'a4' ? 11.69 : 11;
+            // Resolve sheet dimensions: use saved sheet_width/height if present, else fall back by sheet_size
+            var sheetW = t.sheet_width != null ? t.sheet_width : (t.sheet_size === 'a4' ? 8.27 : 8.5);
+            var sheetH = t.sheet_height != null ? t.sheet_height : (t.sheet_size === 'a4' ? 11.69 : 11);
+            // Use saved margins; fall back to auto-centered for old templates
             var totalLabelsW = t.cols * t.label_width + (t.cols - 1) * t.gap_x;
             var totalLabelsH = t.rows * t.label_height + (t.rows - 1) * t.gap_y;
-            var marginLeft = (sheetW - totalLabelsW) / 2;
-            var marginTop = (sheetH - totalLabelsH) / 2;
+            var marginLeft = t.margin_left != null ? t.margin_left : (sheetW - totalLabelsW) / 2;
+            var marginTop = t.margin_top != null ? t.margin_top : (sheetH - totalLabelsH) / 2;
             var legacyTemplate = {
                 name: t.name,
                 cols: t.cols,
@@ -6421,7 +6452,9 @@ Add any product information here..."></textarea>
                 marginTop: marginTop,
                 gapX: t.gap_x,
                 gapY: t.gap_y,
-                round: t.round_corners
+                round: t.round_corners,
+                sheetW: sheetW,
+                sheetH: sheetH
             };
             showCustomPreview(legacyTemplate);
         }
