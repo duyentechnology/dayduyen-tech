@@ -4854,14 +4854,17 @@ Add any product information here..."></textarea>
                     var logoUrl = window.customLogoUrl || null;
                     var stickerInner = Math.min(template.labelW, template.labelH);
                     var qrSize = stickerInner * qrPct / 100;
-                    var logoSize = (logoPos === 'none' || !logoUrl) ? 0 : stickerInner * logoPct / 100;
-                    var stackGap = (logoSize > 0) ? 0.05 : 0;
-                    // Auto-scale: shrink everything proportionally if the stack would overflow the sticker
-                    var stackTotal = qrSize + (logoSize > 0 ? logoSize + stackGap : 0);
+                    var hasLogo = !(logoPos === 'none' || !logoUrl);
+                    // Logo as wide rectangle: width = full sticker (with small inset), height = slider %
+                    var logoHeight = hasLogo ? stickerInner * logoPct / 100 : 0;
+                    var logoWidth = hasLogo ? template.labelW * 0.92 : 0;
+                    var stackGap = hasLogo ? 0.05 : 0;
+                    // Auto-scale heights if QR + logo height + gap overflows the sticker
+                    var stackTotal = qrSize + (hasLogo ? logoHeight + stackGap : 0);
                     if (stackTotal > stickerInner) {
                         var scaleDown = stickerInner / stackTotal;
                         qrSize *= scaleDown;
-                        logoSize *= scaleDown;
+                        logoHeight *= scaleDown;
                         stackGap *= scaleDown;
                     }
                     var qrIndex = 0;
@@ -4873,13 +4876,13 @@ Add any product information here..."></textarea>
                                 var qrData = qrList[qrIndex];
                                 var x = template.marginLeft + col * (template.labelW + template.gapX);
                                 var y = template.marginTop + row * (template.labelH + template.gapY);
-                                var stackH = qrSize + (logoSize > 0 ? logoSize + stackGap : 0);
+                                var stackH = qrSize + (hasLogo ? logoHeight + stackGap : 0);
                                 var stackTop = y + (template.labelH - stackH) / 2;
                                 var qrTop, logoTop;
-                                if (logoPos === 'above' && logoSize > 0) {
+                                if (logoPos === 'above' && hasLogo) {
                                     logoTop = stackTop;
-                                    qrTop = stackTop + logoSize + stackGap;
-                                } else if (logoPos === 'below' && logoSize > 0) {
+                                    qrTop = stackTop + logoHeight + stackGap;
+                                } else if (logoPos === 'below' && hasLogo) {
                                     qrTop = stackTop;
                                     logoTop = stackTop + qrSize + stackGap;
                                 } else {
@@ -4891,14 +4894,15 @@ Add any product information here..."></textarea>
                                 var imgData = canvas.toDataURL('image/png');
                                 pdf.addImage(imgData, 'PNG', qrX, qrTop, qrSize, qrSize);
                                 if (logoTop != null && logoUrl) {
-                                    var logoX = x + (template.labelW - logoSize) / 2;
+                                    var logoX = x + (template.labelW - logoWidth) / 2;
                                     if (window.customLogoBg) {
-                                        var pad = logoSize * 0.12;
+                                        var padY = logoHeight * 0.15;
+                                        var padX = 0.04;
                                         pdf.setFillColor(255, 255, 255);
-                                        pdf.rect(logoX - pad, logoTop - pad, logoSize + 2*pad, logoSize + 2*pad, 'F');
+                                        pdf.rect(logoX - padX, logoTop - padY, logoWidth + 2*padX, logoHeight + 2*padY, 'F');
                                     }
                                     try {
-                                        pdf.addImage(logoUrl, 'PNG', logoX, logoTop, logoSize, logoSize);
+                                        pdf.addImage(logoUrl, 'PNG', logoX, logoTop, logoWidth, logoHeight);
                                     } catch(e) { console.warn('Logo PDF embed failed:', e); }
                                 }
                                 qrIndex++;
@@ -6569,14 +6573,17 @@ Add any product information here..."></textarea>
             // Sticker layout sizing — based on user choice
             var stickerInner = Math.min(labelW, labelH);
             var qrSizePx = stickerInner * window.customQrPct / 100;
-            var logoSizePx = (window.customLogoPos === 'none' || !window.customLogoUrl) ? 0 : stickerInner * window.customLogoPct / 100;
-            var stackGap = (logoSizePx > 0) ? 2 : 0;
-            // Auto-scale: shrink everything proportionally if the stack would overflow the sticker
-            var stackTotal = qrSizePx + (logoSizePx > 0 ? logoSizePx + stackGap : 0);
+            // Logo is now a WIDE RECTANGLE: width = full sticker width (with small inset), height = slider %
+            var hasLogo = !(window.customLogoPos === 'none' || !window.customLogoUrl);
+            var logoHeightPx = hasLogo ? stickerInner * window.customLogoPct / 100 : 0;
+            var logoWidthPx = hasLogo ? labelW * 0.92 : 0;
+            var stackGap = hasLogo ? 2 : 0;
+            // Auto-scale: shrink heights proportionally if the QR + logo height + gap would overflow the sticker
+            var stackTotal = qrSizePx + (hasLogo ? logoHeightPx + stackGap : 0);
             if (stackTotal > stickerInner) {
                 var scaleDown = stickerInner / stackTotal;
                 qrSizePx *= scaleDown;
-                logoSizePx *= scaleDown;
+                logoHeightPx *= scaleDown;
                 stackGap *= scaleDown;
             }
             for (var page = 0; page < totalPages; page++) {
@@ -6594,14 +6601,14 @@ Add any product information here..."></textarea>
                             var dataUrl = canvas.toDataURL('image/png');
                             printImageData.push({ dataUrl: dataUrl, label: qrData.label });
                             // Center stack vertically inside the sticker
-                            var stackH = qrSizePx + (logoSizePx > 0 ? logoSizePx + stackGap : 0);
+                            var stackH = qrSizePx + (hasLogo ? logoHeightPx + stackGap : 0);
                             var stackTop = y + (labelH - stackH) / 2;
                             var qrTop;
                             var logoTop;
-                            if (window.customLogoPos === 'above' && logoSizePx > 0) {
+                            if (window.customLogoPos === 'above' && hasLogo) {
                                 logoTop = stackTop;
-                                qrTop = stackTop + logoSizePx + stackGap;
-                            } else if (window.customLogoPos === 'below' && logoSizePx > 0) {
+                                qrTop = stackTop + logoHeightPx + stackGap;
+                            } else if (window.customLogoPos === 'below' && hasLogo) {
                                 qrTop = stackTop;
                                 logoTop = stackTop + qrSizePx + stackGap;
                             } else {
@@ -6611,15 +6618,16 @@ Add any product information here..."></textarea>
                             var qrX = x + (labelW - qrSizePx) / 2;
                             // QR
                             pageContent += '<img src="' + dataUrl + '" style="position:absolute;left:' + qrX + 'px;top:' + qrTop + 'px;width:' + qrSizePx + 'px;height:' + qrSizePx + 'px;' + (template.round ? 'border-radius:50%;' : '') + '">';
-                            // Logo
+                            // Logo (wide rectangle, centered horizontally across full sticker)
                             if (logoTop != null && window.customLogoUrl) {
-                                var logoX = x + (labelW - logoSizePx) / 2;
+                                var logoX = x + (labelW - logoWidthPx) / 2;
                                 // Optional white background pad behind logo
                                 if (window.customLogoBg) {
-                                    var pad = logoSizePx * 0.12;
-                                    pageContent += '<div style="position:absolute;left:' + (logoX - pad) + 'px;top:' + (logoTop - pad) + 'px;width:' + (logoSizePx + 2*pad) + 'px;height:' + (logoSizePx + 2*pad) + 'px;background:#fff;border-radius:3px;"></div>';
+                                    var padY = logoHeightPx * 0.15;
+                                    var padX = 4;
+                                    pageContent += '<div style="position:absolute;left:' + (logoX - padX) + 'px;top:' + (logoTop - padY) + 'px;width:' + (logoWidthPx + 2*padX) + 'px;height:' + (logoHeightPx + 2*padY) + 'px;background:#fff;border-radius:3px;"></div>';
                                 }
-                                pageContent += '<img src="' + window.customLogoUrl + '" style="position:absolute;left:' + logoX + 'px;top:' + logoTop + 'px;width:' + logoSizePx + 'px;height:' + logoSizePx + 'px;object-fit:contain;">';
+                                pageContent += '<img src="' + window.customLogoUrl + '" style="position:absolute;left:' + logoX + 'px;top:' + logoTop + 'px;width:' + logoWidthPx + 'px;height:' + logoHeightPx + 'px;object-fit:contain;">';
                             }
                             qrIndex++;
                         }
