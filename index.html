@@ -204,6 +204,73 @@
             color: #7D6E64;
             font-size: 14px;
         }
+
+        .user-avatar-wrap {
+            position: relative;
+            display: inline-block;
+        }
+
+        .user-avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: #8B3A7F;
+            color: #fff;
+            border: none;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+            font-size: 15px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+            padding: 0;
+        }
+
+        .user-avatar:hover { background: #7A3270; }
+
+        .user-dropdown {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            background: #fff;
+            border: 1px solid #E8DDD6;
+            border-radius: 10px;
+            box-shadow: 0 4px 16px rgba(61, 46, 36, 0.12);
+            min-width: 200px;
+            padding: 6px 0;
+            display: none;
+            z-index: 200;
+        }
+
+        .user-dropdown.open { display: block; }
+
+        .user-dropdown .user-email {
+            display: block;
+            padding: 10px 14px;
+            font-size: 13px;
+            color: #9A8478;
+            border-bottom: 1px solid #F0EAE6;
+            word-break: break-all;
+        }
+
+        .user-dropdown button {
+            display: block;
+            width: 100%;
+            text-align: left;
+            background: none;
+            border: none;
+            padding: 11px 14px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 14px;
+            color: #2E2A28;
+            cursor: pointer;
+        }
+
+        .user-dropdown button:hover { background: #FAF6F3; }
+
+        .user-dropdown .dropdown-signout { color: #DA251D; }
         
         /* Landing Page */
         .hero {
@@ -1168,12 +1235,17 @@
             <button class="cta-button" id="headerAboutBtn" style="background: none; color: #3D2E24; border: none; font-weight: 600;">About</button>
             <button class="cta-button" id="headerBtn" onclick="handleHeaderCTA()">Log In</button>
             <div class="user-menu" id="userMenu">
-                <span class="user-email" id="userEmail"></span>
                 <button class="cta-button" id="adminNewQR" onclick="showView('mode')" style="background: white; color: #8B3A7F; border: 2px solid var(--lantern-plum); display:none;">+ New QR</button>
                 <button class="cta-button" id="adminMyCodes" onclick="showView('myCodes')" style="background: #2E2A28; color: white; display:none;">My QR Codes <span id="qrCount" style="background: #8B3A7F; color: white; padding: 2px 8px; border-radius: 10px; font-size: 11px; margin-left: 4px;">0</span></button>
                 <button class="cta-button" onclick="showView('bizDashboard')" style="background: #8B3A7F; color: white;">My Dashboard</button>
-                <button class="cta-button" onclick="showView('profile')" style="background: #FAF0EA; color: #7D6E64;">My Account</button>
-                <button class="cta-button" onclick="logout()" style="background: #FAF0EA; color: #7D6E64;">Log Out</button>
+                <div class="user-avatar-wrap">
+                    <button class="user-avatar" id="userAvatarBtn" type="button" onclick="event.stopPropagation(); document.getElementById('userDropdown').classList.toggle('open');" aria-label="Account menu"></button>
+                    <div class="user-dropdown" id="userDropdown">
+                        <span class="user-email" id="userEmail"></span>
+                        <button type="button" onclick="document.getElementById('userDropdown').classList.remove('open'); showView('profile');">My Account</button>
+                        <button type="button" class="dropdown-signout" onclick="logout();">Log Out</button>
+                    </div>
+                </div>
             </div>
         </div>
     </header>
@@ -2282,7 +2354,6 @@ Add any product information here..."></textarea>
                 </div>
             </div>
 
-            <!-- Sign out -->
             <!-- Legal -->
             <div style="font-size:11px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;font-family:'Outfit',sans-serif;">Legal</div>
             <div style="background:#fff;border:1.5px solid #E8DDD6;border-radius:12px;overflow:hidden;margin-bottom:20px;">
@@ -5990,6 +6061,8 @@ Add any product information here..."></textarea>
                 currentUser = { email: user.email, name: user.user_metadata?.full_name || user.email, id: user.id };
                 console.log('👤 User:', currentUser.email, 'ID:', currentUser.id);
                 document.getElementById('userEmail').textContent = user.email;
+                var avBtn = document.getElementById('userAvatarBtn');
+                if (avBtn && user.email) avBtn.textContent = user.email.charAt(0).toUpperCase();
                 document.getElementById('headerBtn').style.display = 'none';
                 const aboutBtn = document.getElementById('headerAboutBtn');
                 if (aboutBtn) aboutBtn.style.display = 'none';
@@ -6207,6 +6280,16 @@ Add any product information here..."></textarea>
             setInterval(spawnLantern, 900);
         }, 4500);
     })();
+</script>
+<script>
+    // Close avatar dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+        var dd = document.getElementById('userDropdown');
+        var av = document.getElementById('userAvatarBtn');
+        if (dd && dd.classList.contains('open') && !dd.contains(e.target) && e.target !== av) {
+            dd.classList.remove('open');
+        }
+    });
 </script>
 </body>
 </html>
