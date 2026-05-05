@@ -1136,6 +1136,44 @@
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(139, 58, 127, 0.15);
         }
+                /* ── Custom Print Templates ───────────────────────────── */
+        .tpl-section { margin: 25px 0 15px; padding-top: 20px; border-top: 1px solid #bbf7d0; }
+        .tpl-section h5 { color: #166534; margin: 0 0 5px; font-size: 16px; }
+        .tpl-section p.tpl-sub { color: #7D6E64; font-size: 13px; margin: 0 0 15px; }
+        .tpl-empty { background: #f8f6f3; border: 1px solid #ece4de; border-radius: 10px; padding: 18px; text-align: center; font-size: 13px; color: #5a4a44; margin-bottom: 10px; line-height: 1.5; }
+        .tpl-card { background: #faf6f3; border: 1px solid #ece4de; border-radius: 10px; padding: 12px 14px; margin-bottom: 8px; }
+        .tpl-card-name { font-size: 14px; font-weight: 600; color: #2E2A28; margin: 0 0 2px; }
+        .tpl-card-meta { font-size: 12px; color: #8a7a72; margin: 0 0 10px; }
+        .tpl-card-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+        .tpl-act { padding: 7px 14px; border-radius: 7px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid transparent; font-family: 'Outfit', sans-serif; }
+        .tpl-act-use { background: #8B3A7F; color: #fff; }
+        .tpl-act-edit { background: #fff; color: #5a4a44; border-color: #ece4de; }
+        .tpl-act-del { background: #fff; color: #DA251D; border-color: #f0d4d4; }
+        .tpl-new-btn { width: 100%; border: 1.5px dashed #c5b5ad; background: transparent; color: #8B3A7F; font-weight: 600; border-radius: 10px; padding: 14px; font-size: 14px; cursor: pointer; margin-top: 6px; font-family: 'Outfit', sans-serif; }
+        .tpl-new-btn:hover { background: #faf6f3; border-color: #8B3A7F; }
+        /* Modal */
+        .tpl-modal { position: fixed; inset: 0; background: rgba(46, 42, 40, 0.6); z-index: 1000; display: none; align-items: flex-start; justify-content: center; padding: 20px; overflow-y: auto; }
+        .tpl-modal.active { display: flex; }
+        .tpl-modal-card { background: #fff; border-radius: 16px; padding: 24px; max-width: 420px; width: 100%; margin: auto; }
+        .tpl-modal-h { font-family: 'Cormorant Garamond', serif; color: #8B3A7F; font-size: 22px; font-weight: 600; margin: 0 0 4px; }
+        .tpl-modal-sub { font-size: 13px; color: #8a7a72; margin: 0 0 18px; }
+        .tpl-fld { margin-bottom: 14px; }
+        .tpl-fld-label { display: block; font-size: 11px; color: #5a4a44; margin-bottom: 6px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
+        .tpl-fld input[type="text"], .tpl-fld input[type="number"] { background: #faf6f3; border: 1px solid #ece4de; border-radius: 8px; padding: 10px 12px; font-size: 15px; color: #2E2A28; font-family: inherit; width: 100%; box-sizing: border-box; }
+        .tpl-fld input.tpl-num { width: 75px; text-align: center; }
+        .tpl-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .tpl-x { color: #8a7a72; font-size: 14px; }
+        .tpl-hint { font-size: 11px; color: #9A8478; margin-left: 4px; }
+        .tpl-seg { display: flex; gap: 6px; }
+        .tpl-seg-btn { background: #faf6f3; border: 1px solid #ece4de; border-radius: 8px; padding: 8px 14px; font-size: 12px; color: #5a4a44; cursor: pointer; font-family: 'Outfit', sans-serif; }
+        .tpl-seg-btn.active { background: #8B3A7F; color: #fff; border-color: #8B3A7F; }
+        .tpl-check { display: flex; align-items: center; gap: 8px; cursor: pointer; margin: 14px 0; }
+        .tpl-check input { accent-color: #8B3A7F; width: 18px; height: 18px; }
+        .tpl-check span { font-size: 13px; color: #5a4a44; }
+        .tpl-modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+        .tpl-btn-save { flex: 1; background: #8B3A7F; color: #fff; border: none; padding: 12px; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; font-family: 'Outfit', sans-serif; }
+        .tpl-btn-cancel { flex: 1; background: #fff; color: #5a4a44; border: 1px solid #ece4de; padding: 12px; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; font-family: 'Outfit', sans-serif; }
+
         
         .product-data-item {
             background: white;
@@ -1655,6 +1693,13 @@ Add any product information here..."></textarea>
                             <span>Download as PDF</span>
                             <span style="font-size: 11px; color: #7D6E64;">All QR codes in one file</span>
                         </button>
+                    </div>
+                    
+                    <div class="tpl-section">
+                        <h5>🏷️ Print Labels</h5>
+                        <p class="tpl-sub">Print on any label sheet you have. Save the templates you use most.</p>
+                        <div id="savedTemplatesList"></div>
+                        <button type="button" class="tpl-new-btn" onclick="showTemplateForm(null)">+ New template</button>
                     </div>
                     
                     <h5 style="color: #166534; margin: 25px 0 15px; font-size: 16px; border-top: 1px solid #bbf7d0; padding-top: 20px;">🏷️ Avery Label Templates</h5>
@@ -2379,6 +2424,71 @@ Add any product information here..."></textarea>
 
             <button onclick="logout()" style="width:100%;background:#fff;color:#c53030;border:1.5px solid #fed7d7;border-radius:10px;padding:12px;font-family:'Outfit',sans-serif;font-weight:600;font-size:14px;cursor:pointer;">Sign Out</button>
 
+        </div>
+    </div>
+
+    
+    <!-- Custom Template Form Modal -->
+    <div class="tpl-modal" id="tplFormModal">
+        <div class="tpl-modal-card">
+            <h3 class="tpl-modal-h" id="tplFormTitle">New template</h3>
+            <p class="tpl-modal-sub">Tell us about the label sheet you'll print on.</p>
+
+            <div class="tpl-fld">
+                <label class="tpl-fld-label">Template name</label>
+                <input type="text" id="tplName" placeholder="e.g. My Etsy stickers">
+            </div>
+
+            <div class="tpl-fld">
+                <label class="tpl-fld-label">Sheet size</label>
+                <div class="tpl-seg">
+                    <button type="button" class="tpl-seg-btn tpl-sheet-seg active" data-sheet="letter" onclick="setTplSheet('letter')">Letter (8.5×11)</button>
+                    <button type="button" class="tpl-seg-btn tpl-sheet-seg" data-sheet="a4" onclick="setTplSheet('a4')">A4</button>
+                </div>
+            </div>
+
+            <div class="tpl-fld">
+                <label class="tpl-fld-label">Each label (inches)</label>
+                <div class="tpl-row">
+                    <input type="number" class="tpl-num" id="tplLabelW" value="2" step="0.1" min="0.1">
+                    <span class="tpl-x">×</span>
+                    <input type="number" class="tpl-num" id="tplLabelH" value="2" step="0.1" min="0.1">
+                </div>
+            </div>
+
+            <div class="tpl-fld">
+                <label class="tpl-fld-label">How many fit per page</label>
+                <div class="tpl-row" style="margin-bottom: 6px;">
+                    <input type="number" class="tpl-num" id="tplCols" value="3" min="1" step="1">
+                    <span class="tpl-hint">columns</span>
+                </div>
+                <div class="tpl-row">
+                    <input type="number" class="tpl-num" id="tplRows" value="4" min="1" step="1">
+                    <span class="tpl-hint">rows</span>
+                </div>
+            </div>
+
+            <div class="tpl-fld">
+                <label class="tpl-fld-label">Spacing between labels (inches, optional)</label>
+                <div class="tpl-row" style="margin-bottom: 6px;">
+                    <input type="number" class="tpl-num" id="tplGapX" value="0.25" step="0.05" min="0">
+                    <span class="tpl-hint">horizontal</span>
+                </div>
+                <div class="tpl-row">
+                    <input type="number" class="tpl-num" id="tplGapY" value="0" step="0.05" min="0">
+                    <span class="tpl-hint">vertical</span>
+                </div>
+            </div>
+
+            <label class="tpl-check">
+                <input type="checkbox" id="tplRound">
+                <span>Round labels (circles instead of rectangles)</span>
+            </label>
+
+            <div class="tpl-modal-actions">
+                <button type="button" class="tpl-btn-cancel" onclick="closeTemplateForm()">Cancel</button>
+                <button type="button" class="tpl-btn-save" onclick="saveTemplateFromForm()">Save</button>
+            </div>
         </div>
     </div>
 
@@ -4809,7 +4919,37 @@ Add any product information here..."></textarea>
             try {
                 const pdf = new jsPDF('p', 'in', 'letter');
                 
-                if (templateId === 'standard') {
+                if (templateId === 'custom') {
+                    var template = window.currentPrintData && window.currentPrintData.template;
+                    if (!template) { alert('Template data missing. Please re-open preview.'); return; }
+                    var qrIndex = 0;
+                    var pageNum = 0;
+                    while (qrIndex < generatedQRCodes.length) {
+                        if (pageNum > 0) pdf.addPage();
+                        for (var row = 0; row < template.rows && qrIndex < generatedQRCodes.length; row++) {
+                            for (var col = 0; col < template.cols && qrIndex < generatedQRCodes.length; col++) {
+                                var qrData = generatedQRCodes[qrIndex];
+                                var x = template.marginLeft + col * (template.labelW + template.gapX);
+                                var y = template.marginTop + row * (template.labelH + template.gapY);
+                                var qrSize = Math.min(template.labelW, template.labelH) * 0.75;
+                                var qrX = x + (template.labelW - qrSize) / 2;
+                                var qrY = y + (template.labelH - qrSize) / 2 - 0.1;
+                                var canvas = createHighResQR(qrData.url, 400, qrData.includeLogo);
+                                var imgData = canvas.toDataURL('image/png');
+                                pdf.addImage(imgData, 'PNG', qrX, qrY, qrSize, qrSize);
+                                if (template.labelH >= 1) {
+                                    pdf.setFontSize(7);
+                                    pdf.setTextColor(100);
+                                    pdf.text(qrData.label, x + template.labelW/2, qrY + qrSize + 0.12, { align: 'center' });
+                                }
+                                qrIndex++;
+                            }
+                        }
+                        pageNum++;
+                    }
+                    var safeName = template.name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+                    pdf.save('duyen-' + safeName + '-labels.pdf');
+                } else if (templateId === 'standard') {
                     const qrSize = 2;
                     const margin = 0.75;
                     const cols = 3;
@@ -4884,14 +5024,16 @@ Add any product information here..."></textarea>
         }
         
         function showPrintableInPage(templateId) {
-            const isAvery = templateId !== 'standard';
-            const template = isAvery ? averyTemplates[templateId] : null;
-            const templateName = isAvery ? template.name : 'Standard Layout';
+            var isCustom = templateId === 'custom';
+            var customTpl = isCustom ? (window.currentPrintData && window.currentPrintData.template) : null;
+            const isAvery = !isCustom && templateId !== 'standard';
+            const template = isCustom ? customTpl : (isAvery ? averyTemplates[templateId] : null);
+            const templateName = template ? template.name : 'Standard Layout';
             
             // Build printable content
             let pagesHTML = '';
             
-            if (isAvery) {
+            if (isAvery || isCustom) {
                 const totalPages = Math.ceil(generatedQRCodes.length / template.perSheet);
                 
                 for (let page = 0; page < totalPages; page++) {
@@ -6065,6 +6207,7 @@ Add any product information here..."></textarea>
                 
                 renderMyCodes();
                 updateQRCount();
+                loadPrintTemplates();
 
                 // Load business profile FIRST, then navigate
                 loadBizProfileFromSupabase(session.access_token).then(function() {
@@ -6098,6 +6241,253 @@ Add any product information here..."></textarea>
                 });
             }
         });
+
+
+        // ── Custom Print Templates ───────────────────────────────
+        var customPrintTemplates = [];
+        var editingTemplateId = null;
+
+        function setTplSheet(sheet) {
+            document.querySelectorAll('.tpl-sheet-seg').forEach(function(b) {
+                b.classList.toggle('active', b.dataset.sheet === sheet);
+            });
+        }
+
+        async function loadPrintTemplates() {
+            if (!currentUser) return;
+            try {
+                var { data, error } = await db.from('print_templates')
+                    .select('*')
+                    .eq('user_id', currentUser.id)
+                    .order('created_at', { ascending: false });
+                if (error) {
+                    console.warn('Could not load templates:', error);
+                    return;
+                }
+                customPrintTemplates = data || [];
+                renderTemplatesList();
+            } catch(e) {
+                console.warn('Template load error:', e);
+            }
+        }
+
+        function renderTemplatesList() {
+            var container = document.getElementById('savedTemplatesList');
+            if (!container) return;
+            if (customPrintTemplates.length === 0) {
+                container.innerHTML = '<div class="tpl-empty">No templates yet. Create one with the size of the labels you\'ll print on.</div>';
+                return;
+            }
+            var html = '';
+            customPrintTemplates.forEach(function(t) {
+                var labelDesc = t.round_corners ? t.label_width + '" round' : t.label_width + '" × ' + t.label_height + '"';
+                var perSheet = (t.cols * t.rows);
+                var sheet = t.sheet_size === 'a4' ? 'A4' : 'Letter';
+                html += '<div class="tpl-card">';
+                html += '<p class="tpl-card-name">' + escapeHtml(t.name) + '</p>';
+                html += '<p class="tpl-card-meta">' + labelDesc + ' · ' + perSheet + ' per ' + sheet + ' sheet</p>';
+                html += '<div class="tpl-card-actions">';
+                html += '<button type="button" class="tpl-act tpl-act-use" onclick="useTemplate(\'' + t.id + '\')">Use</button>';
+                html += '<button type="button" class="tpl-act tpl-act-edit" onclick="editTemplate(\'' + t.id + '\')">Edit</button>';
+                html += '<button type="button" class="tpl-act tpl-act-del" onclick="deleteTemplate(\'' + t.id + '\')">Delete</button>';
+                html += '</div></div>';
+            });
+            container.innerHTML = html;
+        }
+
+        function showTemplateForm(template) {
+            editingTemplateId = template ? template.id : null;
+            document.getElementById('tplFormTitle').textContent = template ? 'Edit template' : 'New template';
+            document.getElementById('tplName').value = template ? template.name : '';
+            document.getElementById('tplLabelW').value = template ? template.label_width : '2';
+            document.getElementById('tplLabelH').value = template ? template.label_height : '2';
+            document.getElementById('tplCols').value = template ? template.cols : '3';
+            document.getElementById('tplRows').value = template ? template.rows : '4';
+            document.getElementById('tplGapX').value = template ? (template.gap_x || 0) : '0.25';
+            document.getElementById('tplGapY').value = template ? (template.gap_y || 0) : '0';
+            document.getElementById('tplRound').checked = template ? !!template.round_corners : false;
+            setTplSheet(template ? template.sheet_size : 'letter');
+            document.getElementById('tplFormModal').classList.add('active');
+        }
+
+        function closeTemplateForm() {
+            document.getElementById('tplFormModal').classList.remove('active');
+            editingTemplateId = null;
+        }
+
+        async function saveTemplateFromForm() {
+            if (!currentUser) { alert('Please log in.'); return; }
+            var name = document.getElementById('tplName').value.trim();
+            var labelW = parseFloat(document.getElementById('tplLabelW').value);
+            var labelH = parseFloat(document.getElementById('tplLabelH').value);
+            var cols = parseInt(document.getElementById('tplCols').value);
+            var rows = parseInt(document.getElementById('tplRows').value);
+            var gapX = parseFloat(document.getElementById('tplGapX').value) || 0;
+            var gapY = parseFloat(document.getElementById('tplGapY').value) || 0;
+            var round = document.getElementById('tplRound').checked;
+            var sheetBtn = document.querySelector('.tpl-sheet-seg.active');
+            var sheet = sheetBtn ? sheetBtn.dataset.sheet : 'letter';
+
+            if (!name) { alert('Please give your template a name.'); return; }
+            if (!labelW || labelW <= 0) { alert('Label width must be greater than 0.'); return; }
+            if (!labelH || labelH <= 0) { alert('Label height must be greater than 0.'); return; }
+            if (!cols || cols < 1) { alert('Columns must be at least 1.'); return; }
+            if (!rows || rows < 1) { alert('Rows must be at least 1.'); return; }
+
+            var sheetW = sheet === 'a4' ? 8.27 : 8.5;
+            var sheetH = sheet === 'a4' ? 11.69 : 11;
+            var totalW = cols * labelW + (cols - 1) * gapX;
+            var totalH = rows * labelH + (rows - 1) * gapY;
+            if (totalW > sheetW || totalH > sheetH) {
+                alert('These labels won\'t fit on a ' + (sheet === 'a4' ? 'A4' : 'Letter') + ' sheet. Reduce label size or count.');
+                return;
+            }
+
+            var record = {
+                user_id: currentUser.id,
+                name: name,
+                sheet_size: sheet,
+                label_width: labelW,
+                label_height: labelH,
+                cols: cols,
+                rows: rows,
+                gap_x: gapX,
+                gap_y: gapY,
+                round_corners: round
+            };
+
+            try {
+                var result;
+                if (editingTemplateId) {
+                    result = await db.from('print_templates').update(record).eq('id', editingTemplateId).select().single();
+                } else {
+                    result = await db.from('print_templates').insert(record).select().single();
+                }
+                if (result.error) {
+                    alert('Could not save template: ' + result.error.message);
+                    return;
+                }
+                closeTemplateForm();
+                await loadPrintTemplates();
+            } catch(e) {
+                alert('Save error. Please try again.');
+                console.error('Template save error:', e);
+            }
+        }
+
+        async function deleteTemplate(id) {
+            var t = customPrintTemplates.find(function(x) { return x.id === id; });
+            if (!t) return;
+            if (!confirm('Delete "' + t.name + '"?')) return;
+            try {
+                var { error } = await db.from('print_templates').delete().eq('id', id);
+                if (error) {
+                    alert('Could not delete: ' + error.message);
+                    return;
+                }
+                await loadPrintTemplates();
+            } catch(e) {
+                alert('Delete error.');
+                console.error('Template delete error:', e);
+            }
+        }
+
+        function editTemplate(id) {
+            var t = customPrintTemplates.find(function(x) { return x.id === id; });
+            if (t) showTemplateForm(t);
+        }
+
+        function useTemplate(id) {
+            if (!generatedQRCodes || generatedQRCodes.length === 0) {
+                alert('⚠️ Please generate QR codes first!');
+                return;
+            }
+            var t = customPrintTemplates.find(function(x) { return x.id === id; });
+            if (!t) return;
+            var sheetW = t.sheet_size === 'a4' ? 8.27 : 8.5;
+            var sheetH = t.sheet_size === 'a4' ? 11.69 : 11;
+            var totalLabelsW = t.cols * t.label_width + (t.cols - 1) * t.gap_x;
+            var totalLabelsH = t.rows * t.label_height + (t.rows - 1) * t.gap_y;
+            var marginLeft = (sheetW - totalLabelsW) / 2;
+            var marginTop = (sheetH - totalLabelsH) / 2;
+            var legacyTemplate = {
+                name: t.name,
+                cols: t.cols,
+                rows: t.rows,
+                perSheet: t.cols * t.rows,
+                labelW: t.label_width,
+                labelH: t.label_height,
+                marginLeft: marginLeft,
+                marginTop: marginTop,
+                gapX: t.gap_x,
+                gapY: t.gap_y,
+                round: t.round_corners
+            };
+            showCustomPreview(legacyTemplate);
+        }
+
+        function showCustomPreview(template) {
+            var scale = 0.6;
+            var pageW = 8.5 * 96 * scale;
+            var pageH = 11 * 96 * scale;
+            var labelW = template.labelW * 96 * scale;
+            var labelH = template.labelH * 96 * scale;
+            var marginLeft = template.marginLeft * 96 * scale;
+            var marginTop = template.marginTop * 96 * scale;
+            var gapX = template.gapX * 96 * scale;
+            var gapY = template.gapY * 96 * scale;
+            var totalPages = Math.ceil(generatedQRCodes.length / template.perSheet);
+            var pagesHTML = '';
+            var printImageData = [];
+            for (var page = 0; page < totalPages; page++) {
+                var pageContent = '';
+                var qrIndex = page * template.perSheet;
+                for (var row = 0; row < template.rows; row++) {
+                    for (var col = 0; col < template.cols; col++) {
+                        var x = marginLeft + col * (labelW + gapX);
+                        var y = marginTop + row * (labelH + gapY);
+                        var borderRadius = template.round ? '50%' : '3px';
+                        pageContent += '<div style="position:absolute;left:' + x + 'px;top:' + y + 'px;width:' + labelW + 'px;height:' + labelH + 'px;border:1px dashed #ccc;border-radius:' + borderRadius + ';"></div>';
+                        if (qrIndex < generatedQRCodes.length) {
+                            var qrData = generatedQRCodes[qrIndex];
+                            var qrSizePx = Math.min(labelW, labelH) * 0.7;
+                            var canvas = createHighResQR(qrData.url, 150, qrData.includeLogo);
+                            var dataUrl = canvas.toDataURL('image/png');
+                            printImageData.push({ dataUrl: dataUrl, label: qrData.label });
+                            var qrX = x + (labelW - qrSizePx) / 2;
+                            var qrY = y + (labelH - qrSizePx) / 2 - (labelH >= 50 ? 6 : 0);
+                            pageContent += '<div style="position:absolute;left:' + qrX + 'px;top:' + qrY + 'px;text-align:center;">';
+                            pageContent += '<img src="' + dataUrl + '" style="width:' + qrSizePx + 'px;height:' + qrSizePx + 'px;' + (template.round ? 'border-radius:50%;' : '') + '">';
+                            if (labelH >= 50) {
+                                pageContent += '<div style="font-size:7px;color:#7D6E64;margin-top:1px;">' + escapeHtml(qrData.label) + '</div>';
+                            }
+                            pageContent += '</div>';
+                            qrIndex++;
+                        }
+                    }
+                }
+                pagesHTML += '<div style="position:relative;width:' + pageW + 'px;height:' + pageH + 'px;background:white;border:2px solid #ccc;margin:10px auto;box-shadow:0 4px 15px rgba(0,0,0,0.1);">';
+                pagesHTML += '<div style="position:absolute;top:5px;right:10px;font-size:9px;color:#9A8478;">Page ' + (page + 1) + '/' + totalPages + '</div>';
+                pagesHTML += '<div style="position:absolute;top:5px;left:10px;font-size:8px;color:#8B3A7F;font-weight:600;">' + escapeHtml(template.name) + '</div>';
+                pagesHTML += pageContent + '</div>';
+            }
+            window.currentPrintData = { type: 'custom', template: template, images: printImageData };
+            var labelDesc = template.round ? template.labelW + '" Round' : template.labelW + '" × ' + template.labelH + '"';
+            var previewHTML = '<div style="text-align:center;">';
+            previewHTML += '<h4 style="color:#166534;margin-bottom:10px;">🏷️ Preview: ' + escapeHtml(template.name) + '</h4>';
+            previewHTML += '<p style="color:#7D6E64;font-size:13px;margin-bottom:5px;"><strong>' + generatedQRCodes.length + '</strong> QR codes • <strong>' + totalPages + '</strong> page(s) • ' + template.perSheet + ' per sheet</p>';
+            previewHTML += '<p style="color:#9A8478;font-size:11px;margin-bottom:15px;">Label: ' + labelDesc + '</p>';
+            previewHTML += '<div style="max-height:400px;overflow-y:auto;background:#e8e8e8;padding:15px;border-radius:12px;">' + pagesHTML + '</div>';
+            previewHTML += '<div style="margin-top:20px;padding:20px;background:#fff3cd;border-radius:12px;border:2px solid #ffc107;">';
+            previewHTML += '<p style="color:#856404;font-weight:600;margin-bottom:15px;">📥 Download Options:</p>';
+            previewHTML += '<div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;">';
+            previewHTML += '<button onclick="tryJsPDFDownload(\'custom\')" type="button" style="padding:14px 24px;background:#8B3A7F;color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer;">⬇️ Download PDF</button>';
+            previewHTML += '<button onclick="showPrintableInPage(\'custom\')" type="button" style="padding:14px 24px;background:#3182ce;color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer;">🖨️ Open Printable Page</button>';
+            previewHTML += '</div>';
+            previewHTML += '<p style="color:#856404;font-size:12px;margin-top:12px;">Print Tip: Select <strong>"Actual Size"</strong> in print settings for correct label alignment</p>';
+            previewHTML += '</div></div>';
+            showDownloadPreview(previewHTML);
+        }
 
     </script>
 <script>
