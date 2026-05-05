@@ -4247,7 +4247,9 @@ Add any product information here..."></textarea>
         
         // Create high-res QR code canvas for downloads
         function createHighResQR(url, size, includeLogoPref) {
-            const qr = qrcode(0, 'H'); // High error correction for logo
+            // 'M' (medium) error correction = chunkier pixels, easier to scan than 'H'
+            // We still allow ~15% damage tolerance, plenty for a small center logo
+            const qr = qrcode(0, 'M');
             qr.addData(url);
             qr.make();
             
@@ -4854,6 +4856,14 @@ Add any product information here..."></textarea>
                     var qrSize = stickerInner * qrPct / 100;
                     var logoSize = (logoPos === 'none' || !logoUrl) ? 0 : stickerInner * logoPct / 100;
                     var stackGap = (logoSize > 0) ? 0.05 : 0;
+                    // Auto-scale: shrink everything proportionally if the stack would overflow the sticker
+                    var stackTotal = qrSize + (logoSize > 0 ? logoSize + stackGap : 0);
+                    if (stackTotal > stickerInner) {
+                        var scaleDown = stickerInner / stackTotal;
+                        qrSize *= scaleDown;
+                        logoSize *= scaleDown;
+                        stackGap *= scaleDown;
+                    }
                     var qrIndex = 0;
                     var pageNum = 0;
                     while (qrIndex < qrList.length) {
@@ -4882,6 +4892,11 @@ Add any product information here..."></textarea>
                                 pdf.addImage(imgData, 'PNG', qrX, qrTop, qrSize, qrSize);
                                 if (logoTop != null && logoUrl) {
                                     var logoX = x + (template.labelW - logoSize) / 2;
+                                    if (window.customLogoBg) {
+                                        var pad = logoSize * 0.12;
+                                        pdf.setFillColor(255, 255, 255);
+                                        pdf.rect(logoX - pad, logoTop - pad, logoSize + 2*pad, logoSize + 2*pad, 'F');
+                                    }
                                     try {
                                         pdf.addImage(logoUrl, 'PNG', logoX, logoTop, logoSize, logoSize);
                                     } catch(e) { console.warn('Logo PDF embed failed:', e); }
@@ -6484,6 +6499,7 @@ Add any product information here..."></textarea>
             window.customLogoPct = 20;
             window.customLogoPos = 'none';
             window.customLogoUrl = null;
+            window.customLogoBg = false;
             // Resolve sheet dimensions: use saved sheet_width/height if present, else fall back by sheet_size
             var sheetW = t.sheet_width != null ? t.sheet_width : (t.sheet_size === 'a4' ? 8.27 : 8.5);
             var sheetH = t.sheet_height != null ? t.sheet_height : (t.sheet_size === 'a4' ? 11.69 : 11);
@@ -6555,6 +6571,14 @@ Add any product information here..."></textarea>
             var qrSizePx = stickerInner * window.customQrPct / 100;
             var logoSizePx = (window.customLogoPos === 'none' || !window.customLogoUrl) ? 0 : stickerInner * window.customLogoPct / 100;
             var stackGap = (logoSizePx > 0) ? 2 : 0;
+            // Auto-scale: shrink everything proportionally if the stack would overflow the sticker
+            var stackTotal = qrSizePx + (logoSizePx > 0 ? logoSizePx + stackGap : 0);
+            if (stackTotal > stickerInner) {
+                var scaleDown = stickerInner / stackTotal;
+                qrSizePx *= scaleDown;
+                logoSizePx *= scaleDown;
+                stackGap *= scaleDown;
+            }
             for (var page = 0; page < totalPages; page++) {
                 var pageContent = '';
                 var qrIndex = page * template.perSheet;
@@ -6590,6 +6614,11 @@ Add any product information here..."></textarea>
                             // Logo
                             if (logoTop != null && window.customLogoUrl) {
                                 var logoX = x + (labelW - logoSizePx) / 2;
+                                // Optional white background pad behind logo
+                                if (window.customLogoBg) {
+                                    var pad = logoSizePx * 0.12;
+                                    pageContent += '<div style="position:absolute;left:' + (logoX - pad) + 'px;top:' + (logoTop - pad) + 'px;width:' + (logoSizePx + 2*pad) + 'px;height:' + (logoSizePx + 2*pad) + 'px;background:#fff;border-radius:3px;"></div>';
+                                }
                                 pageContent += '<img src="' + window.customLogoUrl + '" style="position:absolute;left:' + logoX + 'px;top:' + logoTop + 'px;width:' + logoSizePx + 'px;height:' + logoSizePx + 'px;object-fit:contain;">';
                             }
                             qrIndex++;
@@ -6651,11 +6680,17 @@ Add any product information here..."></textarea>
             previewHTML += '</div></div>';
             // Logo size slider (only if logo + position set)
             if (window.customLogoPos !== 'none' && window.customLogoUrl) {
-                previewHTML += '<div style="display:flex;align-items:center;gap:10px;">';
+                previewHTML += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">';
                 previewHTML += '<span style="font-size:12px;color:#5a4a44;font-weight:500;min-width:70px;">Logo size</span>';
-                previewHTML += '<input id="customLogoSizeSlider" type="range" min="10" max="40" value="' + window.customLogoPct + '" oninput="setCustomLogoPct(this.value)" style="flex:1;">';
+                previewHTML += '<input id="customLogoSizeSlider" type="range" min="10" max="60" value="' + window.customLogoPct + '" oninput="setCustomLogoPct(this.value)" style="flex:1;">';
                 previewHTML += '<span style="font-size:13px;color:#2E2A28;font-weight:600;min-width:40px;text-align:right;">' + window.customLogoPct + '%</span>';
                 previewHTML += '</div>';
+                // White background toggle — makes logo pop
+                var bgChecked = window.customLogoBg ? 'checked' : '';
+                previewHTML += '<label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#5a4a44;cursor:pointer;">';
+                previewHTML += '<input type="checkbox" ' + bgChecked + ' onchange="setCustomLogoBg(this.checked)" style="accent-color:#8B3A7F;width:16px;height:16px;">';
+                previewHTML += '<span>White background behind logo (makes it pop)</span>';
+                previewHTML += '</label>';
             }
             previewHTML += '</div>';
             previewHTML += '<div style="max-height:400px;overflow-y:auto;background:#e8e8e8;padding:15px;border-radius:12px;">' + pagesHTML + '</div>';
@@ -6701,6 +6736,12 @@ Add any product information here..."></textarea>
 
         function setCustomLogoPos(pos) {
             window.customLogoPos = pos;
+            var template = window.currentPrintData && window.currentPrintData.template;
+            if (template) showCustomPreview(template);
+        }
+
+        function setCustomLogoBg(checked) {
+            window.customLogoBg = !!checked;
             var template = window.currentPrintData && window.currentPrintData.template;
             if (template) showCustomPreview(template);
         }
