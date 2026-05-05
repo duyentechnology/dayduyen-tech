@@ -6070,6 +6070,7 @@ Add any product information here..."></textarea>
             
             if (session && session.user) {
                 const user = session.user;
+                var isFreshLogin = (event === 'SIGNED_IN' || event === 'INITIAL_SESSION');
                 currentUser = { email: user.email, name: user.user_metadata?.full_name || user.email, id: user.id };
                 console.log('👤 User:', currentUser.email, 'ID:', currentUser.id);
                 document.getElementById('userEmail').textContent = user.email;
@@ -6134,6 +6135,12 @@ Add any product information here..."></textarea>
 
                 // Load business profile FIRST, then navigate
                 loadBizProfileFromSupabase(session.access_token).then(function() {
+                    // Token refresh / tab refocus — keep the user on their current page
+                    if (!isFreshLogin) {
+                        console.log('🔁 Token refresh — staying on current view');
+                        return;
+                    }
+
                     var hash = window.location.hash.replace('#', '');
                     var validViews = ['myCodes', 'mode', 'generator', 'about', 'editQR', 'bizDashboard', 'bizProfile', 'bizScanChoice', 'bizBatchScan', 'profile'];
                     console.log('🧭 Routing — bizProfileData:', JSON.stringify(bizProfileData), '| hash:', hash);
