@@ -4845,13 +4845,14 @@ Add any product information here..."></textarea>
                 if (templateId === 'custom') {
                     var template = window.currentPrintData && window.currentPrintData.template;
                     if (!template) { alert('Template data missing. Please re-open preview.'); return; }
+                    var qrList = window.customPrintQRList || generatedQRCodes;
                     var qrIndex = 0;
                     var pageNum = 0;
-                    while (qrIndex < generatedQRCodes.length) {
+                    while (qrIndex < qrList.length) {
                         if (pageNum > 0) pdf.addPage();
-                        for (var row = 0; row < template.rows && qrIndex < generatedQRCodes.length; row++) {
-                            for (var col = 0; col < template.cols && qrIndex < generatedQRCodes.length; col++) {
-                                var qrData = generatedQRCodes[qrIndex];
+                        for (var row = 0; row < template.rows && qrIndex < qrList.length; row++) {
+                            for (var col = 0; col < template.cols && qrIndex < qrList.length; col++) {
+                                var qrData = qrList[qrIndex];
                                 var x = template.marginLeft + col * (template.labelW + template.gapX);
                                 var y = template.marginTop + row * (template.labelH + template.gapY);
                                 var qrSize = Math.min(template.labelW, template.labelH) * 0.75;
@@ -6456,6 +6457,8 @@ Add any product information here..."></textarea>
             }
             var t = customPrintTemplates.find(function(x) { return x.id === id; });
             if (!t) return;
+            // Reset quantity so each template open starts fresh
+            window.customPrintQuantity = null;
             // Resolve sheet dimensions: use saved sheet_width/height if present, else fall back by sheet_size
             var sheetW = t.sheet_width != null ? t.sheet_width : (t.sheet_size === 'a4' ? 8.27 : 8.5);
             var sheetH = t.sheet_height != null ? t.sheet_height : (t.sheet_size === 'a4' ? 11.69 : 11);
@@ -6483,6 +6486,25 @@ Add any product information here..."></textarea>
         }
 
         function showCustomPreview(template) {
+            // How many copies to print across the sheet
+            // Default: if user only made 1 QR, fill the whole sheet; otherwise use however many they have
+            var perSheet = template.cols * template.rows;
+            if (typeof window.customPrintQuantity !== 'number' || isNaN(window.customPrintQuantity)) {
+                window.customPrintQuantity = generatedQRCodes.length === 1 ? perSheet : generatedQRCodes.length;
+            }
+            // Clamp the quantity in case template changed
+            var maxAllowed = generatedQRCodes.length === 1 ? perSheet : generatedQRCodes.length;
+            if (window.customPrintQuantity > maxAllowed) window.customPrintQuantity = maxAllowed;
+            if (window.customPrintQuantity < 1) window.customPrintQuantity = 1;
+            // Build a list of QR codes to lay out (repeating the single one if needed)
+            var qrList = [];
+            if (generatedQRCodes.length === 1) {
+                for (var k = 0; k < window.customPrintQuantity; k++) qrList.push(generatedQRCodes[0]);
+            } else {
+                qrList = generatedQRCodes.slice(0, window.customPrintQuantity);
+            }
+            window.customPrintQRList = qrList;
+
             var scale = 0.6;
             var pageW = 8.5 * 96 * scale;
             var pageH = 11 * 96 * scale;
@@ -6492,7 +6514,8 @@ Add any product information here..."></textarea>
             var marginTop = template.marginTop * 96 * scale;
             var gapX = template.gapX * 96 * scale;
             var gapY = template.gapY * 96 * scale;
-            var totalPages = Math.ceil(generatedQRCodes.length / template.perSheet);
+            var totalPages = Math.ceil(qrList.length / template.perSheet);
+            if (totalPages < 1) totalPages = 1;
             var pagesHTML = '';
             var printImageData = [];
             for (var page = 0; page < totalPages; page++) {
@@ -6504,8 +6527,8 @@ Add any product information here..."></textarea>
                         var y = marginTop + row * (labelH + gapY);
                         var borderRadius = template.round ? '50%' : '3px';
                         pageContent += '<div style="position:absolute;left:' + x + 'px;top:' + y + 'px;width:' + labelW + 'px;height:' + labelH + 'px;border:1px dashed #ccc;border-radius:' + borderRadius + ';"></div>';
-                        if (qrIndex < generatedQRCodes.length) {
-                            var qrData = generatedQRCodes[qrIndex];
+                        if (qrIndex < qrList.length) {
+                            var qrData = qrList[qrIndex];
                             var qrSizePx = Math.min(labelW, labelH) * 0.7;
                             var canvas = createHighResQR(qrData.url, 150, qrData.includeLogo);
                             var dataUrl = canvas.toDataURL('image/png');
@@ -6530,9 +6553,23 @@ Add any product information here..."></textarea>
             window.currentPrintData = { type: 'custom', template: template, images: printImageData };
             var labelDesc = template.round ? template.labelW + '" Round' : template.labelW + '" × ' + template.labelH + '"';
             var previewHTML = '<div style="text-align:center;">';
-            previewHTML += '<h4 style="color:#166534;margin-bottom:10px;">🏷️ Preview: ' + escapeHtml(template.name) + '</h4>';
-            previewHTML += '<p style="color:#7D6E64;font-size:13px;margin-bottom:5px;"><strong>' + generatedQRCodes.length + '</strong> QR codes • <strong>' + totalPages + '</strong> page(s) • ' + template.perSheet + ' per sheet</p>';
-            previewHTML += '<p style="color:#9A8478;font-size:11px;margin-bottom:15px;">Label: ' + labelDesc + '</p>';
+            // Header: green Preview · red 緣 DUYÊN · green template name
+            previewHTML += '<div style="display:flex;align-items:baseline;gap:8px;justify-content:center;margin-bottom:10px;flex-wrap:wrap;">';
+            previewHTML += '<span style="font-size:17px;color:#166534;font-weight:600;">Preview:</span>';
+            previewHTML += '<span style="color:#DA251D;font-family:\'Cormorant Garamond\',serif;font-size:22px;font-weight:500;line-height:1;">緣</span>';
+            previewHTML += '<span style="color:#DA251D;font-size:17px;font-weight:500;letter-spacing:0.04em;line-height:1;">DUYÊN</span>';
+            previewHTML += '<span style="font-size:17px;color:#166534;font-weight:600;">' + escapeHtml(template.name) + '</span>';
+            previewHTML += '</div>';
+            previewHTML += '<p style="color:#7D6E64;font-size:14px;margin-bottom:5px;"><strong>' + qrList.length + '</strong> QR code' + (qrList.length === 1 ? '' : 's') + ' • <strong>' + totalPages + '</strong> page' + (totalPages === 1 ? '' : 's') + ' • ' + perSheet + ' per sheet</p>';
+            previewHTML += '<p style="color:#9A8478;font-size:12px;margin-bottom:14px;">Label: ' + labelDesc + '</p>';
+            // Quantity picker — only show when there's 1 generated QR (single mode)
+            if (generatedQRCodes.length === 1) {
+                previewHTML += '<div style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:#faf6f3;border:1px solid #ece4de;border-radius:10px;margin-bottom:14px;">';
+                previewHTML += '<input id="customPrintQtyInput" type="number" value="' + window.customPrintQuantity + '" min="1" max="' + perSheet + '" style="background:#fff;border:1px solid #d4c8be;border-radius:6px;padding:8px 10px;font-size:17px;width:80px;text-align:center;font-family:inherit;font-weight:600;color:#2E2A28;" oninput="setCustomPrintQuantity(this.value)">';
+                previewHTML += '<span style="font-size:13px;color:#8a7a72;">of ' + perSheet + '</span>';
+                previewHTML += '<button type="button" onclick="setCustomPrintQuantity(' + perSheet + ')" style="background:#8B3A7F;color:#fff;border:none;padding:9px 16px;border-radius:7px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;margin-left:auto;">Fill page</button>';
+                previewHTML += '</div>';
+            }
             previewHTML += '<div style="max-height:400px;overflow-y:auto;background:#e8e8e8;padding:15px;border-radius:12px;">' + pagesHTML + '</div>';
             previewHTML += '<div style="margin-top:20px;padding:20px;background:#fff3cd;border-radius:12px;border:2px solid #ffc107;">';
             previewHTML += '<p style="color:#856404;font-weight:600;margin-bottom:15px;">📥 Download Options:</p>';
@@ -6543,6 +6580,19 @@ Add any product information here..."></textarea>
             previewHTML += '<p style="color:#856404;font-size:12px;margin-top:12px;">Print Tip: Select <strong>"Actual Size"</strong> in print settings for correct label alignment</p>';
             previewHTML += '</div></div>';
             showDownloadPreview(previewHTML);
+        }
+
+        function setCustomPrintQuantity(val) {
+            var n = parseInt(val);
+            if (isNaN(n) || n < 1) n = 1;
+            var template = window.currentPrintData && window.currentPrintData.template;
+            if (template) {
+                var max = template.cols * template.rows;
+                if (n > max) n = max;
+            }
+            window.customPrintQuantity = n;
+            // Re-render preview with new quantity
+            if (template) showCustomPreview(template);
         }
 
     </script>
