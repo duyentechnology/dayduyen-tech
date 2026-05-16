@@ -2948,8 +2948,6 @@ Add any product information here..."></textarea>
             productDataStore[index] = productDataStore[index] || {};
             productDataStore[index].media = productDataStore[index].media || [];
             
-            var firstImageSet = false;
-            
             for (var f = 0; f < files.length; f++) {
                 var file = files[f];
                 if (file.size > 25 * 1024 * 1024) {
@@ -2958,13 +2956,35 @@ Add any product information here..."></textarea>
                 }
                 
                 (function(file) {
+                    var type = 'unknown';
+                    if (file.type.startsWith('image/')) type = 'image';
+                    else if (file.type.startsWith('video/')) type = 'video';
+                    else if (file.type.startsWith('audio/')) type = 'audio';
+
+                    // For images: resize before storing to save egress (5MB phone photo → ~200KB)
+                    if (type === 'image') {
+                        resizeImageFile(file, 1200, 0.82, function(resizedDataUrl, resizedSize) {
+                            var mediaItem = {
+                                name: file.name,
+                                type: 'image',
+                                mimeType: 'image/jpeg',
+                                size: resizedSize,
+                                data: resizedDataUrl
+                            };
+                            productDataStore[index].media.push(mediaItem);
+                            if (!productDataStore[index].photo) {
+                                productDataStore[index].photo = resizedDataUrl;
+                                productDataStore[index].filename = file.name;
+                            }
+                            renderMediaList(index);
+                            updateMediaPreview(index);
+                        });
+                        return;
+                    }
+
+                    // Video/audio: store as-is (we'll add video handling separately)
                     var reader = new FileReader();
                     reader.onload = function(e) {
-                        var type = 'unknown';
-                        if (file.type.startsWith('image/')) type = 'image';
-                        else if (file.type.startsWith('video/')) type = 'video';
-                        else if (file.type.startsWith('audio/')) type = 'audio';
-                        
                         var mediaItem = {
                             name: file.name,
                             type: type,
@@ -2972,21 +2992,44 @@ Add any product information here..."></textarea>
                             size: file.size,
                             data: e.target.result
                         };
-                        
                         productDataStore[index].media.push(mediaItem);
-                        
-                        // Set first image as the photo for QR display
-                        if (type === 'image' && !productDataStore[index].photo) {
-                            productDataStore[index].photo = e.target.result;
-                            productDataStore[index].filename = file.name;
-                        }
-                        
                         renderMediaList(index);
                         updateMediaPreview(index);
                     };
                     reader.readAsDataURL(file);
                 })(file);
             }
+        }
+
+        // Shrink an image to maxWidth (preserves aspect ratio), encode as JPEG at given quality
+        function resizeImageFile(file, maxWidth, quality, callback) {
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                var img = new Image();
+                img.onload = function() {
+                    var scale = Math.min(1, maxWidth / img.width);
+                    var w = Math.round(img.width * scale);
+                    var h = Math.round(img.height * scale);
+                    var canvas = document.createElement('canvas');
+                    canvas.width = w;
+                    canvas.height = h;
+                    var ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, w, h);
+                    var dataUrl = canvas.toDataURL('image/jpeg', quality);
+                    // Estimate size from base64 length (rough but close enough)
+                    var sizeBytes = Math.round((dataUrl.length - 22) * 0.75);
+                    callback(dataUrl, sizeBytes);
+                };
+                img.onerror = function() {
+                    // Fall back to original if image fails to load
+                    callback(e.target.result, file.size);
+                };
+                img.src = e.target.result;
+            };
+            reader.onerror = function() {
+                alert('Could not read "' + file.name + '". Please try again.');
+            };
+            reader.readAsDataURL(file);
         }
         
         function handleFileUpload(event, index) {
