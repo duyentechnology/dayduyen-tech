@@ -3961,6 +3961,9 @@ Add any product information here..."></textarea>
                     .eq('business_user_id', user.id);
 
                 if (error) { alert('Error pushing promotion: ' + error.message); return; }
+                // Reset UI BEFORE alert so background shows clean state during success message
+                if (btn) { btn.textContent = '📢 Push to All Cards'; btn.disabled = false; }
+                dashClearPromotion();
                 alert('✅ Promotion pushed to all your active cards!');
             } catch(e) {
                 console.error('dashPushPromotion error:', e);
