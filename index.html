@@ -3464,7 +3464,7 @@ Add any product information here..."></textarea>
         var bizIsFirstTime = false;
         var bizProfiles = [];
         var currentProfileId = null;
-        var dashPromoPhotoFiles = [];
+        var dashPromoPhotos = []; // [{file: File} | {url: string}]
         var batchScannedIds = [];
         var batchHtml5Scanner = null;
 
@@ -3802,6 +3802,7 @@ Add any product information here..."></textarea>
             if (!bizProfileData) {
                 await loadBizProfileFromSupabase();
             }
+            loadLastPromotion();
             if (bizProfileData) {
                 var name = sanitize(bizProfileData.name || 'My Business');
                 var initials = name.split(' ').map(function(w){return w[0];}).join('').substring(0,2).toUpperCase();
@@ -3865,22 +3866,35 @@ Add any product information here..."></textarea>
             } catch(e) { console.warn('loadDashboard error:', e); }
         }
 
+        // Render a thumbnail for either a {file: File} or {url: string} item
+        function renderDashPromoThumb(item, thumbsEl) {
+            if (!thumbsEl) thumbsEl = document.getElementById('dashPromoThumbs');
+            if (!thumbsEl) return;
+            var div = document.createElement('div');
+            div.style.cssText = 'position:relative;width:58px;height:58px;border-radius:10px;overflow:hidden;border:1.5px solid #E8DDD6;flex-shrink:0;';
+            var removeOverlay = '<div onclick="removeDashPromoPhoto(this)" style="position:absolute;top:2px;right:2px;width:18px;height:18px;background:rgba(0,0,0,0.55);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:10px;color:#fff;text-align:center;line-height:18px;">✕</div>';
+            if (item.url) {
+                div.innerHTML = '<img src="' + item.url + '" style="width:100%;height:100%;object-fit:cover;">' + removeOverlay;
+                thumbsEl.appendChild(div);
+            } else if (item.file) {
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    div.innerHTML = '<img src="' + e.target.result + '" style="width:100%;height:100%;object-fit:cover;">' + removeOverlay;
+                };
+                reader.readAsDataURL(item.file);
+                thumbsEl.appendChild(div);
+            }
+        }
+
         function handleDashPromoPhotos(input) {
             if (!input.files || !input.files.length) return;
             var thumbs = document.getElementById('dashPromoThumbs');
             var hint   = document.getElementById('dashPromoHint');
-            Array.from(input.files).slice(0, 5 - dashPromoPhotoFiles.length).forEach(function(file) {
-                if (dashPromoPhotoFiles.length >= 5) return;
-                dashPromoPhotoFiles.push(file);
-                var reader = new FileReader();
-                reader.onload = function(e) {
-                    var div = document.createElement('div');
-                    div.style.cssText = 'position:relative;width:58px;height:58px;border-radius:10px;overflow:hidden;border:1.5px solid #E8DDD6;flex-shrink:0;';
-                    div.innerHTML = '<img src="' + e.target.result + '" style="width:100%;height:100%;object-fit:cover;">' +
-                        '<div onclick="removeDashPromoPhoto(this)" style="position:absolute;top:2px;right:2px;width:18px;height:18px;background:rgba(0,0,0,0.55);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:10px;color:#fff;text-align:center;line-height:18px;">✕</div>';
-                    if (thumbs) thumbs.appendChild(div);
-                };
-                reader.readAsDataURL(file);
+            Array.from(input.files).slice(0, 5 - dashPromoPhotos.length).forEach(function(file) {
+                if (dashPromoPhotos.length >= 5) return;
+                var item = { file: file };
+                dashPromoPhotos.push(item);
+                renderDashPromoThumb(item, thumbs);
             });
             if (hint) hint.style.display = 'none';
             input.value = '';
@@ -3889,9 +3903,9 @@ Add any product information here..."></textarea>
         function removeDashPromoPhoto(btn) {
             var div = btn.parentElement;
             var idx = Array.from(div.parentElement.children).indexOf(div);
-            dashPromoPhotoFiles.splice(idx, 1);
+            dashPromoPhotos.splice(idx, 1);
             div.remove();
-            if (dashPromoPhotoFiles.length === 0) {
+            if (dashPromoPhotos.length === 0) {
                 var hint = document.getElementById('dashPromoHint');
                 if (hint) hint.style.display = 'block';
             }
@@ -3954,7 +3968,7 @@ Add any product information here..."></textarea>
 
         async function dashPushPromotion() {
             var text = (document.getElementById('dashPromoText') || {}).value || '';
-            if (!text.trim() && dashPromoPhotoFiles.length === 0) {
+            if (!text.trim() && dashPromoPhotos.length === 0) {
                 alert('Please add a message or photo before pushing.'); return;
             }
             var btn = document.querySelector('[onclick="dashPushPromotion()"]');
@@ -3964,15 +3978,20 @@ Add any product information here..."></textarea>
                 var user = sessionData && sessionData.session && sessionData.session.user;
                 if (!user) { alert('Please sign in first.'); return; }
 
-                // Upload photos in parallel
+                // Build final photo URL list: keep already-uploaded URLs, upload new Files in parallel
                 var photoUrls = [];
-                if (dashPromoPhotoFiles.length > 0) {
+                var filesToUpload = [];
+                dashPromoPhotos.forEach(function(p) {
+                    if (p.url) photoUrls.push(p.url);
+                    else if (p.file) filesToUpload.push(p.file);
+                });
+                if (filesToUpload.length > 0) {
                     if (btn) btn.textContent = '⏳ Uploading photos...';
-                    var uploads = dashPromoPhotoFiles.map(function(file, i) {
+                    var uploads = filesToUpload.map(function(file, i) {
                         return uploadPromoPhoto(file, user.id, i);
                     });
                     var results = await Promise.all(uploads);
-                    photoUrls = results.filter(function(u) { return !!u; });
+                    results.forEach(function(u) { if (u) photoUrls.push(u); });
                 }
 
                 if (btn) btn.textContent = '⏳ Pushing...';
@@ -4000,11 +4019,46 @@ Add any product information here..."></textarea>
         function dashClearPromotion() {
             var ta = document.getElementById('dashPromoText');
             if (ta) ta.value = '';
-            dashPromoPhotoFiles = [];
+            dashPromoPhotos = [];
             var thumbs = document.getElementById('dashPromoThumbs');
             if (thumbs) thumbs.innerHTML = '';
             var hint = document.getElementById('dashPromoHint');
             if (hint) hint.style.display = 'block';
+        }
+
+        // Load the most recent promotion into the form (so business sees last push and can edit)
+        async function loadLastPromotion() {
+            try {
+                var { data: sessionData } = await db.auth.getSession();
+                var user = sessionData && sessionData.session && sessionData.session.user;
+                if (!user) return;
+                var { data: rows, error } = await db.from('qr_codes')
+                    .select('promotion, updated_at')
+                    .eq('business_user_id', user.id)
+                    .not('promotion', 'is', null)
+                    .order('updated_at', { ascending: false })
+                    .limit(1);
+                if (error || !rows || rows.length === 0) return;
+                var promo = rows[0].promotion;
+                if (!promo) return;
+                // Populate text
+                var ta = document.getElementById('dashPromoText');
+                if (ta && promo.text) ta.value = promo.text;
+                // Populate photos (as URL items so they don't re-upload on next push)
+                dashPromoPhotos = [];
+                var thumbs = document.getElementById('dashPromoThumbs');
+                if (thumbs) thumbs.innerHTML = '';
+                if (promo.photos && promo.photos.length > 0) {
+                    promo.photos.slice(0, 5).forEach(function(url) {
+                        var item = { url: url };
+                        dashPromoPhotos.push(item);
+                        renderDashPromoThumb(item, thumbs);
+                    });
+                }
+                // Hide "Add a photo to make it stand out" hint if there's any content
+                var hint = document.getElementById('dashPromoHint');
+                if (hint && (promo.text || (promo.photos && promo.photos.length))) hint.style.display = 'none';
+            } catch(e) { console.warn('loadLastPromotion error:', e); }
         }
 
         function initBatchScan() {
