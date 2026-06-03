@@ -3927,6 +3927,24 @@ Add any product information here..."></textarea>
             });
         }
 
+        // Non-blocking toast for promo push success (alert() blocks the main thread on iOS,
+        // so even pre-paint button/form resets don't actually render until dismissed)
+        function showPromoToast(message) {
+            var existing = document.getElementById('promoToast');
+            if (existing) existing.remove();
+            var t = document.createElement('div');
+            t.id = 'promoToast';
+            t.textContent = message;
+            t.style.cssText = 'position:fixed;top:24px;left:50%;transform:translateX(-50%) translateY(-150%);background:#fff;color:#8B3A7F;padding:14px 22px;border-radius:12px;box-shadow:0 8px 24px rgba(46,42,40,0.18);font-family:\'Outfit\',sans-serif;font-size:14px;font-weight:600;z-index:10000;border:1.5px solid #8B3A7F;transition:transform 0.32s cubic-bezier(0.2,0.9,0.3,1.2);max-width:92%;text-align:center;line-height:1.4;';
+            document.body.appendChild(t);
+            void t.offsetWidth; // force layout before animating
+            t.style.transform = 'translateX(-50%) translateY(0)';
+            setTimeout(function() {
+                t.style.transform = 'translateX(-50%) translateY(-150%)';
+                setTimeout(function() { if (t.parentNode) t.parentNode.removeChild(t); }, 380);
+            }, 2600);
+        }
+
         async function dashPushPromotion() {
             var text = (document.getElementById('dashPromoText') || {}).value || '';
             if (!text.trim() && dashPromoPhotoFiles.length === 0) {
@@ -3961,13 +3979,10 @@ Add any product information here..."></textarea>
                     .eq('business_user_id', user.id);
 
                 if (error) { alert('Error pushing promotion: ' + error.message); return; }
-                // Reset UI BEFORE alert so background shows clean state during success message
+                // Reset UI first, then show non-blocking toast (no main-thread block)
                 if (btn) { btn.textContent = '📢 Push to All Cards'; btn.disabled = false; }
                 dashClearPromotion();
-                // Yield two animation frames so the browser actually paints the cleared UI
-                // before the synchronous alert() blocks the main thread
-                await new Promise(function(r) { requestAnimationFrame(function() { requestAnimationFrame(r); }); });
-                alert('✅ Promotion pushed to all your active cards!');
+                showPromoToast('✅ Promotion pushed to all your active cards!');
             } catch(e) {
                 console.error('dashPushPromotion error:', e);
                 alert('Error pushing promotion. Please try again.');
