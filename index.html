@@ -3869,8 +3869,8 @@ Add any product information here..."></textarea>
             if (!input.files || !input.files.length) return;
             var thumbs = document.getElementById('dashPromoThumbs');
             var hint   = document.getElementById('dashPromoHint');
-            Array.from(input.files).slice(0, 3 - dashPromoPhotoFiles.length).forEach(function(file) {
-                if (dashPromoPhotoFiles.length >= 3) return;
+            Array.from(input.files).slice(0, 5 - dashPromoPhotoFiles.length).forEach(function(file) {
+                if (dashPromoPhotoFiles.length >= 5) return;
                 dashPromoPhotoFiles.push(file);
                 var reader = new FileReader();
                 reader.onload = function(e) {
@@ -3897,6 +3897,36 @@ Add any product information here..."></textarea>
             }
         }
 
+        // Upload a single promo photo: resize → blob → Storage → public URL
+        function uploadPromoPhoto(file, userId, idx) {
+            return new Promise(function(resolve) {
+                resizeImageFile(file, 1200, 0.82, async function(dataUrl) {
+                    try {
+                        var commaIdx = dataUrl.indexOf(',');
+                        var meta = dataUrl.substring(0, commaIdx);
+                        var b64  = dataUrl.substring(commaIdx + 1);
+                        var mime = meta.split(':')[1].split(';')[0];
+                        var bin = atob(b64);
+                        var ab = new ArrayBuffer(bin.length);
+                        var ia = new Uint8Array(ab);
+                        for (var i = 0; i < bin.length; i++) ia[i] = bin.charCodeAt(i);
+                        var blob = new Blob([ab], { type: mime });
+                        var ext = mime.indexOf('png') >= 0 ? '.png' : '.jpg';
+                        var path = 'promo/' + userId + '/' + Date.now() + '_' + idx + ext;
+                        var upRes = await db.storage.from('qr-media').upload(path, blob, {
+                            contentType: mime, cacheControl: '3600', upsert: false
+                        });
+                        if (upRes.error) { console.error('Promo upload error:', upRes.error); resolve(null); return; }
+                        var urlRes = db.storage.from('qr-media').getPublicUrl(path);
+                        resolve(urlRes && urlRes.data ? urlRes.data.publicUrl : null);
+                    } catch (e) {
+                        console.error('Promo upload exception:', e);
+                        resolve(null);
+                    }
+                });
+            });
+        }
+
         async function dashPushPromotion() {
             var text = (document.getElementById('dashPromoText') || {}).value || '';
             if (!text.trim() && dashPromoPhotoFiles.length === 0) {
@@ -3909,7 +3939,23 @@ Add any product information here..."></textarea>
                 var user = sessionData && sessionData.session && sessionData.session.user;
                 if (!user) { alert('Please sign in first.'); return; }
 
-                var promoData = { text: sanitize(text.trim()), pushedAt: new Date().toISOString() };
+                // Upload photos in parallel
+                var photoUrls = [];
+                if (dashPromoPhotoFiles.length > 0) {
+                    if (btn) btn.textContent = '⏳ Uploading photos...';
+                    var uploads = dashPromoPhotoFiles.map(function(file, i) {
+                        return uploadPromoPhoto(file, user.id, i);
+                    });
+                    var results = await Promise.all(uploads);
+                    photoUrls = results.filter(function(u) { return !!u; });
+                }
+
+                if (btn) btn.textContent = '⏳ Pushing...';
+                var promoData = {
+                    text: sanitize(text.trim()),
+                    photos: photoUrls,
+                    pushedAt: new Date().toISOString()
+                };
                 var { error } = await db.from('qr_codes')
                     .update({ promotion: promoData, updated_at: new Date().toISOString() })
                     .eq('business_user_id', user.id);
@@ -3917,6 +3963,7 @@ Add any product information here..."></textarea>
                 if (error) { alert('Error pushing promotion: ' + error.message); return; }
                 alert('✅ Promotion pushed to all your active cards!');
             } catch(e) {
+                console.error('dashPushPromotion error:', e);
                 alert('Error pushing promotion. Please try again.');
             } finally {
                 if (btn) { btn.textContent = '📢 Push to All Cards'; btn.disabled = false; }
