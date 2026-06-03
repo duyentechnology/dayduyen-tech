@@ -3964,6 +3964,9 @@ Add any product information here..."></textarea>
                 // Reset UI BEFORE alert so background shows clean state during success message
                 if (btn) { btn.textContent = '📢 Push to All Cards'; btn.disabled = false; }
                 dashClearPromotion();
+                // Yield two animation frames so the browser actually paints the cleared UI
+                // before the synchronous alert() blocks the main thread
+                await new Promise(function(r) { requestAnimationFrame(function() { requestAnimationFrame(r); }); });
                 alert('✅ Promotion pushed to all your active cards!');
             } catch(e) {
                 console.error('dashPushPromotion error:', e);
