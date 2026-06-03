@@ -3629,7 +3629,14 @@ Add any product information here..."></textarea>
 
         function editProfile(profileId) {
             var p = bizProfiles.find(function(x) { return x.profileId === profileId; });
-            if (p) { bizProfileData = p; currentProfileId = profileId; }
+            if (!p && bizProfiles.length > 0) {
+                console.warn('editProfile: profileId not found ("' + profileId + '"), falling back to first profile');
+                p = bizProfiles[0];
+            }
+            if (p) {
+                bizProfileData = p;
+                currentProfileId = p.profileId || profileId;
+            }
             showView('bizProfile');
         }
 
@@ -3646,17 +3653,21 @@ Add any product information here..."></textarea>
                 container.innerHTML = '<p style="color:#9A8478;font-size:13px;font-family:\'Outfit\',sans-serif;">No profiles saved yet.</p>';
                 return;
             }
+            // Auto-heal: assign profileId to any legacy profile missing one
+            bizProfiles.forEach(function(p) {
+                if (!p.profileId) p.profileId = 'profile_' + Date.now() + '_' + Math.random().toString(36).substr(2,5);
+            });
             container.innerHTML = bizProfiles.map(function(p) {
                 var label = sanitize(p.profileLabel || p.name || 'Untitled Profile');
                 var name  = sanitize(p.name || '');
                 var isActive = bizProfileData && bizProfileData.profileId === p.profileId;
-                return '<div style="background:#fff;border:1.5px solid ' + (isActive ? '#8B3A7F' : '#E8DDD6') + ';border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:12px;">' +
+                return '<div onclick="editProfile(\'' + p.profileId + '\')" style="background:#fff;border:1.5px solid ' + (isActive ? '#8B3A7F' : '#E8DDD6') + ';border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:border-color 0.15s;">' +
                     '<div style="flex:1;min-width:0;">' +
                         '<div style="font-size:14px;font-weight:700;color:#2E2A28;font-family:\'Outfit\',sans-serif;">' + label + '</div>' +
                         (name && name !== label ? '<div style="font-size:12px;color:#9A8478;margin-top:2px;font-family:\'Outfit\',sans-serif;">' + name + '</div>' : '') +
                         (isActive ? '<span style="display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;margin-top:4px;background:#f0e5f0;color:#8B3A7F;">Active</span>' : '') +
                     '</div>' +
-                    '<button onclick="editProfile(\'' + p.profileId + '\')" style="flex-shrink:0;background:#fff;color:#8B3A7F;border:1.5px solid #8B3A7F;border-radius:8px;padding:6px 14px;font-family:\'Outfit\',sans-serif;font-weight:600;font-size:12px;cursor:pointer;">Edit</button>' +
+                    '<span style="flex-shrink:0;color:#8B3A7F;font-size:20px;font-weight:300;line-height:1;">›</span>' +
                 '</div>';
             }).join('');
         }
