@@ -1761,19 +1761,6 @@ Add any product information here..."></textarea>
                     </div>
                     <div id="mediaList-batch" style="margin-top: 6px;"></div>
                 </div>
-
-                <!-- Announcement (separate from promotion; per-card product/store showcase) -->
-                <div style="margin-bottom: 18px;">
-                    <label style="display: block; font-weight: 700; font-size: 14px; color: #3D2E24; margin-bottom: 6px;">📣 Announcement <span style="font-weight: 400; color: #9A8478; font-size: 12px;">(product / store showcase — shows under your profile when scanned)</span></label>
-                    <textarea id="announceNote" class="input-field" rows="2" placeholder="e.g. Fresh peonies just arrived — handfolded wraps ready for pickup 🌸"></textarea>
-                    <div class="photo-upload-area" onclick="document.getElementById('announce-media').click()" style="padding: 16px; margin-top: 8px;">
-                        <div style="font-size: 26px; margin-bottom: 4px;">📷 🎥</div>
-                        <div style="color: #8B3A7F; font-weight: 600; font-size: 13px;">Add photos / video</div>
-                    </div>
-                    <input type="file" id="announce-media" accept="image/*,video/*" multiple style="display: none;" onchange="handleAnnounceMedia(this)">
-                    <div id="announceThumbs" style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px;"></div>
-                    <div id="announceHint" style="margin-top: 4px; font-size: 11px; color: #9A8478;">Up to 4 photos + 1 video. Replaces existing announcement.</div>
-                </div>
                 
                 <!-- Files -->
                 <div style="margin-bottom: 18px;">
@@ -3955,103 +3942,6 @@ Add any product information here..."></textarea>
             });
         }
 
-        // --- Announcement media (photos + 1 video) -> uploaded to Storage on apply ---
-        var announceMedia = []; // [{ file, kind }]
-        var ANNOUNCE_MAX_PHOTOS = 4;
-        var ANNOUNCE_MAX_VIDEO_MB = 50;
-
-        function handleAnnounceMedia(input) {
-            if (!input.files || !input.files.length) return;
-            var files = Array.from(input.files);
-            for (var i = 0; i < files.length; i++) {
-                var file = files[i];
-                var isVideo = file.type.indexOf('video/') === 0;
-                var isImage = file.type.indexOf('image/') === 0;
-                if (!isVideo && !isImage) { alert('Only photos or video allowed.'); continue; }
-                if (isVideo) {
-                    var haveVideo = announceMedia.some(function(m){ return m.kind === 'video'; });
-                    if (haveVideo) { alert('Only 1 video per announcement.'); continue; }
-                    if (file.size > ANNOUNCE_MAX_VIDEO_MB * 1024 * 1024) { alert('Video too large. Max ' + ANNOUNCE_MAX_VIDEO_MB + 'MB.'); continue; }
-                    announceMedia.push({ file: file, kind: 'video' });
-                } else {
-                    var photoCount = announceMedia.filter(function(m){ return m.kind === 'image'; }).length;
-                    if (photoCount >= ANNOUNCE_MAX_PHOTOS) { alert('Max ' + ANNOUNCE_MAX_PHOTOS + ' photos.'); continue; }
-                    announceMedia.push({ file: file, kind: 'image' });
-                }
-            }
-            renderAnnounceThumbs();
-            input.value = '';
-        }
-
-        function removeAnnounceMedia(idx) {
-            announceMedia.splice(idx, 1);
-            renderAnnounceThumbs();
-        }
-
-        function renderAnnounceThumbs() {
-            var wrap = document.getElementById('announceThumbs');
-            var hint = document.getElementById('announceHint');
-            if (!wrap) return;
-            wrap.innerHTML = '';
-            announceMedia.forEach(function(m, idx) {
-                var cell = document.createElement('div');
-                cell.style.cssText = 'position:relative;width:64px;height:64px;border-radius:8px;overflow:hidden;background:#2E2A28;display:inline-flex;align-items:center;justify-content:center;';
-                if (m.kind === 'image') {
-                    var url = URL.createObjectURL(m.file);
-                    cell.innerHTML = '<img src="' + url + '" style="width:100%;height:100%;object-fit:cover;">';
-                } else {
-                    cell.innerHTML = '<span style="color:#fff;font-size:22px;">🎬</span>';
-                }
-                var x = document.createElement('div');
-                x.textContent = '✕';
-                x.style.cssText = 'position:absolute;top:2px;right:2px;width:18px;height:18px;line-height:18px;text-align:center;background:rgba(0,0,0,0.6);color:#fff;border-radius:50%;font-size:11px;cursor:pointer;';
-                x.onclick = function(){ removeAnnounceMedia(idx); };
-                cell.appendChild(x);
-                wrap.appendChild(cell);
-            });
-            if (hint) hint.style.display = announceMedia.length ? 'none' : 'block';
-        }
-
-        // Upload one announcement media file -> Storage -> { url, type }
-        function uploadAnnounceFile(file, userId, idx) {
-            return new Promise(function(resolve) {
-                var isVideo = file.type.indexOf('video/') === 0;
-                if (!isVideo) {
-                    resizeImageFile(file, 1200, 0.82, async function(dataUrl) {
-                        try {
-                            var commaIdx = dataUrl.indexOf(',');
-                            var meta = dataUrl.substring(0, commaIdx);
-                            var b64 = dataUrl.substring(commaIdx + 1);
-                            var mime = meta.split(':')[1].split(';')[0];
-                            var bin = atob(b64);
-                            var ab = new ArrayBuffer(bin.length);
-                            var ia = new Uint8Array(ab);
-                            for (var i = 0; i < bin.length; i++) ia[i] = bin.charCodeAt(i);
-                            var blob = new Blob([ab], { type: mime });
-                            var ext = mime.indexOf('png') >= 0 ? '.png' : '.jpg';
-                            var path = 'announce/' + userId + '/' + Date.now() + '_' + idx + ext;
-                            var upRes = await db.storage.from('qr-media').upload(path, blob, { contentType: mime, cacheControl: '3600', upsert: false });
-                            if (upRes.error) { console.error('Announce img upload:', upRes.error); resolve(null); return; }
-                            var urlRes = db.storage.from('qr-media').getPublicUrl(path);
-                            resolve(urlRes && urlRes.data ? { url: urlRes.data.publicUrl, type: 'image' } : null);
-                        } catch (e) { console.error('Announce img exception:', e); resolve(null); }
-                    });
-                } else {
-                    (async function() {
-                        try {
-                            var mime = file.type || 'video/mp4';
-                            var ext = '.' + (mime.split('/')[1] || 'mp4').split(';')[0];
-                            var path = 'announce/' + userId + '/' + Date.now() + '_' + idx + ext;
-                            var upRes = await db.storage.from('qr-media').upload(path, file, { contentType: mime, cacheControl: '3600', upsert: false });
-                            if (upRes.error) { console.error('Announce vid upload:', upRes.error); resolve(null); return; }
-                            var urlRes = db.storage.from('qr-media').getPublicUrl(path);
-                            resolve(urlRes && urlRes.data ? { url: urlRes.data.publicUrl, type: 'video' } : null);
-                        } catch (e) { console.error('Announce vid exception:', e); resolve(null); }
-                    })();
-                }
-            });
-        }
-
         // Non-blocking toast for promo push success (alert() blocks the main thread on iOS,
         // so even pre-paint button/form resets don't actually render until dismissed)
         function showPromoToast(message) {
@@ -4375,7 +4265,6 @@ Add any product information here..."></textarea>
                     media: qrData.media || [],
                     files: qrData.files || [],
                     photo: qrData.photo || null,
-                    announcement: qrData.announcement || null,
                     updated_at: new Date().toISOString()
                 }).eq('id', qrData.dbId);
                 if (error) console.warn('Supabase update error:', error.message);
@@ -6355,7 +6244,7 @@ Add any product information here..."></textarea>
             if (filePreview) filePreview.innerHTML = '<div style="font-size: 28px; margin-bottom: 4px;">📁</div><div style="color: #3D2E24; font-weight: 600; font-size: 13px;">Click to upload files</div>';
         }
         
-        async function batchApplyEdits() {
+        function batchApplyEdits() {
             var count = batchSelectedIndices.size;
             if (count === 0) return;
             
@@ -6377,12 +6266,8 @@ Add any product information here..."></textarea>
             var hasDetails = newDetails.length > 0;
             var hasMedia = newMedia.length > 0 || newPhoto;
             var hasFiles = newFiles.length > 0;
-            // Announcement (separate field; media uploads to Storage)
-            var announceNoteEl = document.getElementById('announceNote');
-            var announceNote = announceNoteEl ? announceNoteEl.value.trim() : '';
-            var hasAnnounce = announceNote.length > 0 || announceMedia.length > 0;
             
-            if (!hasDetails && !hasMedia && !hasFiles && !applyColor && !hasAnnounce) {
+            if (!hasDetails && !hasMedia && !hasFiles && !applyColor) {
                 var btn = document.getElementById('batchApplyBtn');
                 if (btn) {
                     var orig = btn.innerHTML;
@@ -6393,18 +6278,6 @@ Add any product information here..."></textarea>
                 return;
             }
             
-            // Upload announcement media to Storage once; same announcement applied to all selected cards
-            var announcementObj = null;
-            if (hasAnnounce) {
-                var auid = currentUser ? currentUser.id : 'anon';
-                var aUploaded = [];
-                for (var am = 0; am < announceMedia.length; am++) {
-                    var ar = await uploadAnnounceFile(announceMedia[am].file, auid, am);
-                    if (ar) aUploaded.push(ar);
-                }
-                announcementObj = { note: announceNote, media: aUploaded, updatedAt: new Date().toISOString() };
-            }
-
             // Apply to all selected
             var updated = 0;
             var indices = Array.from(batchSelectedIndices);
@@ -6416,10 +6289,9 @@ Add any product information here..."></textarea>
                 if (hasMedia) { qr.media = newMedia.slice(); qr.photo = newPhoto; }
                 if (hasFiles) qr.files = newFiles.slice();
                 if (applyColor) qr.color = newColor;
-                if (hasAnnounce) qr.announcement = announcementObj;
                 
                 qr.updatedAt = new Date().toISOString();
-                var hasContent = qr.details || qr.photo || (qr.media && qr.media.length > 0) || (qr.files && qr.files.length > 0) || (qr.announcement && (qr.announcement.note || (qr.announcement.media && qr.announcement.media.length)));
+                var hasContent = qr.details || qr.photo || (qr.media && qr.media.length > 0) || (qr.files && qr.files.length > 0);
                 qr.status = hasContent ? 'active' : 'draft';
                 updateQRInSupabase(qr);
                 updated++;
@@ -6436,14 +6308,6 @@ Add any product information here..."></textarea>
             }
             document.getElementById('batchSelectBar').style.display = 'none';
             
-            // Reset announcement inputs
-            announceMedia = [];
-            if (announceNoteEl) announceNoteEl.value = '';
-            var aThumbsEl = document.getElementById('announceThumbs');
-            if (aThumbsEl) aThumbsEl.innerHTML = '';
-            var aHintEl = document.getElementById('announceHint');
-            if (aHintEl) aHintEl.style.display = 'block';
-
             // Re-render cards immediately with updated data
             renderMyCodes();
             updateQRCount();
