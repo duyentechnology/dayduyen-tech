@@ -1873,15 +1873,18 @@ Add any product information here..."></textarea>
             <input type="text" id="bizName" placeholder="e.g. Saigon Blossoms" class="input-field" style="margin-bottom:14px;">
 
             <label style="display:block;font-size:11px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px;">About Your Business</label>
-            <textarea id="bizDesc" placeholder="e.g. Hand-crafted bouquets in Little Saigon..." class="input-field" style="min-height:80px;resize:vertical;margin-bottom:14px;"></textarea>
-
-            <label style="display:block;font-size:11px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px;">About Photos <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#9A8478;">(up to 3 — your shop or work)</span></label>
-            <div id="aboutPhotosWrap" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;">
-                <div id="aboutPhotosAdd" onclick="document.getElementById('aboutPhotosInput').click()" style="width:72px;height:72px;border:1.5px dashed #C9A0C4;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;background:#fff;">
-                    <div style="font-size:22px;line-height:1;">📷</div>
-                    <div style="font-size:10px;color:#8B3A7F;font-weight:600;margin-top:2px;">Add</div>
+            <div style="border:1.5px solid #E8DDD6;border-radius:12px;background:#fff;margin-bottom:14px;overflow:hidden;">
+                <textarea id="bizDesc" placeholder="e.g. Hand-crafted bouquets in Little Saigon..." style="width:100%;min-height:80px;resize:vertical;border:none;outline:none;padding:12px;font-family:'Outfit',sans-serif;font-size:14px;color:#2E2A28;box-sizing:border-box;background:transparent;"></textarea>
+                <div style="border-top:1px solid #F0E5F0;padding:10px 12px;">
+                    <div style="font-size:10px;font-weight:600;color:#9A8478;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Photos (up to 3 — your shop or work)</div>
+                    <div id="aboutPhotosWrap" style="display:flex;flex-wrap:wrap;gap:8px;">
+                        <div id="aboutPhotosAdd" onclick="document.getElementById('aboutPhotosInput').click()" style="width:64px;height:64px;border:1.5px dashed #C9A0C4;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;background:#FBF7FB;">
+                            <div style="font-size:20px;line-height:1;">📷</div>
+                            <div style="font-size:9px;color:#8B3A7F;font-weight:600;margin-top:2px;">Add</div>
+                        </div>
+                        <input type="file" id="aboutPhotosInput" accept="image/*" multiple style="display:none;" onchange="handleAboutPhotos(this)">
+                    </div>
                 </div>
-                <input type="file" id="aboutPhotosInput" accept="image/*" multiple style="display:none;" onchange="handleAboutPhotos(this)">
             </div>
 
             <label style="display:block;font-size:11px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px;">Contact Email</label>
@@ -3741,7 +3744,11 @@ Add any product information here..."></textarea>
             Array.from(input.files).forEach(function(file) {
                 if (aboutPhotos.length >= ABOUT_MAX) return;
                 if (file.type.indexOf('image/') !== 0) { alert('Photos only.'); return; }
-                aboutPhotos.push({ file: file });
+                var item = { file: file, preview: null };
+                aboutPhotos.push(item);
+                var reader = new FileReader();
+                reader.onload = function(e) { item.preview = e.target.result; renderAboutPhotos(); };
+                reader.readAsDataURL(file);
             });
             renderAboutPhotos();
             input.value = '';
@@ -3756,14 +3763,13 @@ Add any product information here..."></textarea>
             var wrap = document.getElementById('aboutPhotosWrap');
             var addBtn = document.getElementById('aboutPhotosAdd');
             if (!wrap) return;
-            // Remove existing thumbs (keep the add button + hidden input)
             Array.from(wrap.querySelectorAll('.about-thumb')).forEach(function(n){ n.remove(); });
             aboutPhotos.forEach(function(item, idx) {
-                var src = item.url ? item.url : URL.createObjectURL(item.file);
+                var src = item.url || item.preview || '';
                 var cell = document.createElement('div');
                 cell.className = 'about-thumb';
-                cell.style.cssText = 'position:relative;width:72px;height:72px;border-radius:10px;overflow:hidden;border:1px solid #E8DDD6;';
-                cell.innerHTML = '<img src="' + src + '" style="width:100%;height:100%;object-fit:cover;">';
+                cell.style.cssText = 'position:relative;width:64px;height:64px;border-radius:10px;overflow:hidden;border:1px solid #E8DDD6;background:#EFE5EF;';
+                cell.innerHTML = src ? '<img src="' + src + '" style="width:100%;height:100%;object-fit:cover;">' : '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:11px;color:#8B3A7F;">…</div>';
                 var x = document.createElement('div');
                 x.textContent = '✕';
                 x.style.cssText = 'position:absolute;top:3px;right:3px;width:18px;height:18px;line-height:18px;text-align:center;background:rgba(0,0,0,0.6);color:#fff;border-radius:50%;font-size:11px;cursor:pointer;';
