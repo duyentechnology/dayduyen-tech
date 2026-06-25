@@ -3626,6 +3626,7 @@ Add any product information here..."></textarea>
                 console.log('✅ Profiles saved and verified:', verify.business_profiles.length);
                 // Push About photos to all this business's cards (live everywhere, no re-activation)
                 try {
+                    await db.from('qr_codes').update({ about_photos: aboutUrls }).eq('user_id', user.id);
                     await db.from('qr_codes').update({ about_photos: aboutUrls }).eq('business_user_id', user.id);
                 } catch (e) { console.error('About photos push:', e); }
 
