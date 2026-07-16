@@ -6058,12 +6058,16 @@ Add any product information here..."></textarea>
                 html += '<div style="margin-bottom: 20px;">';
                 html += '<h4 style="color: #3D2E24; margin: 0 0 12px; font-size: 15px;">🎬 Videos</h4>';
                 for (var vi = 0; vi < videos.length; vi++) {
-                    html += '<div style="background: #1a1a2e; border-radius: 10px; padding: 12px; margin-bottom: 8px; display: flex; align-items: center; gap: 10px;">';
+                    html += '<div style="background: #1a1a2e; border-radius: 10px; padding: 12px; margin-bottom: 8px;">';
+                    html += '<div style="display: flex; align-items: center; gap: 10px;">';
                     html += '<span style="font-size: 28px;">🎬</span>';
                     html += '<div><div style="color: white; font-weight: 600; font-size: 13px;">' + videos[vi].name + '</div>';
                     html += '<div style="color: #9A8478; font-size: 11px;">' + formatSize(videos[vi].size) + '</div></div>';
+                    html += '</div>';
                     if (videos[vi].data) {
-                        html += '<video controls style="max-width: 100%; max-height: 200px; border-radius: 8px; margin-top: 8px;" src="' + videos[vi].data + '"></video>';
+                        html += '<div id="viewerVideo-' + vi + '" style="margin-top: 8px; height: 160px; border-radius: 8px; background: #000; display: flex; align-items: center; justify-content: center; cursor: pointer;">';
+                        html += '<span style="font-size: 40px; color: rgba(255,255,255,0.9);">▶</span>';
+                        html += '</div>';
                     }
                     html += '</div>';
                 }
@@ -6139,6 +6143,24 @@ Add any product information here..."></textarea>
                 })(fb);
             }
             
+            // Wire tap-to-play videos — data URI is attached only on tap
+            for (var vb = 0; vb < videos.length; vb++) {
+                (function(vidIdx) {
+                    var tap = document.getElementById('viewerVideo-' + vidIdx);
+                    if (tap && videos[vidIdx].data) {
+                        tap.addEventListener('click', function() {
+                            var el = document.createElement('video');
+                            el.controls = true;
+                            el.setAttribute('playsinline', '');
+                            el.style.cssText = 'width: 100%; max-height: 200px; border-radius: 8px; margin-top: 8px; display: block;';
+                            el.src = videos[vidIdx].data;
+                            tap.parentNode.replaceChild(el, tap);
+                            el.play().catch(function(e) { console.warn('Video play error:', e); });
+                        });
+                    }
+                })(vb);
+            }
+
             // Wire edit button inside modal
             var editBtn = document.getElementById('dataViewerEditBtn');
             if (editBtn) {
