@@ -2078,7 +2078,8 @@ Add any product information here..."></textarea>
                         <button type="button" id="promoSeg-savers" onclick="selectPromoTarget('savers')" style="flex:1;padding:8px 6px;border-radius:9px;border:1.5px solid #E8DDD6;background:#fff;color:#6B5751;font-family:'Outfit',sans-serif;font-weight:600;font-size:12px;cursor:pointer;">Savers</button>
                         <button type="button" id="promoSeg-scanned" onclick="selectPromoTarget('scanned')" style="flex:1;padding:8px 6px;border-radius:9px;border:1.5px solid #E8DDD6;background:#fff;color:#6B5751;font-family:'Outfit',sans-serif;font-weight:600;font-size:12px;cursor:pointer;">Scanners</button>
                     </div>
-                    <div id="promoTargetNote" style="font-size:11px;color:#9A8478;line-height:1.4;margin-bottom:12px;">Choose who this promotion reaches.</div>
+                    <div id="promoTargetNote" style="font-size:11px;color:#9A8478;line-height:1.4;margin-bottom:6px;">Reaches everyone who saved one of your cards, plus anyone who scans.</div>
+                    <div style="font-size:10px;color:#b9a6b4;line-height:1.4;margin-bottom:12px;font-style:italic;">Emailing your audience turns on soon. For now, each push updates the promo shown on your cards.</div>
                 </div>
 
                 <div style="display:flex;gap:10px;">
@@ -3531,7 +3532,7 @@ Add any product information here..."></textarea>
         // Feature flag: the scans/saves snapshot + audience targeting UI is built but
         // HIDDEN for now. Flip to true to reveal it (email delivery is a separate,
         // not-yet-wired step — see git history for the send-promotion function).
-        var PROMO_TARGETING_ENABLED = false;
+        var PROMO_TARGETING_ENABLED = true;
 
         // Audience targeting for a promotion push (dormant while hidden).
         var PROMO_TARGET_NOTES = {
