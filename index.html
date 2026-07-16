@@ -2083,9 +2083,22 @@ Add any product information here..."></textarea>
                     <div style="font-size:11.5px;color:#b9a6b4;line-height:1.45;margin-bottom:18px;font-style:italic;">Emailing your audience turns on soon. For now, each push updates the promo shown on your cards.</div>
                 </div>
 
+                <button onclick="showPromoPreview()" style="width:100%;background:#faf6fa;color:#8B3A7F;border:1.5px solid #eaddea;border-radius:12px;padding:13px;font-family:'Outfit',sans-serif;font-weight:600;font-size:15px;cursor:pointer;margin-bottom:10px;">👁 Preview how this looks on a card</button>
                 <div style="display:flex;gap:12px;">
                     <button onclick="dashPushPromotion()" id="promoPushBtn" style="flex:2;background:#8B3A7F;color:#fff;border:none;border-radius:12px;padding:16px;font-family:'Outfit',sans-serif;font-weight:600;font-size:16px;cursor:pointer;">📢 Push to All Cards</button>
                     <button onclick="dashClearPromotion()" style="flex:1;background:#fff;color:#9A8478;border:1.5px solid #E8DDD6;border-radius:12px;padding:16px;font-family:'Outfit',sans-serif;font-size:16px;cursor:pointer;">✕ Clear</button>
+                </div>
+            </div>
+
+            <!-- Promotion card preview modal -->
+            <div id="promoPreviewModal" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(46,42,40,0.55);align-items:center;justify-content:center;padding:20px;box-sizing:border-box;" onclick="if(event.target===this)closePromoPreview()">
+                <div style="background:#F0EFED;border-radius:22px;max-width:400px;width:100%;max-height:88vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+                    <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 18px 8px;">
+                        <div style="font-family:'Cormorant Garamond',serif;font-size:19px;font-weight:700;color:#2E2A28;">Card preview</div>
+                        <button onclick="closePromoPreview()" style="background:none;border:none;font-size:22px;color:#9A8478;cursor:pointer;line-height:1;">✕</button>
+                    </div>
+                    <div style="font-size:12px;color:#9A8478;padding:0 18px 14px;line-height:1.45;">This is what a customer sees when they scan one of your cards. Tap “What’s new” to expand, just like they do.</div>
+                    <div id="promoPreviewBody" style="padding:0 18px 22px;"></div>
                 </div>
             </div>
 
@@ -4216,6 +4229,67 @@ Add any product information here..."></textarea>
             var thumbs = document.getElementById('dashPromoThumbs');
             if (thumbs) thumbs.innerHTML = '';
             updatePromoPhotoUI(false);
+        }
+
+        // ── Promotion card preview ──────────────────────────────────────────
+        // Renders the promo exactly as duyen.io shows it in the "What's new"
+        // section of a scanned card, using the current text + photos.
+        var promoPreviewObjUrls = [];
+        function showPromoPreview() {
+            var esc = function(s){ var d=document.createElement('div'); d.textContent=(s==null?'':s); return d.innerHTML; };
+            var text = ((document.getElementById('dashPromoText') || {}).value || '').trim();
+
+            // Revoke any object URLs from a previous preview, then build fresh ones for File items.
+            promoPreviewObjUrls.forEach(function(u){ try { URL.revokeObjectURL(u); } catch(e){} });
+            promoPreviewObjUrls = [];
+            var photos = dashPromoPhotos.map(function(p){
+                if (p.url) return p.url;
+                if (p.file) { var u = URL.createObjectURL(p.file); promoPreviewObjUrls.push(u); return u; }
+                return null;
+            }).filter(Boolean);
+
+            var body = document.getElementById('promoPreviewBody');
+            if (!body) return;
+
+            if (!text && photos.length === 0) {
+                body.innerHTML = '<div style="text-align:center;color:#9A8478;padding:26px 8px;font-size:14px;line-height:1.5;">Add a message or photo above,<br>then preview.</div>';
+            } else {
+                var bizName = (typeof bizProfileData === 'object' && bizProfileData && bizProfileData.name) ? bizProfileData.name : 'Your business';
+                var photosHtml = photos.length
+                    ? '<div style="display:flex;flex-direction:column;gap:8px;margin-top:10px;">' +
+                        photos.map(function(u){ return '<div style="width:100%;border-radius:8px;overflow:hidden;background:#f5f0eb;"><img src="' + esc(u) + '" style="width:100%;height:auto;display:block;"></div>'; }).join('') +
+                      '</div>'
+                    : '';
+                body.innerHTML =
+                    '<div style="font-family:\'Cormorant Garamond\',serif;font-size:22px;font-weight:700;color:#2E2A28;margin-bottom:2px;">' + esc(bizName) + '</div>' +
+                    '<div style="font-size:12px;color:#9A8478;margin-bottom:14px;">— on their scanned card —</div>' +
+                    '<div style="background:#fff;border:1.5px solid #E8DDD6;border-radius:12px;overflow:hidden;">' +
+                        '<div onclick="togglePromoPreviewBody()" style="display:flex;align-items:center;gap:10px;padding:15px 16px;cursor:pointer;">' +
+                            '<span style="flex:1;font-family:\'Crimson Pro\',serif;font-size:18px;font-weight:600;color:#2E2A28;">What\'s new</span>' +
+                            '<span style="background:#8B3A7F;color:#fff;font-size:10px;font-weight:600;padding:2px 8px;border-radius:10px;">1</span>' +
+                            '<svg id="promoPreviewChev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8B3A7F" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition:transform .2s;transform:rotate(180deg);"><path d="M6 9l6 6 6-6"/></svg>' +
+                        '</div>' +
+                        '<div id="promoPreviewInner" style="padding:0 16px 16px;">' +
+                            (text ? '<div style="font-family:\'Crimson Pro\',serif;font-size:18px;color:#3a2a2e;line-height:1.7;font-style:italic;">“' + esc(text) + '”</div>' : '') +
+                            photosHtml +
+                        '</div>' +
+                    '</div>';
+            }
+            document.getElementById('promoPreviewModal').style.display = 'flex';
+        }
+        function togglePromoPreviewBody() {
+            var inner = document.getElementById('promoPreviewInner');
+            var chev  = document.getElementById('promoPreviewChev');
+            if (!inner) return;
+            var open = inner.style.display !== 'none';
+            inner.style.display = open ? 'none' : 'block';
+            if (chev) chev.style.transform = open ? 'rotate(0deg)' : 'rotate(180deg)';
+        }
+        function closePromoPreview() {
+            var m = document.getElementById('promoPreviewModal');
+            if (m) m.style.display = 'none';
+            promoPreviewObjUrls.forEach(function(u){ try { URL.revokeObjectURL(u); } catch(e){} });
+            promoPreviewObjUrls = [];
         }
 
         // Load the most recent promotion into the form (so business sees last push and can edit)
