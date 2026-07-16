@@ -4139,7 +4139,7 @@ Add any product information here..."></textarea>
                         var ext = mime.indexOf('png') >= 0 ? '.png' : '.jpg';
                         var path = 'promo/' + userId + '/' + Date.now() + '_' + idx + ext;
                         var upRes = await db.storage.from('qr-media').upload(path, blob, {
-                            contentType: mime, cacheControl: '3600', upsert: false
+                            contentType: mime, cacheControl: '31536000', upsert: false
                         });
                         if (upRes.error) { console.error('Promo upload error:', upRes.error); resolve(null); return; }
                         var urlRes = db.storage.from('qr-media').getPublicUrl(path);
