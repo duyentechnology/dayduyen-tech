@@ -1996,27 +1996,27 @@ Add any product information here..."></textarea>
 
             <!-- Header row -->
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px;">
-                <h2 style="font-family:'Cormorant Garamond',serif;font-size:1.8rem;font-weight:700;color:#8B3A7F;margin:0;">My Dashboard</h2>
+                <h2 style="font-family:'Cormorant Garamond',serif;font-size:2.1rem;font-weight:700;color:#8B3A7F;margin:0;">My Dashboard</h2>
                 <div style="display:flex;gap:10px;">
-                    <button type="button" onclick="showView('bizProfile')" style="background:#f0e5f0;color:#8B3A7F;border:1.5px solid #8B3A7F;padding:9px 18px;border-radius:10px;font-family:'Outfit',sans-serif;font-weight:600;font-size:13px;cursor:pointer;">Edit Profile</button>
-                    <button type="button" onclick="showView('bizScanChoice')" style="background:#f0e5f0;color:#8B3A7F;border:1.5px solid #8B3A7F;padding:9px 16px;border-radius:10px;font-family:'Outfit',sans-serif;font-weight:600;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;"><span style="font-size:15px;line-height:1;">📸</span>Activate a card</button>
+                    <button type="button" onclick="showView('bizProfile')" style="background:#f0e5f0;color:#8B3A7F;border:1.5px solid #8B3A7F;padding:10px 20px;border-radius:10px;font-family:'Outfit',sans-serif;font-weight:600;font-size:15px;cursor:pointer;">Edit Profile</button>
+                    <button type="button" onclick="showView('bizScanChoice')" style="background:#f0e5f0;color:#8B3A7F;border:1.5px solid #8B3A7F;padding:10px 18px;border-radius:10px;font-family:'Outfit',sans-serif;font-weight:600;font-size:15px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;"><span style="font-size:17px;line-height:1;">📸</span>Activate a card</button>
                 </div>
             </div>
 
             <!-- Business banner -->
             <div id="dashBizBanner" style="background:linear-gradient(135deg,#f9f4f9,#f0e5f0);border:1.5px solid #D4B8D0;border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:12px;margin-bottom:20px;">
-                <div id="dashBizAvatar" style="width:44px;height:44px;border-radius:50%;background:#8B3A7F;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:16px;flex-shrink:0;">B</div>
+                <div id="dashBizAvatar" style="width:50px;height:50px;border-radius:50%;background:#8B3A7F;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:19px;flex-shrink:0;">B</div>
                 <div style="flex:1;min-width:0;">
-                    <div id="dashBizName" style="font-weight:700;color:#3D2E24;font-size:15px;">My Business</div>
-                    <div id="dashBizAddress" style="font-size:12px;color:#9A8478;margin-top:2px;"></div>
+                    <div id="dashBizName" style="font-weight:700;color:#3D2E24;font-size:18px;">My Business</div>
+                    <div id="dashBizAddress" style="font-size:14px;color:#9A8478;margin-top:3px;"></div>
                 </div>
             </div>
 
             <!-- My Profiles -->
             <div style="margin-bottom:20px;">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-                    <div style="font-family:'Cormorant Garamond',serif;font-size:17px;font-weight:700;color:#2E2A28;">My Profiles</div>
-                    <button onclick="startNewProfile()" style="font-size:12px;font-weight:600;color:#8B3A7F;background:#f0e5f0;border:none;border-radius:20px;padding:5px 14px;cursor:pointer;font-family:'Outfit',sans-serif;">+ New Profile</button>
+                    <div style="font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:700;color:#2E2A28;">My Profiles</div>
+                    <button onclick="startNewProfile()" style="font-size:14px;font-weight:600;color:#8B3A7F;background:#f0e5f0;border:none;border-radius:20px;padding:6px 16px;cursor:pointer;font-family:'Outfit',sans-serif;">+ New Profile</button>
                 </div>
                 <div id="dashProfilesList" style="display:flex;flex-direction:column;gap:8px;"></div>
             </div>
@@ -2024,20 +2024,20 @@ Add any product information here..."></textarea>
             <!-- Stats -->
             <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px;">
                 <div style="background:#fff;border:1.5px solid #E8DDD6;border-radius:12px;padding:12px;">
-                    <div id="dStatTotal" style="font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:700;color:#8B3A7F;line-height:1;">0</div>
-                    <div style="font-size:10px;color:#9A8478;text-transform:uppercase;letter-spacing:.4px;margin-top:3px;">Total Scans</div>
+                    <div id="dStatTotal" style="font-family:'Cormorant Garamond',serif;font-size:33px;font-weight:700;color:#8B3A7F;line-height:1;">0</div>
+                    <div style="font-size:12px;color:#9A8478;text-transform:uppercase;letter-spacing:.4px;margin-top:3px;">Total Scans</div>
                 </div>
                 <div style="background:#fff;border:1.5px solid #E8DDD6;border-radius:12px;padding:12px;">
-                    <div id="dStatActive" style="font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:700;color:#8B3A7F;line-height:1;">0</div>
-                    <div style="font-size:10px;color:#9A8478;text-transform:uppercase;letter-spacing:.4px;margin-top:3px;">Active Cards</div>
+                    <div id="dStatActive" style="font-family:'Cormorant Garamond',serif;font-size:33px;font-weight:700;color:#8B3A7F;line-height:1;">0</div>
+                    <div style="font-size:12px;color:#9A8478;text-transform:uppercase;letter-spacing:.4px;margin-top:3px;">Active Cards</div>
                 </div>
                 <div style="background:#fff;border:1.5px solid #E8DDD6;border-radius:12px;padding:12px;">
-                    <div id="dStatWeek" style="font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:700;color:#8B3A7F;line-height:1;">0</div>
-                    <div style="font-size:10px;color:#9A8478;text-transform:uppercase;letter-spacing:.4px;margin-top:3px;">This Week</div>
+                    <div id="dStatWeek" style="font-family:'Cormorant Garamond',serif;font-size:33px;font-weight:700;color:#8B3A7F;line-height:1;">0</div>
+                    <div style="font-size:12px;color:#9A8478;text-transform:uppercase;letter-spacing:.4px;margin-top:3px;">This Week</div>
                 </div>
                 <div style="background:#fff;border:1.5px solid #E8DDD6;border-radius:12px;padding:12px;">
-                    <div id="dStatDraft" style="font-family:'Cormorant Garamath',serif;font-size:28px;font-weight:700;color:#8B3A7F;line-height:1;">0</div>
-                    <div style="font-size:10px;color:#9A8478;text-transform:uppercase;letter-spacing:.4px;margin-top:3px;">Drafts</div>
+                    <div id="dStatDraft" style="font-family:'Cormorant Garamond',serif;font-size:33px;font-weight:700;color:#8B3A7F;line-height:1;">0</div>
+                    <div style="font-size:12px;color:#9A8478;text-transform:uppercase;letter-spacing:.4px;margin-top:3px;">Drafts</div>
                 </div>
             </div>
 
@@ -2107,8 +2107,8 @@ Add any product information here..."></textarea>
 
             <!-- QR Card list -->
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-                <div style="font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:700;color:#2E2A28;">My QR Cards</div>
-                <button onclick="showView('bizScanChoice')" style="font-size:12px;font-weight:600;color:#8B3A7F;background:#f0e5f0;border:none;border-radius:20px;padding:5px 14px;cursor:pointer;font-family:'Outfit',sans-serif;">+ Activate Cards</button>
+                <div style="font-family:'Cormorant Garamond',serif;font-size:21px;font-weight:700;color:#2E2A28;">My QR Cards</div>
+                <button onclick="showView('bizScanChoice')" style="font-size:14px;font-weight:600;color:#8B3A7F;background:#f0e5f0;border:none;border-radius:20px;padding:6px 16px;cursor:pointer;font-family:'Outfit',sans-serif;">+ Activate Cards</button>
             </div>
             <div id="dashQrCards" style="display:flex;flex-direction:column;gap:10px;">
                 <p style="color:#9A8478;text-align:center;padding:2rem 0;font-size:14px;">No cards activated yet. Tap + Activate Cards to get started.</p>
@@ -3795,7 +3795,7 @@ Add any product information here..."></textarea>
             var container = document.getElementById('dashProfilesList');
             if (!container) return;
             if (!bizProfiles || bizProfiles.length === 0) {
-                container.innerHTML = '<p style="color:#9A8478;font-size:13px;font-family:\'Outfit\',sans-serif;">No profiles saved yet.</p>';
+                container.innerHTML = '<p style="color:#9A8478;font-size:15px;font-family:\'Outfit\',sans-serif;">No profiles saved yet.</p>';
                 return;
             }
             // Auto-heal: assign profileId to any legacy profile missing one
@@ -3808,11 +3808,11 @@ Add any product information here..."></textarea>
                 var isActive = bizProfileData && bizProfileData.profileId === p.profileId;
                 return '<div onclick="editProfile(\'' + p.profileId + '\')" style="background:#fff;border:1.5px solid ' + (isActive ? '#8B3A7F' : '#E8DDD6') + ';border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:border-color 0.15s;">' +
                     '<div style="flex:1;min-width:0;">' +
-                        '<div style="font-size:14px;font-weight:700;color:#2E2A28;font-family:\'Outfit\',sans-serif;">' + label + '</div>' +
-                        (name && name !== label ? '<div style="font-size:12px;color:#9A8478;margin-top:2px;font-family:\'Outfit\',sans-serif;">' + name + '</div>' : '') +
-                        (isActive ? '<span style="display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;margin-top:4px;background:#f0e5f0;color:#8B3A7F;">Active</span>' : '') +
+                        '<div style="font-size:16px;font-weight:700;color:#2E2A28;font-family:\'Outfit\',sans-serif;">' + label + '</div>' +
+                        (name && name !== label ? '<div style="font-size:13.5px;color:#9A8478;margin-top:2px;font-family:\'Outfit\',sans-serif;">' + name + '</div>' : '') +
+                        (isActive ? '<span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 9px;border-radius:6px;margin-top:4px;background:#f0e5f0;color:#8B3A7F;">Active</span>' : '') +
                     '</div>' +
-                    '<span style="flex-shrink:0;color:#8B3A7F;font-size:20px;font-weight:300;line-height:1;">›</span>' +
+                    '<span style="flex-shrink:0;color:#8B3A7F;font-size:22px;font-weight:300;line-height:1;">›</span>' +
                 '</div>';
             }).join('');
         }
@@ -4061,9 +4061,9 @@ Add any product information here..."></textarea>
                             '<svg width="32" height="32" viewBox="0 0 32 32" fill="none"><rect x="2" y="2" width="12" height="12" rx="1" stroke="#fff" stroke-width="1.5"/><rect x="4" y="4" width="8" height="8" fill="#fff"/><rect x="18" y="2" width="12" height="12" rx="1" stroke="#fff" stroke-width="1.5"/><rect x="20" y="4" width="8" height="8" fill="#fff"/><rect x="2" y="18" width="12" height="12" rx="1" stroke="#fff" stroke-width="1.5"/><rect x="4" y="20" width="8" height="8" fill="#fff"/><rect x="18" y="18" width="4" height="4" fill="#fff"/><rect x="26" y="18" width="4" height="4" fill="#fff"/><rect x="18" y="26" width="4" height="4" fill="#fff"/><rect x="26" y="26" width="4" height="4" fill="#fff"/></svg>' +
                         '</div>' +
                         '<div style="flex:1;min-width:0;">' +
-                            '<div style="font-size:14px;font-weight:600;color:#2E2A28;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + label + '</div>' +
-                            '<div style="font-size:11px;color:#9A8478;margin-top:2px;">' + scans + ' scan' + (scans!==1?'s':'') + ' · ' + saves + ' save' + (saves!==1?'s':'') + '</div>' +
-                            '<span style="display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;margin-top:4px;' +
+                            '<div style="font-size:16px;font-weight:600;color:#2E2A28;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + label + '</div>' +
+                            '<div style="font-size:12.5px;color:#9A8478;margin-top:3px;">' + scans + ' scan' + (scans!==1?'s':'') + ' · ' + saves + ' save' + (saves!==1?'s':'') + '</div>' +
+                            '<span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 9px;border-radius:6px;margin-top:5px;' +
                                 (isActive ? 'background:#dcfce7;color:#166534;' : 'background:#fee2e2;color:#991b1b;') + '">' +
                                 (isActive ? 'Active' : 'Draft') + '</span>' +
                             '<div style="height:3px;background:#E8DDD6;border-radius:3px;margin-top:6px;overflow:hidden;">' +
