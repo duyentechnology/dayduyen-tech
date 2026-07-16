@@ -2056,8 +2056,29 @@ Add any product information here..."></textarea>
                     <div id="dashPromoThumbs" style="display:flex;gap:8px;flex-wrap:wrap;flex:1;"></div>
                     <div id="dashPromoHint" style="font-size:11px;color:#9A8478;line-height:1.4;">Upload a sale flyer, new arrival, or seasonal photo</div>
                 </div>
+                <!-- Audience snapshot -->
+                <div style="display:flex;gap:8px;margin-bottom:12px;">
+                    <div style="flex:1;background:#faf6fa;border:1px solid #eaddea;border-radius:10px;padding:8px 10px;text-align:center;">
+                        <div id="promoStatScans" style="font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:700;color:#8B3A7F;line-height:1;">—</div>
+                        <div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#9A8478;margin-top:3px;">Total Scans</div>
+                    </div>
+                    <div style="flex:1;background:#faf6fa;border:1px solid #eaddea;border-radius:10px;padding:8px 10px;text-align:center;">
+                        <div id="promoStatSaves" style="font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:700;color:#8B3A7F;line-height:1;">—</div>
+                        <div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#9A8478;margin-top:3px;">Total Saves</div>
+                    </div>
+                </div>
+
+                <!-- Who to send to -->
+                <div style="font-size:11px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;">Send to</div>
+                <div style="display:flex;gap:6px;margin-bottom:7px;">
+                    <button type="button" id="promoSeg-all" onclick="selectPromoTarget('all')" style="flex:1;padding:8px 6px;border-radius:9px;border:1.5px solid #8B3A7F;background:#8B3A7F;color:#fff;font-family:'Outfit',sans-serif;font-weight:600;font-size:12px;cursor:pointer;">Everyone</button>
+                    <button type="button" id="promoSeg-savers" onclick="selectPromoTarget('savers')" style="flex:1;padding:8px 6px;border-radius:9px;border:1.5px solid #E8DDD6;background:#fff;color:#6B5751;font-family:'Outfit',sans-serif;font-weight:600;font-size:12px;cursor:pointer;">Savers</button>
+                    <button type="button" id="promoSeg-scanned" onclick="selectPromoTarget('scanned')" style="flex:1;padding:8px 6px;border-radius:9px;border:1.5px solid #E8DDD6;background:#fff;color:#6B5751;font-family:'Outfit',sans-serif;font-weight:600;font-size:12px;cursor:pointer;">Scanners</button>
+                </div>
+                <div id="promoTargetNote" style="font-size:11px;color:#9A8478;line-height:1.4;margin-bottom:12px;">Emails everyone who saved one of your cards, and refreshes the promo shown to anyone who scans.</div>
+
                 <div style="display:flex;gap:10px;">
-                    <button onclick="dashPushPromotion()" style="flex:2;background:#8B3A7F;color:#fff;border:none;border-radius:10px;padding:11px;font-family:'Outfit',sans-serif;font-weight:600;font-size:13px;cursor:pointer;">📢 Push to All Cards</button>
+                    <button onclick="dashPushPromotion()" id="promoPushBtn" style="flex:2;background:#8B3A7F;color:#fff;border:none;border-radius:10px;padding:11px;font-family:'Outfit',sans-serif;font-weight:600;font-size:13px;cursor:pointer;">📢 Push Promotion</button>
                     <button onclick="dashClearPromotion()" style="flex:1;background:#fff;color:#9A8478;border:1.5px solid #E8DDD6;border-radius:10px;padding:11px;font-family:'Outfit',sans-serif;font-size:13px;cursor:pointer;">✕ Clear</button>
                 </div>
             </div>
@@ -3500,7 +3521,42 @@ Add any product information here..."></textarea>
         var bizProfiles = [];
         var currentProfileId = null;
         var dashPromoPhotos = []; // [{file: File} | {url: string}]
+        var dashPromoTarget = 'all'; // 'all' | 'savers' | 'scanned'
         var batchScannedIds = [];
+
+        // Audience targeting for a promotion push.
+        // - all:     email everyone who saved a card + refresh the on-card promo (scanners see it on scan)
+        // - savers:  email only people who saved a card
+        // - scanned: refresh the on-card promo only (scanners are anonymous — no email possible)
+        var PROMO_TARGET_NOTES = {
+            all:     'Emails everyone who saved one of your cards, and refreshes the promo shown to anyone who scans.',
+            savers:  'Emails only people who saved one of your cards to their tapestry.',
+            scanned: 'Refreshes the promo shown on your cards when scanned. Scanners are anonymous, so no email is sent.'
+        };
+        function selectPromoTarget(target) {
+            if (!PROMO_TARGET_NOTES[target]) return;
+            dashPromoTarget = target;
+            ['all','savers','scanned'].forEach(function(t) {
+                var el = document.getElementById('promoSeg-' + t);
+                if (!el) return;
+                var on = (t === target);
+                el.style.background = on ? '#8B3A7F' : '#fff';
+                el.style.color = on ? '#fff' : '#6B5751';
+                el.style.borderColor = on ? '#8B3A7F' : '#E8DDD6';
+            });
+            var note = document.getElementById('promoTargetNote');
+            if (note) note.textContent = PROMO_TARGET_NOTES[target];
+        }
+
+        // Fill the scans/saves snapshot in the promo card from the business's codes.
+        function updatePromoAudience(codes) {
+            var scans = 0, saves = 0;
+            (codes || []).forEach(function(c) { scans += (c.scan_count || 0); saves += (c.save_count || 0); });
+            var s1 = document.getElementById('promoStatScans');
+            var s2 = document.getElementById('promoStatSaves');
+            if (s1) s1.textContent = scans;
+            if (s2) s2.textContent = saves;
+        }
         var batchHtml5Scanner = null;
 
         async function loadBizProfileFromSupabase(accessToken) {
@@ -3919,6 +3975,8 @@ Add any product information here..."></textarea>
                     .order('created_at', { ascending: false });
                 if (error || !codes) return;
 
+                updatePromoAudience(codes);
+
                 var totalScans = codes.reduce(function(s,c){ return s + (c.scan_count||0); }, 0);
                 var activeCards = codes.filter(function(c){ return !!c.business_data; }).length;
                 var drafts = codes.filter(function(c){ return !c.business_data; }).length;
@@ -4101,14 +4159,53 @@ Add any product information here..."></textarea>
                     .eq('business_user_id', user.id);
 
                 if (error) { alert('Error pushing promotion: ' + error.message); return; }
-                // Reset button (form stays populated so business can see what was last pushed)
-                if (btn) { btn.textContent = '📢 Push to All Cards'; btn.disabled = false; }
-                showPromoToast('All your active cards are updated. Tap to dismiss.');
+
+                // The promo is now live on all cards (passive layer — anyone who scans sees it).
+                // For 'all' and 'savers', also email the people who saved a card, via the
+                // send-promotion Edge Function (server-side: resolves saver emails + sends).
+                if (dashPromoTarget === 'all' || dashPromoTarget === 'savers') {
+                    if (btn) btn.textContent = '⏳ Emailing savers...';
+                    var emailResult = await sendPromotionEmail(dashPromoTarget, promoData);
+                    if (emailResult.ok) {
+                        var n = emailResult.sent || 0;
+                        showPromoToast('Cards updated. Emailed ' + n + ' ' + (n === 1 ? 'person' : 'people') + ' who saved your cards. Tap to dismiss.');
+                    } else if (emailResult.notDeployed) {
+                        showPromoToast('Cards updated and the promo is live. Email delivery isn’t set up yet — see setup notes. Tap to dismiss.');
+                    } else {
+                        showPromoToast('Cards updated. Email couldn’t be sent (' + (emailResult.message || 'unknown error') + '). Tap to dismiss.');
+                    }
+                } else {
+                    // scanned: passive only
+                    showPromoToast('Promo refreshed on all your cards. Anyone who scans will see it. Tap to dismiss.');
+                }
             } catch(e) {
                 console.error('dashPushPromotion error:', e);
                 alert('Error pushing promotion. Please try again.');
             } finally {
-                if (btn) { btn.textContent = '📢 Push to All Cards'; btn.disabled = false; }
+                if (btn) { btn.textContent = '📢 Push Promotion'; btn.disabled = false; }
+            }
+        }
+
+        // Calls the send-promotion Edge Function to email the audience. Returns a normalized
+        // result so the caller can show a friendly message and never hard-fail the push
+        // (the promo is already saved to the cards regardless of email outcome).
+        async function sendPromotionEmail(audience, promoData) {
+            try {
+                var res = await db.functions.invoke('send-promotion', {
+                    body: { audience: audience, promo: promoData }
+                });
+                if (res.error) {
+                    // Function not deployed yet → supabase-js surfaces a non-2xx / network error.
+                    var msg = (res.error && res.error.message) ? res.error.message : '';
+                    var notDeployed = /not found|failed to send a request|404|Failed to fetch/i.test(msg);
+                    console.warn('send-promotion error:', msg);
+                    return { ok: false, notDeployed: notDeployed, message: msg };
+                }
+                var data = res.data || {};
+                return { ok: true, sent: data.sent || 0, skipped: data.skipped || 0 };
+            } catch(e) {
+                console.warn('sendPromotionEmail exception:', e);
+                return { ok: false, notDeployed: true, message: e && e.message };
             }
         }
 
