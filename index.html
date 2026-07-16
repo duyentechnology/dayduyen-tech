@@ -2049,8 +2049,8 @@ Add any product information here..."></textarea>
                 <!-- Photo upload -->
                 <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;">
                     <div onclick="document.getElementById('dashPromoPhoto').click()" id="dashPromoAddBtn" style="width:112px;height:112px;border:1.5px dashed #C9A0C4;border-radius:14px;background:#fafafa;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;">
-                        <div style="font-size:36px;">📷</div>
-                        <div style="font-size:12px;color:#8B3A7F;font-weight:600;margin-top:5px;font-family:'Outfit',sans-serif;">Add Photo</div>
+                        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#8B3A7F" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3l2-3h8l2 3h3a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                        <div style="font-size:12px;color:#8B3A7F;font-weight:600;margin-top:6px;font-family:'Outfit',sans-serif;">Add Photo</div>
                     </div>
                     <input type="file" id="dashPromoPhoto" accept="image/*" multiple style="display:none;" onchange="handleDashPromoPhotos(this)">
                     <div id="dashPromoThumbs" style="display:flex;gap:10px;flex-wrap:wrap;flex:1;"></div>
@@ -2083,7 +2083,10 @@ Add any product information here..."></textarea>
                     <div style="font-size:11.5px;color:#b9a6b4;line-height:1.45;margin-bottom:18px;font-style:italic;">Emailing your audience turns on soon. For now, each push updates the promo shown on your cards.</div>
                 </div>
 
-                <button onclick="showPromoPreview()" style="width:100%;background:#faf6fa;color:#8B3A7F;border:1.5px solid #eaddea;border-radius:12px;padding:13px;font-family:'Outfit',sans-serif;font-weight:600;font-size:15px;cursor:pointer;margin-bottom:10px;">👁 Preview how this looks on a card</button>
+                <button onclick="showPromoPreview()" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px;background:#faf6fa;color:#8B3A7F;border:1.5px solid #eaddea;border-radius:12px;padding:13px;font-family:'Outfit',sans-serif;font-weight:600;font-size:15px;cursor:pointer;margin-bottom:10px;">
+                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#8B3A7F" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+                    <span>Preview how this looks on a card</span>
+                </button>
                 <div style="display:flex;gap:12px;">
                     <button onclick="dashPushPromotion()" id="promoPushBtn" style="flex:2;background:#8B3A7F;color:#fff;border:none;border-radius:12px;padding:16px;font-family:'Outfit',sans-serif;font-weight:600;font-size:16px;cursor:pointer;">📢 Push to All Cards</button>
                     <button onclick="dashClearPromotion()" style="flex:1;background:#fff;color:#9A8478;border:1.5px solid #E8DDD6;border-radius:12px;padding:16px;font-family:'Outfit',sans-serif;font-size:16px;cursor:pointer;">✕ Clear</button>
