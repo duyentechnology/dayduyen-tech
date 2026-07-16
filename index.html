@@ -2048,9 +2048,9 @@ Add any product information here..."></textarea>
                 <textarea id="dashPromoText" placeholder="e.g. 🌸 Spring sale — 20% off all bouquets this weekend! Use code SPRING20" style="width:100%;border:1.5px solid #E8DDD6;border-radius:12px;padding:16px 18px;font-family:'Outfit',sans-serif;font-size:17px;line-height:1.5;color:#2E2A28;resize:none;min-height:120px;outline:none;margin-bottom:18px;background:#fafafa;box-sizing:border-box;"></textarea>
                 <!-- Photo upload -->
                 <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;">
-                    <div onclick="document.getElementById('dashPromoPhoto').click()" id="dashPromoAddBtn" style="width:72px;height:72px;border:1.5px dashed #C9A0C4;border-radius:12px;background:#fafafa;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;">
-                        <div style="font-size:24px;">📷</div>
-                        <div style="font-size:10px;color:#8B3A7F;font-weight:600;margin-top:3px;font-family:'Outfit',sans-serif;">Add Photo</div>
+                    <div onclick="document.getElementById('dashPromoPhoto').click()" id="dashPromoAddBtn" style="width:92px;height:92px;border:1.5px dashed #C9A0C4;border-radius:12px;background:#fafafa;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;">
+                        <div style="font-size:30px;">📷</div>
+                        <div style="font-size:11px;color:#8B3A7F;font-weight:600;margin-top:4px;font-family:'Outfit',sans-serif;">Add Photo</div>
                     </div>
                     <input type="file" id="dashPromoPhoto" accept="image/*" multiple style="display:none;" onchange="handleDashPromoPhotos(this)">
                     <div id="dashPromoThumbs" style="display:flex;gap:10px;flex-wrap:wrap;flex:1;"></div>
@@ -2074,9 +2074,9 @@ Add any product information here..."></textarea>
                     <!-- Who to send to -->
                     <div style="font-size:12.5px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;">Send to</div>
                     <div style="display:flex;gap:8px;margin-bottom:9px;">
-                        <button type="button" id="promoSeg-all" onclick="selectPromoTarget('all')" style="flex:1;padding:13px 8px;border-radius:11px;border:1.5px solid #8B3A7F;background:#8B3A7F;color:#fff;font-family:'Outfit',sans-serif;font-weight:600;font-size:15px;cursor:pointer;">Everyone</button>
-                        <button type="button" id="promoSeg-savers" onclick="selectPromoTarget('savers')" style="flex:1;padding:13px 8px;border-radius:11px;border:1.5px solid #E8DDD6;background:#fff;color:#6B5751;font-family:'Outfit',sans-serif;font-weight:600;font-size:15px;cursor:pointer;">Savers</button>
-                        <button type="button" id="promoSeg-scanned" onclick="selectPromoTarget('scanned')" style="flex:1;padding:13px 8px;border-radius:11px;border:1.5px solid #E8DDD6;background:#fff;color:#6B5751;font-family:'Outfit',sans-serif;font-weight:600;font-size:15px;cursor:pointer;">Scanners</button>
+                        <button type="button" id="promoSeg-all" onclick="selectPromoTarget('all')" style="flex:1;padding:9px 6px;border-radius:9px;border:1.5px solid #8B3A7F;background:#8B3A7F;color:#fff;font-family:'Outfit',sans-serif;font-weight:600;font-size:13px;cursor:pointer;">Everyone</button>
+                        <button type="button" id="promoSeg-savers" onclick="selectPromoTarget('savers')" style="flex:1;padding:9px 6px;border-radius:9px;border:1.5px solid #E8DDD6;background:#fff;color:#6B5751;font-family:'Outfit',sans-serif;font-weight:600;font-size:13px;cursor:pointer;">Savers</button>
+                        <button type="button" id="promoSeg-scanned" onclick="selectPromoTarget('scanned')" style="flex:1;padding:9px 6px;border-radius:9px;border:1.5px solid #E8DDD6;background:#fff;color:#6B5751;font-family:'Outfit',sans-serif;font-weight:600;font-size:13px;cursor:pointer;">Scanners</button>
                     </div>
                     <div id="promoTargetNote" style="font-size:13px;color:#9A8478;line-height:1.45;margin-bottom:6px;">Reaches everyone who saved one of your cards, plus anyone who scans.</div>
                     <div style="font-size:11.5px;color:#b9a6b4;line-height:1.45;margin-bottom:18px;font-style:italic;">Emailing your audience turns on soon. For now, each push updates the promo shown on your cards.</div>
@@ -4036,7 +4036,7 @@ Add any product information here..."></textarea>
             if (!thumbsEl) thumbsEl = document.getElementById('dashPromoThumbs');
             if (!thumbsEl) return;
             var div = document.createElement('div');
-            div.style.cssText = 'position:relative;width:58px;height:58px;border-radius:10px;overflow:hidden;border:1.5px solid #E8DDD6;flex-shrink:0;';
+            div.style.cssText = 'position:relative;width:92px;height:92px;border-radius:12px;overflow:hidden;border:1.5px solid #E8DDD6;flex-shrink:0;';
             var removeOverlay = '<div onclick="removeDashPromoPhoto(this)" style="position:absolute;top:2px;right:2px;width:18px;height:18px;background:rgba(0,0,0,0.55);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:10px;color:#fff;text-align:center;line-height:18px;">✕</div>';
             if (item.url) {
                 div.innerHTML = '<img src="' + item.url + '" style="width:100%;height:100%;object-fit:cover;">' + removeOverlay;
