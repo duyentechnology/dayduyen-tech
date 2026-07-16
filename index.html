@@ -2054,8 +2054,9 @@ Add any product information here..."></textarea>
                     </div>
                     <input type="file" id="dashPromoPhoto" accept="image/*" multiple style="display:none;" onchange="handleDashPromoPhotos(this)">
                     <div id="dashPromoThumbs" style="display:flex;gap:10px;flex-wrap:wrap;flex:1;"></div>
-                    <div id="dashPromoHint" style="font-size:12.5px;color:#9A8478;line-height:1.45;">Upload a sale flyer, new arrival, or seasonal photo</div>
+                    <div id="dashPromoHint" style="font-size:12.5px;color:#9A8478;line-height:1.45;">Upload a sale flyer, new arrival, or seasonal photo · up to 5 photos</div>
                 </div>
+                <div id="dashPromoCount" style="display:none;font-size:12px;color:#9A8478;margin:-8px 0 16px 2px;">0 of 5 photos added.</div>
                 <!-- Audience snapshot + targeting.
                      Hide by setting PROMO_TARGETING_ENABLED = false. -->
                 <div id="promoTargeting" style="display:none;">
@@ -3526,7 +3527,34 @@ Add any product information here..."></textarea>
         var bizProfiles = [];
         var currentProfileId = null;
         var dashPromoPhotos = []; // [{file: File} | {url: string}]
+        var PROMO_PHOTO_MAX = 5;  // max photos per promotion
         var dashPromoTarget = 'all'; // 'all' | 'savers' | 'scanned'
+
+        // Keep the photo UI in sync with dashPromoPhotos: live count, hide the
+        // Add-Photo tile at the cap, and (when limitHit) briefly warn that extras
+        // over the cap weren't added.
+        function updatePromoPhotoUI(limitHit) {
+            var n = dashPromoPhotos.length;
+            var addBtn = document.getElementById('dashPromoAddBtn');
+            var hint   = document.getElementById('dashPromoHint');
+            var count  = document.getElementById('dashPromoCount');
+            if (addBtn) addBtn.style.display = (n >= PROMO_PHOTO_MAX) ? 'none' : 'flex';
+            if (hint)   hint.style.display   = (n === 0) ? 'block' : 'none';
+            if (count) {
+                if (n === 0) {
+                    count.style.display = 'none';
+                } else {
+                    count.style.display = 'block';
+                    if (limitHit) {
+                        count.textContent = 'Up to ' + PROMO_PHOTO_MAX + ' photos — extra photos weren’t added.';
+                        count.style.color = '#b3261e';
+                    } else {
+                        count.textContent = n + ' of ' + PROMO_PHOTO_MAX + ' photos added.';
+                        count.style.color = '#9A8478';
+                    }
+                }
+            }
+        }
         var batchScannedIds = [];
 
         // Feature flag: the scans/saves snapshot + audience targeting UI is built but
@@ -4054,14 +4082,17 @@ Add any product information here..."></textarea>
         function handleDashPromoPhotos(input) {
             if (!input.files || !input.files.length) return;
             var thumbs = document.getElementById('dashPromoThumbs');
-            var hint   = document.getElementById('dashPromoHint');
-            Array.from(input.files).slice(0, 5 - dashPromoPhotos.length).forEach(function(file) {
-                if (dashPromoPhotos.length >= 5) return;
+            var remaining = PROMO_PHOTO_MAX - dashPromoPhotos.length;
+            var selected = Array.from(input.files);
+            var toAdd = selected.slice(0, Math.max(0, remaining));
+            toAdd.forEach(function(file) {
                 var item = { file: file };
                 dashPromoPhotos.push(item);
                 renderDashPromoThumb(item, thumbs);
             });
-            if (hint) hint.style.display = 'none';
+            var limitHit = selected.length > toAdd.length; // tried to add past the cap
+            updatePromoPhotoUI(limitHit);
+            if (limitHit) setTimeout(function() { updatePromoPhotoUI(false); }, 3500);
             input.value = '';
         }
 
@@ -4070,10 +4101,7 @@ Add any product information here..."></textarea>
             var idx = Array.from(div.parentElement.children).indexOf(div);
             dashPromoPhotos.splice(idx, 1);
             div.remove();
-            if (dashPromoPhotos.length === 0) {
-                var hint = document.getElementById('dashPromoHint');
-                if (hint) hint.style.display = 'block';
-            }
+            updatePromoPhotoUI(false);
         }
 
         // Upload a single promo photo: resize → blob → Storage → public URL
@@ -4187,8 +4215,7 @@ Add any product information here..."></textarea>
             dashPromoPhotos = [];
             var thumbs = document.getElementById('dashPromoThumbs');
             if (thumbs) thumbs.innerHTML = '';
-            var hint = document.getElementById('dashPromoHint');
-            if (hint) hint.style.display = 'block';
+            updatePromoPhotoUI(false);
         }
 
         // Load the most recent promotion into the form (so business sees last push and can edit)
@@ -4214,15 +4241,13 @@ Add any product information here..."></textarea>
                 var thumbs = document.getElementById('dashPromoThumbs');
                 if (thumbs) thumbs.innerHTML = '';
                 if (promo.photos && promo.photos.length > 0) {
-                    promo.photos.slice(0, 5).forEach(function(url) {
+                    promo.photos.slice(0, PROMO_PHOTO_MAX).forEach(function(url) {
                         var item = { url: url };
                         dashPromoPhotos.push(item);
                         renderDashPromoThumb(item, thumbs);
                     });
                 }
-                // Hide "Add a photo to make it stand out" hint if there's any content
-                var hint = document.getElementById('dashPromoHint');
-                if (hint && (promo.text || (promo.photos && promo.photos.length))) hint.style.display = 'none';
+                updatePromoPhotoUI(false);
             } catch(e) { console.warn('loadLastPromotion error:', e); }
         }
 
