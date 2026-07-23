@@ -1887,6 +1887,18 @@ Add any product information here..."></textarea>
                 </div>
             </div>
 
+            <label style="display:block;font-size:12.5px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;">Menu <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#9A8478;">(optional)</span></label>
+            <div style="border:1.5px solid #E8DDD6;border-radius:12px;background:#fff;margin-bottom:14px;overflow:hidden;padding:12px;">
+                <div style="font-size:10px;font-weight:600;color:#9A8478;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Photos of your menu (up to 6 pages)</div>
+                <div id="menuPhotosWrap" style="display:flex;flex-wrap:wrap;gap:8px;">
+                    <div id="menuPhotosAdd" onclick="document.getElementById('menuPhotosInput').click()" style="width:64px;height:64px;border:1.5px dashed #C9A0C4;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;background:#FBF7FB;">
+                        <div style="font-size:20px;line-height:1;">🍽️</div>
+                        <div style="font-size:9px;color:#8B3A7F;font-weight:600;margin-top:2px;">Add</div>
+                    </div>
+                    <input type="file" id="menuPhotosInput" accept="image/*" multiple style="display:none;" onchange="handleMenuPhotos(this)">
+                </div>
+            </div>
+
             <label style="display:block;font-size:12.5px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;">Contact Email</label>
             <input type="email" id="bizEmail" placeholder="hello@yourbusiness.com" class="input-field" style="margin-bottom:14px;">
 
@@ -3718,6 +3730,11 @@ Add any product information here..."></textarea>
                 newProfile.aboutPhotos = aboutUrls;
                 bizProfileData.aboutPhotos = aboutUrls;
 
+                // Menu photos live on the profile JSON (no schema change needed)
+                var menuUrls = menuPhotos.map(function(p){ return p.url; }).filter(Boolean);
+                newProfile.menuPhotos = menuUrls;
+                bizProfileData.menuPhotos = menuUrls;
+
                 console.log('💾 Saving profiles for user:', user.id, '| count:', bizProfiles.length);
                 var { error: saveError } = await db.from('profiles')
                     .upsert({ id: user.id, business_profile: bizProfileData, business_profiles: bizProfiles }, { onConflict: 'id' });
@@ -3790,6 +3807,8 @@ Add any product information here..."></textarea>
             currentProfileId = null;
             aboutPhotos = [];
             renderAboutPhotos();
+            menuPhotos = [];
+            renderMenuPhotos();
             showView('bizProfile');
         }
 
@@ -3843,6 +3862,8 @@ Add any product information here..."></textarea>
             _f('socX',         s.x);
             aboutPhotos = (Array.isArray(bizProfileData.aboutPhotos) ? bizProfileData.aboutPhotos : []).map(function(u){ return { url: u }; });
             renderAboutPhotos();
+            menuPhotos = (Array.isArray(bizProfileData.menuPhotos) ? bizProfileData.menuPhotos : []).map(function(u){ return { url: u }; });
+            renderMenuPhotos();
         }
 
         // --- About photos (max 3, business-wide, uploaded to Storage on save) ---
@@ -3903,6 +3924,66 @@ Add any product information here..."></textarea>
                 wrap.insertBefore(cell, addBtn);
             });
             if (addBtn) addBtn.style.display = aboutPhotos.length >= ABOUT_MAX ? 'none' : 'flex';
+        }
+
+        // --- Menu photos (max 6, business-wide, uploaded to Storage on save) ---
+        var menuPhotos = []; // [{ file } | { url } | { uploading }]
+        var MENU_MAX = 6;
+
+        async function handleMenuPhotos(input) {
+            if (!input.files || !input.files.length) return;
+            var files = Array.from(input.files);
+            input.value = '';
+            var sess = await db.auth.getSession();
+            var user = sess && sess.data && sess.data.session && sess.data.session.user;
+            if (!user) { alert('Please log in again.'); return; }
+            for (var i = 0; i < files.length; i++) {
+                if (menuPhotos.length >= MENU_MAX) break;
+                var file = files[i];
+                if (file.type.indexOf('image/') !== 0) { alert('Photos only.'); continue; }
+                var item = { uploading: true };
+                menuPhotos.push(item);
+                renderMenuPhotos();
+                var url = await uploadPromoPhoto(file, user.id, 'menu_' + Date.now() + '_' + i);
+                if (url) { item.url = url; item.uploading = false; }
+                else {
+                    var k = menuPhotos.indexOf(item);
+                    if (k > -1) menuPhotos.splice(k, 1);
+                    alert('That photo could not be uploaded. Please try a different one.');
+                }
+                renderMenuPhotos();
+            }
+        }
+
+        function removeMenuPhoto(idx) {
+            menuPhotos.splice(idx, 1);
+            renderMenuPhotos();
+        }
+
+        function renderMenuPhotos() {
+            var wrap = document.getElementById('menuPhotosWrap');
+            var addBtn = document.getElementById('menuPhotosAdd');
+            if (!wrap) return;
+            Array.from(wrap.querySelectorAll('.menu-thumb')).forEach(function(n){ n.remove(); });
+            menuPhotos.forEach(function(item, idx) {
+                var cell = document.createElement('div');
+                cell.className = 'menu-thumb';
+                cell.style.cssText = 'position:relative;width:64px;height:64px;border-radius:10px;overflow:hidden;border:1px solid #E8DDD6;background:#EFE5EF;';
+                if (item.url) {
+                    cell.innerHTML = '<img src="' + item.url + '" style="width:100%;height:100%;object-fit:cover;">';
+                } else {
+                    cell.innerHTML = '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:18px;">⏳</div>';
+                }
+                if (!item.uploading) {
+                    var x = document.createElement('div');
+                    x.textContent = '✕';
+                    x.style.cssText = 'position:absolute;top:3px;right:3px;width:18px;height:18px;line-height:18px;text-align:center;background:rgba(0,0,0,0.6);color:#fff;border-radius:50%;font-size:11px;cursor:pointer;';
+                    x.onclick = function(){ removeMenuPhoto(idx); };
+                    cell.appendChild(x);
+                }
+                wrap.insertBefore(cell, addBtn);
+            });
+            if (addBtn) addBtn.style.display = menuPhotos.length >= MENU_MAX ? 'none' : 'flex';
         }
 
         function previewBizLogo(input) {
