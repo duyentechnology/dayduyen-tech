@@ -2781,7 +2781,10 @@ Add any product information here..."></textarea>
                          cta: 'Upgrade to Insights' },
             push:      { icon: '📣', title: 'Push promotions to your cards',
                          body: 'Broadcast a promo to every active card at once with the Insights plan.',
-                         cta: 'Upgrade to Insights' }
+                         cta: 'Upgrade to Insights' },
+            insights:  { icon: '📊', title: 'Unlock Insights',
+                         body: 'See scan &amp; save analytics on every card and push promotions to all of them — with the Insights plan.',
+                         cta: 'See plans' }
         };
         // Plans sheet — presents all tiers. Checkout is not wired yet
         // (Stripe is P1c), so the CTAs are informational for now.
@@ -2865,31 +2868,32 @@ Add any product information here..."></textarea>
                 '<button onclick="showPlansInfo()" style="background:#8B3A7F;color:#fff;border:none;border-radius:12px;padding:12px 24px;font-family:\'Outfit\',sans-serif;font-weight:600;font-size:15px;cursor:pointer;">' + c.cta + '</button>' +
             '</div>';
         }
-        // Show/hide a dashboard section, swapping in an inline paywall when locked.
-        function gateSection(sectionId, allowed, feature) {
-            var el = document.getElementById(sectionId);
-            if (!el) return;
-            var pwId = sectionId + 'Paywall';
-            var pw = document.getElementById(pwId);
-            if (allowed) {
-                el.style.display = '';
-                if (pw) pw.style.display = 'none';
-            } else {
-                el.style.display = 'none';
-                if (!pw) {
-                    pw = document.createElement('div');
-                    pw.id = pwId;
-                    el.parentNode.insertBefore(pw, el);
-                }
-                pw.innerHTML = paywallCardHTML(feature);
-                pw.style.display = '';
-            }
-        }
+        // Analytics and push always unlock together (both are the Insights
+        // plan), so a locked business sees ONE combined "Unlock Insights" card
+        // instead of two that lead to the same plans sheet.
         function applyDashboardGating() {
-            // Analytics (scan/save counts) → can_view_analytics
-            gateSection('dashStatsSection', canViewAnalytics(), 'analytics');
-            // Push promotions → can_push
-            gateSection('dashPromoSection', canPush(), 'push');
+            var insightsOK = canViewAnalytics() && canPush();
+            var stats = document.getElementById('dashStatsSection'); // scan/save analytics
+            var promo = document.getElementById('dashPromoSection');  // push promotions
+            if (stats) stats.style.display = insightsOK ? '' : 'none';
+            if (promo) promo.style.display = insightsOK ? '' : 'none';
+
+            // Clean up any paywalls from the older two-card design.
+            ['dashStatsSectionPaywall', 'dashPromoSectionPaywall'].forEach(function(id) {
+                var e = document.getElementById(id); if (e) e.remove();
+            });
+
+            var pw = document.getElementById('dashInsightsPaywall');
+            if (!insightsOK) {
+                if (!pw && stats && stats.parentNode) {
+                    pw = document.createElement('div');
+                    pw.id = 'dashInsightsPaywall';
+                    stats.parentNode.insertBefore(pw, stats);
+                }
+                if (pw) { pw.innerHTML = paywallCardHTML('insights'); pw.style.display = ''; }
+            } else if (pw) {
+                pw.style.display = 'none';
+            }
         }
 
         function applyAdminNav() {
