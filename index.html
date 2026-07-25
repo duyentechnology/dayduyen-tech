@@ -494,6 +494,7 @@
         }
         
         .mode-card {
+            position: relative;
             background: white;
             border: 2px solid #E8DDD6;
             border-radius: 20px;
@@ -1401,6 +1402,7 @@
                 </div>
                 
                 <div class="mode-card" onclick="selectMode('batch')">
+                    <div id="modeBatchLock" style="display:none;position:absolute;top:12px;right:12px;background:#8B3A7F;color:#fff;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;font-family:'Outfit',sans-serif;">🔒 Boutique</div>
                     <div class="mode-icon">📦</div>
                     <h3 class="mode-title">Batch QR Codes</h3>
                     <p class="mode-description">
@@ -2739,13 +2741,15 @@ Add any product information here..."></textarea>
         // mint_credits, can_generate_single, can_view_analytics, can_push,
         // can_mint }. Loaded on login (see onAuthStateChange).
         //
-        // NOTE: QR-card generation is INTERNAL (admin) only — Duyên staff mint
-        // the physical cards; businesses claim them. So the generator stays
-        // gated on isAdmin() and NOT on can_generate_single/can_mint. The paid
-        // business features gated here are analytics and promo push. isAdmin()
-        // remains a super-user bypass for those too.
+        // Paid tiers (isAdmin() is an always-on super-user bypass for all):
+        //   $20    → can_generate_single : single QR generation (one profile)
+        //   $9.99  → can_view_analytics + can_push : scan/save counts + promos
+        //   $19.99 → can_mint (+ analytics + push) : multi/batch QR generation
         window.entitlements = window.entitlements || null;
         function ent() { return window.entitlements || {}; }
+        // Single generation is included in the multi tier, so canMint() implies it.
+        function canGenerateSingle() { return isAdmin() || !!ent().can_generate_single || !!ent().can_mint; }
+        function canMint()           { return isAdmin() || !!ent().can_mint; }
         function canPush()           { return isAdmin() || !!ent().can_push; }
         function canViewAnalytics()  { return isAdmin() || !!ent().can_view_analytics; }
 
@@ -2767,8 +2771,8 @@ Add any product information here..."></textarea>
             generate:  { icon: '🔒', title: 'Unlock the QR generator',
                          body: 'Create your own single QR cards with a Duyên business plan.',
                          cta: 'See plans' },
-            mint:      { icon: '✨', title: 'Batch minting is a Boutique feature',
-                         body: 'Generate QR codes in bulk and mint at $0.10 per code with the Boutique plan.',
+            mint:      { icon: '✨', title: 'Multi-QR generation is a Boutique feature',
+                         body: 'Generate QR codes in bulk (plus analytics and promo push) with the Boutique plan.',
                          cta: 'Upgrade to Boutique' },
             analytics: { icon: '📊', title: 'See your scan &amp; save analytics',
                          body: 'Track how each of your cards performs with the Insights plan.',
@@ -2839,24 +2843,31 @@ Add any product information here..."></textarea>
         function applyAdminNav() {
             var newQR    = document.getElementById('adminNewQR');
             var myCodes  = document.getElementById('adminMyCodes');
-            // QR-card generation is internal only — admin sees the generator nav.
-            var show = isAdmin();
+            // Generator nav shows for admins and any tier that can generate
+            // (single $20, or multi $19.99).
+            var show = isAdmin() || canGenerateSingle() || canMint();
             if (newQR)   newQR.style.display   = show ? 'inline-block' : 'none';
             if (myCodes) myCodes.style.display  = show ? 'inline-block' : 'none';
         }
 
         function showView(view) {
-            // Generator views are internal (admin) only — Duyên staff mint the
-            // physical QR cards; businesses claim them.
-            if (GENERATOR_VIEWS.includes(view) && !isAdmin()) {
+            // Generator views need a generation entitlement (single or multi);
+            // isAdmin() bypasses. Multi is additionally enforced in selectMode/
+            // generateQR so a single-only ($20) tier can't run a batch.
+            if (GENERATOR_VIEWS.includes(view) && !canGenerateSingle() && !canMint()) {
                 console.warn('Access denied to generator view:', view);
                 showView('bizDashboard');
+                showUpgradeModal('generate');
                 return;
             }
             document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
             var el = document.getElementById(view + 'View');
             if (!el) { console.warn('View not found:', view); return; }
             el.classList.add('active');
+            if (view === 'mode') {
+                var batchLock = document.getElementById('modeBatchLock');
+                if (batchLock) batchLock.style.display = canMint() ? 'none' : 'block';
+            }
             if (view === 'myCodes') renderMyCodes();
             if (view === 'bizDashboard') loadDashboard();
             if (view === 'bizProfile') {
@@ -4801,8 +4812,11 @@ Add any product information here..."></textarea>
         }
 
         function selectMode(mode) {
+            // Tier gate before entering the generator form (isAdmin bypasses).
+            if (mode === 'single' && !canGenerateSingle()) { showUpgradeModal('generate'); return; }
+            if (mode === 'batch'  && !canMint())           { showUpgradeModal('mint'); return; }
             currentMode = mode;
-            
+
             // --- Reset everything for a fresh start ---
             
             // Clear generated QR codes
@@ -4975,9 +4989,13 @@ Add any product information here..."></textarea>
         }
         
         function generateQR() {
-            // Generator is internal only; showView() already restricts these
-            // views to admins. Defence-in-depth in case it is called directly.
-            if (!isAdmin()) { showView('bizDashboard'); return; }
+            // Tier gate: single needs can_generate_single ($20+); multi/batch
+            // needs can_mint ($19.99). isAdmin() bypasses both.
+            if (currentMode === 'single') {
+                if (!canGenerateSingle()) { showUpgradeModal('generate'); return; }
+            } else {
+                if (!canMint()) { showUpgradeModal('mint'); return; }
+            }
 
             const baseUrl = document.getElementById('baseUrl').value;
             const includeLogo = document.getElementById('includeLogo').checked;
