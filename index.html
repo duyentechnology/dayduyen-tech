@@ -4299,29 +4299,15 @@ Add any product information here..."></textarea>
                     grid.innerHTML = '<p style="color:#9A8478;text-align:center;padding:2rem 0;font-size:14px;">No QR codes activated yet. Tap + Activate QR Codes to get started.</p>';
                     return;
                 }
-                var showAnalytics = canViewAnalytics();
-                grid.innerHTML = codes.map(function(c) {
-                    var label = sanitize(c.label || c.id);
-                    var scans = c.scan_count || 0;
-                    var saves = c.save_count || 0;
-                    var isActive = !!c.business_data;
-                    var pct = Math.min(100, scans * 10);
-                    return '<div style="background:#fff;border:1.5px solid #E8DDD6;border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:12px;">' +
-                        '<div style="width:48px;height:48px;background:#2E2A28;border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center;">' +
-                            '<svg width="32" height="32" viewBox="0 0 32 32" fill="none"><rect x="2" y="2" width="12" height="12" rx="1" stroke="#fff" stroke-width="1.5"/><rect x="4" y="4" width="8" height="8" fill="#fff"/><rect x="18" y="2" width="12" height="12" rx="1" stroke="#fff" stroke-width="1.5"/><rect x="20" y="4" width="8" height="8" fill="#fff"/><rect x="2" y="18" width="12" height="12" rx="1" stroke="#fff" stroke-width="1.5"/><rect x="4" y="20" width="8" height="8" fill="#fff"/><rect x="18" y="18" width="4" height="4" fill="#fff"/><rect x="26" y="18" width="4" height="4" fill="#fff"/><rect x="18" y="26" width="4" height="4" fill="#fff"/><rect x="26" y="26" width="4" height="4" fill="#fff"/></svg>' +
-                        '</div>' +
-                        '<div style="flex:1;min-width:0;">' +
-                            '<div style="font-size:16px;font-weight:600;color:#2E2A28;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + label + '</div>' +
-                            (showAnalytics ? ('<div style="font-size:12.5px;color:#9A8478;margin-top:3px;">' + scans + ' scan' + (scans!==1?'s':'') + ' · ' + saves + ' save' + (saves!==1?'s':'') + '</div>') : '') +
-                            '<span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 9px;border-radius:6px;margin-top:5px;' +
-                                (isActive ? 'background:#dcfce7;color:#166534;' : 'background:#fee2e2;color:#991b1b;') + '">' +
-                                (isActive ? 'Active' : 'Draft') + '</span>' +
-                            (showAnalytics ? ('<div style="height:3px;background:#E8DDD6;border-radius:3px;margin-top:6px;overflow:hidden;">' +
-                                '<div style="height:100%;background:#8B3A7F;border-radius:3px;width:' + pct + '%;"></div>' +
-                            '</div>') : '') +
-                        '</div>' +
+                // Businesses just attach profiles to many QR codes, so show a
+                // simple count of how many have a profile attached rather than
+                // a long per-code list.
+                grid.innerHTML =
+                    '<div style="background:#fff;border:1.5px solid #E8DDD6;border-radius:14px;padding:24px 20px;text-align:center;">' +
+                        '<div style="font-family:\'Cormorant Garamond\',serif;font-size:46px;font-weight:700;color:#8B3A7F;line-height:1;">' + activeCards + '</div>' +
+                        '<div style="font-size:15px;color:#5D4E44;margin-top:6px;">QR code' + (activeCards === 1 ? ' has' : 's have') + ' your profile attached</div>' +
+                        (drafts > 0 ? '<div style="font-size:13px;color:#9A8478;margin-top:10px;">' + drafts + ' QR code' + (drafts !== 1 ? 's' : '') + ' activated but not set up yet</div>' : '') +
                     '</div>';
-                }).join('');
             } catch(e) { console.warn('loadDashboard error:', e); }
         }
 
