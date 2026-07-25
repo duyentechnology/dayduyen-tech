@@ -2776,9 +2776,6 @@ Add any product information here..."></textarea>
             mint:      { icon: '✨', title: 'Multi-QR generation is a Boutique feature',
                          body: 'Generate QR codes in bulk (plus analytics and promo push) with the Boutique plan.',
                          cta: 'Upgrade to Boutique' },
-            analytics: { icon: '📊', title: 'See your scan &amp; save analytics',
-                         body: 'Track how each of your QR codes performs with the Insights plan.',
-                         cta: 'Upgrade to Insights' },
             push:      { icon: '📣', title: 'Push promotions to your QR codes',
                          body: 'Broadcast a promo to every active QR code at once with the Insights plan.',
                          cta: 'Upgrade to Insights' },
@@ -3334,10 +3331,7 @@ Add any product information here..."></textarea>
             if (!listEl) return;
             var media = (productDataStore[index] && productDataStore[index].media) || [];
             if (media.length === 0) { listEl.innerHTML = ''; return; }
-            
-            // Safely format index for JS calls
-            var jsIdx = (typeof index === 'number') ? index : "'" + index + "'";
-            
+
             var html = '';
             for (var m = 0; m < media.length; m++) {
                 var item = media[m];
