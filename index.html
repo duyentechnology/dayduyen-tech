@@ -1510,6 +1510,7 @@ Add any product information here..."></textarea>
             </div>
             
             <div id="batchForm" style="display: none;">
+                <div id="mintCreditBanner" style="display:none;background:#faf6fa;border:1.5px solid #eaddea;border-radius:12px;padding:12px 16px;margin-bottom:18px;font-family:'Outfit',sans-serif;font-size:15px;"></div>
                 <div class="form-row">
                     <div class="form-group">
                         <label>Number of QR Codes</label>
@@ -2034,7 +2035,7 @@ Add any product information here..."></textarea>
             </div>
 
             <!-- Stats -->
-            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px;">
+            <div id="dashStatsSection" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px;">
                 <div style="background:#fff;border:1.5px solid #E8DDD6;border-radius:12px;padding:12px;">
                     <div id="dStatTotal" style="font-family:'Cormorant Garamond',serif;font-size:33px;font-weight:700;color:#8B3A7F;line-height:1;">0</div>
                     <div style="font-size:12px;color:#9A8478;text-transform:uppercase;letter-spacing:.4px;margin-top:3px;">Total Scans</div>
@@ -2054,7 +2055,7 @@ Add any product information here..."></textarea>
             </div>
 
             <!-- Push a Promotion -->
-            <div style="background:#fff;border:2px solid #8B3A7F;border-radius:18px;padding:26px 24px;margin-bottom:24px;box-shadow:0 6px 22px rgba(139,58,127,0.08);">
+            <div id="dashPromoSection" style="background:#fff;border:2px solid #8B3A7F;border-radius:18px;padding:26px 24px;margin-bottom:24px;box-shadow:0 6px 22px rgba(139,58,127,0.08);">
                 <div style="font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:700;color:#2E2A28;margin-bottom:8px;display:flex;align-items:center;gap:10px;"><svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="#8B3A7F" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>Push a Promotion</div>
                 <div style="font-size:14.5px;color:#9A8478;margin-bottom:18px;line-height:1.55;">This message appears on all active cards when someone scans. Add a photo to make it stand out.</div>
                 <textarea id="dashPromoText" placeholder="e.g. 🌸 Spring sale — 20% off all bouquets this weekend! Use code SPRING20" style="width:100%;border:1.5px solid #E8DDD6;border-radius:12px;padding:16px 18px;font-family:'Outfit',sans-serif;font-size:17px;line-height:1.5;color:#2E2A28;resize:none;min-height:120px;outline:none;margin-bottom:18px;background:#fafafa;box-sizing:border-box;"></textarea>
@@ -2734,19 +2735,123 @@ Add any product information here..."></textarea>
             return currentUser && currentUser.email === ADMIN_EMAIL;
         }
 
+        // ── Business entitlements (P1b monetization gating) ──────────────────
+        // Cached JSON from get_my_entitlements(): { origin, plan, plan_status,
+        // mint_credits, can_generate_single, can_view_analytics, can_push,
+        // can_mint }. Loaded on login (see onAuthStateChange). isAdmin() is an
+        // internal super-user bypass for every gate (Duyên Note card minting).
+        window.entitlements = window.entitlements || null;
+        function ent() { return window.entitlements || {}; }
+        function canGenerateSingle() { return isAdmin() || !!ent().can_generate_single; }
+        function canMint()           { return isAdmin() || !!ent().can_mint; }
+        function canPush()           { return isAdmin() || !!ent().can_push; }
+        function canViewAnalytics()  { return isAdmin() || !!ent().can_view_analytics; }
+        function mintCredits()       { return Math.max(0, parseInt(ent().mint_credits, 10) || 0); }
+
+        async function loadEntitlements() {
+            try {
+                var res = await db.rpc('get_my_entitlements');
+                if (res.error) { console.warn('get_my_entitlements error:', res.error.message); return null; }
+                window.entitlements = res.data || null;
+                console.log('🎟️ Entitlements:', window.entitlements);
+                return window.entitlements;
+            } catch (e) {
+                console.warn('loadEntitlements failed:', e);
+                return null;
+            }
+        }
+
+        // ── Paywall UI (no charges yet — informational upsell only) ──────────
+        var PAYWALL_COPY = {
+            generate:  { icon: '🔒', title: 'Unlock the QR generator',
+                         body: 'Create your own single QR cards with a Duyên business plan.',
+                         cta: 'See plans' },
+            mint:      { icon: '✨', title: 'Batch minting is a Boutique feature',
+                         body: 'Generate QR codes in bulk and mint at $0.10 per code with the Boutique plan.',
+                         cta: 'Upgrade to Boutique' },
+            analytics: { icon: '📊', title: 'See your scan &amp; save analytics',
+                         body: 'Track how each of your cards performs with the Insights plan.',
+                         cta: 'Upgrade to Insights' },
+            push:      { icon: '📣', title: 'Push promotions to your cards',
+                         body: 'Broadcast a promo to every active card at once with the Insights plan.',
+                         cta: 'Upgrade to Insights' }
+        };
+        function showPlansInfo() {
+            alert('Paid plans are launching soon — you\'ll be able to upgrade right here. Thanks for your patience!');
+        }
+        function showUpgradeModal(feature) {
+            var c = PAYWALL_COPY[feature] || PAYWALL_COPY.generate;
+            var modal = document.getElementById('upgradeModal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'upgradeModal';
+                modal.style.cssText = 'position:fixed;inset:0;z-index:11000;background:rgba(46,42,40,0.55);display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;';
+                modal.onclick = function(e) { if (e.target === modal) modal.style.display = 'none'; };
+                document.body.appendChild(modal);
+            }
+            modal.innerHTML =
+                '<div style="background:#fff;border-radius:20px;max-width:380px;width:100%;padding:28px 26px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.3);">' +
+                    '<div style="font-size:40px;margin-bottom:10px;">' + c.icon + '</div>' +
+                    '<div style="font-family:\'Cormorant Garamond\',serif;font-size:24px;font-weight:700;color:#2E2A28;margin-bottom:10px;">' + c.title + '</div>' +
+                    '<div style="font-size:15px;color:#6B5751;line-height:1.55;margin-bottom:22px;">' + c.body + '</div>' +
+                    '<button onclick="showPlansInfo()" style="width:100%;background:#8B3A7F;color:#fff;border:none;border-radius:12px;padding:15px;font-family:\'Outfit\',sans-serif;font-weight:600;font-size:16px;cursor:pointer;margin-bottom:10px;">' + c.cta + '</button>' +
+                    '<button onclick="document.getElementById(\'upgradeModal\').style.display=\'none\'" style="background:none;border:none;color:#9A8478;font-size:14px;cursor:pointer;">Maybe later</button>' +
+                '</div>';
+            modal.style.display = 'flex';
+        }
+        function paywallCardHTML(feature) {
+            var c = PAYWALL_COPY[feature] || PAYWALL_COPY.generate;
+            return '<div style="background:linear-gradient(135deg,#f9f4f9,#f0e5f0);border:1.5px dashed #C9A0C4;border-radius:18px;padding:26px 22px;text-align:center;margin-bottom:24px;">' +
+                '<div style="font-size:34px;margin-bottom:8px;">' + c.icon + '</div>' +
+                '<div style="font-family:\'Cormorant Garamond\',serif;font-size:22px;font-weight:700;color:#2E2A28;margin-bottom:8px;">' + c.title + '</div>' +
+                '<div style="font-size:14px;color:#6B5751;line-height:1.5;margin-bottom:16px;">' + c.body + '</div>' +
+                '<button onclick="showPlansInfo()" style="background:#8B3A7F;color:#fff;border:none;border-radius:12px;padding:12px 24px;font-family:\'Outfit\',sans-serif;font-weight:600;font-size:15px;cursor:pointer;">' + c.cta + '</button>' +
+            '</div>';
+        }
+        // Show/hide a dashboard section, swapping in an inline paywall when locked.
+        function gateSection(sectionId, allowed, feature) {
+            var el = document.getElementById(sectionId);
+            if (!el) return;
+            var pwId = sectionId + 'Paywall';
+            var pw = document.getElementById(pwId);
+            if (allowed) {
+                el.style.display = '';
+                if (pw) pw.style.display = 'none';
+            } else {
+                el.style.display = 'none';
+                if (!pw) {
+                    pw = document.createElement('div');
+                    pw.id = pwId;
+                    el.parentNode.insertBefore(pw, el);
+                }
+                pw.innerHTML = paywallCardHTML(feature);
+                pw.style.display = '';
+            }
+        }
+        function applyDashboardGating() {
+            // Analytics (scan/save counts) → can_view_analytics
+            gateSection('dashStatsSection', canViewAnalytics(), 'analytics');
+            // Push promotions → can_push
+            gateSection('dashPromoSection', canPush(), 'push');
+        }
+
         function applyAdminNav() {
             var newQR    = document.getElementById('adminNewQR');
             var myCodes  = document.getElementById('adminMyCodes');
-            var show = isAdmin();
+            // Show the generator nav to admins and anyone entitled to generate
+            // (single) or mint (batch).
+            var show = isAdmin() || canGenerateSingle() || canMint();
             if (newQR)   newQR.style.display   = show ? 'inline-block' : 'none';
             if (myCodes) myCodes.style.display  = show ? 'inline-block' : 'none';
         }
 
         function showView(view) {
-            // Block generator views for non-admins
-            if (GENERATOR_VIEWS.includes(view) && !isAdmin()) {
+            // Generator views require a paid single-QR entitlement (isAdmin
+            // bypasses). Batch minting is additionally gated in generateQR().
+            if (GENERATOR_VIEWS.includes(view) && !canGenerateSingle() && !canMint()) {
                 console.warn('Access denied to generator view:', view);
                 showView('bizDashboard');
+                showUpgradeModal('generate');
                 return;
             }
             document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
@@ -4103,6 +4208,7 @@ Add any product information here..."></textarea>
                 if (ad) ad.textContent = bizProfileData.address && bizProfileData.address.full ? bizProfileData.address.full : '';
             }
             renderProfilesList();
+            applyDashboardGating();
             try {
                 var { data: sessionData } = await db.auth.getSession();
                 var user = sessionData && sessionData.session && sessionData.session.user;
@@ -4133,6 +4239,7 @@ Add any product information here..."></textarea>
                     grid.innerHTML = '<p style="color:#9A8478;text-align:center;padding:2rem 0;font-size:14px;">No cards activated yet. Tap + Activate Cards to get started.</p>';
                     return;
                 }
+                var showAnalytics = canViewAnalytics();
                 grid.innerHTML = codes.map(function(c) {
                     var label = sanitize(c.label || c.id);
                     var scans = c.scan_count || 0;
@@ -4145,13 +4252,13 @@ Add any product information here..."></textarea>
                         '</div>' +
                         '<div style="flex:1;min-width:0;">' +
                             '<div style="font-size:16px;font-weight:600;color:#2E2A28;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + label + '</div>' +
-                            '<div style="font-size:12.5px;color:#9A8478;margin-top:3px;">' + scans + ' scan' + (scans!==1?'s':'') + ' · ' + saves + ' save' + (saves!==1?'s':'') + '</div>' +
+                            (showAnalytics ? ('<div style="font-size:12.5px;color:#9A8478;margin-top:3px;">' + scans + ' scan' + (scans!==1?'s':'') + ' · ' + saves + ' save' + (saves!==1?'s':'') + '</div>') : '') +
                             '<span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 9px;border-radius:6px;margin-top:5px;' +
                                 (isActive ? 'background:#dcfce7;color:#166534;' : 'background:#fee2e2;color:#991b1b;') + '">' +
                                 (isActive ? 'Active' : 'Draft') + '</span>' +
-                            '<div style="height:3px;background:#E8DDD6;border-radius:3px;margin-top:6px;overflow:hidden;">' +
+                            (showAnalytics ? ('<div style="height:3px;background:#E8DDD6;border-radius:3px;margin-top:6px;overflow:hidden;">' +
                                 '<div style="height:100%;background:#8B3A7F;border-radius:3px;width:' + pct + '%;"></div>' +
-                            '</div>' +
+                            '</div>') : '') +
                         '</div>' +
                     '</div>';
                 }).join('');
@@ -4259,6 +4366,8 @@ Add any product information here..."></textarea>
         }
 
         async function dashPushPromotion() {
+            // Push promotions → can_push (isAdmin bypasses).
+            if (!canPush()) { showUpgradeModal('push'); return; }
             var text = (document.getElementById('dashPromoText') || {}).value || '';
             if (!text.trim() && dashPromoPhotos.length === 0) {
                 alert('Please add a message or photo before pushing.'); return;
@@ -4769,8 +4878,9 @@ Add any product information here..."></textarea>
                 document.getElementById('generatorTitle').textContent = '📦 Batch QR Code Generator';
                 document.getElementById('singleForm').style.display = 'none';
                 document.getElementById('batchForm').style.display = 'block';
+                updateMintCreditDisplay();
             }
-            
+
             showView('generator');
         }
         
@@ -4867,6 +4977,21 @@ Add any product information here..."></textarea>
         }
         
         function generateQR() {
+            // ── Monetization gate (P1b) ──────────────────────────────────────
+            if (currentMode === 'single') {
+                // Single-QR generator → can_generate_single (isAdmin bypasses).
+                if (!canGenerateSingle()) { showUpgradeModal('generate'); return; }
+            } else {
+                // Batch/multi generator → can_mint + one credit per code.
+                if (!canMint()) { showUpgradeModal('mint'); return; }
+                if (!isAdmin()) {
+                    var qtyEl = document.getElementById('quantity');
+                    var wanted = parseInt(qtyEl && qtyEl.value, 10) || 0;
+                    var have = mintCredits();
+                    if (have < wanted) { showInsufficientCreditsModal(have, wanted); return; }
+                }
+            }
+
             const baseUrl = document.getElementById('baseUrl').value;
             const includeLogo = document.getElementById('includeLogo').checked;
             const grid = document.getElementById('qrGrid');
@@ -5025,9 +5150,68 @@ Add any product information here..."></textarea>
                 saveQRToSupabase(newQR); // Save to Supabase
                 updateQRCount();
             }
-            
+
+            // Spend one mint credit per QR generated in batch mode (isAdmin exempt).
+            if (currentMode !== 'single' && !isAdmin()) {
+                spendMintCredits(quantity);
+            }
+
             document.getElementById('qrResult').style.display = 'block';
             document.getElementById('qrResult').scrollIntoView({behavior: 'smooth'});
+        }
+
+        // Debit mint credits after a batch mint. Optimistically updates the
+        // cached balance + UI, then best-effort debits the server. The backend
+        // spend RPC lands with Stripe (P1c); until then the in-session balance
+        // reflects usage and re-syncs from get_my_entitlements on next login.
+        async function spendMintCredits(n) {
+            n = parseInt(n, 10) || 0;
+            if (n < 1) return;
+            if (window.entitlements && window.entitlements.mint_credits != null) {
+                window.entitlements.mint_credits = Math.max(0, (parseInt(window.entitlements.mint_credits, 10) || 0) - n);
+            }
+            updateMintCreditDisplay();
+            try {
+                var res = await db.rpc('spend_mint_credits', { n: n });
+                if (res && res.error) console.warn('spend_mint_credits unavailable (backend P1c):', res.error.message);
+            } catch (e) {
+                console.warn('spend_mint_credits failed:', e);
+            }
+        }
+
+        function updateMintCreditDisplay() {
+            var el = document.getElementById('mintCreditBanner');
+            if (!el) return;
+            if (isAdmin()) {
+                el.innerHTML = '<span style="color:#8B3A7F;font-weight:600;">✨ Admin — unlimited minting</span>';
+                el.style.display = '';
+                return;
+            }
+            if (!canMint()) { el.style.display = 'none'; return; }
+            var c = mintCredits();
+            el.innerHTML = '<span style="color:#8B3A7F;font-weight:600;">✨ ' + c + ' mint credit' + (c === 1 ? '' : 's') + ' remaining</span>' +
+                '<span style="color:#9A8478;font-size:13px;"> · $0.10 per QR</span>';
+            el.style.display = '';
+        }
+
+        function showInsufficientCreditsModal(have, wanted) {
+            var modal = document.getElementById('upgradeModal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'upgradeModal';
+                modal.style.cssText = 'position:fixed;inset:0;z-index:11000;background:rgba(46,42,40,0.55);display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;';
+                modal.onclick = function(e) { if (e.target === modal) modal.style.display = 'none'; };
+                document.body.appendChild(modal);
+            }
+            modal.innerHTML =
+                '<div style="background:#fff;border-radius:20px;max-width:380px;width:100%;padding:28px 26px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.3);">' +
+                    '<div style="font-size:40px;margin-bottom:10px;">✨</div>' +
+                    '<div style="font-family:\'Cormorant Garamond\',serif;font-size:24px;font-weight:700;color:#2E2A28;margin-bottom:10px;">Not enough mint credits</div>' +
+                    '<div style="font-size:15px;color:#6B5751;line-height:1.55;margin-bottom:22px;">You have <strong>' + have + '</strong> credit' + (have === 1 ? '' : 's') + ' but this batch needs <strong>' + wanted + '</strong>. Top up to keep minting at $0.10 per QR.</div>' +
+                    '<button onclick="showPlansInfo()" style="width:100%;background:#8B3A7F;color:#fff;border:none;border-radius:12px;padding:15px;font-family:\'Outfit\',sans-serif;font-weight:600;font-size:16px;cursor:pointer;margin-bottom:10px;">Add credits</button>' +
+                    '<button onclick="document.getElementById(\'upgradeModal\').style.display=\'none\'" style="background:none;border:none;color:#9A8478;font-size:14px;cursor:pointer;">Maybe later</button>' +
+                '</div>';
+            modal.style.display = 'flex';
         }
         
         // Download functions
@@ -6782,6 +6966,7 @@ Add any product information here..."></textarea>
             if (event === 'SIGNED_OUT') {
                 hasRoutedOnLoad = false;
                 currentUser = null;
+                window.entitlements = null;
                 savedQRCodes = [];
                 document.getElementById('headerBtn').style.display = 'block';
                 const aboutBtn2 = document.getElementById('headerAboutBtn');
@@ -6808,6 +6993,7 @@ Add any product information here..."></textarea>
                 const aboutBtn = document.getElementById('headerAboutBtn');
                 if (aboutBtn) aboutBtn.style.display = 'none';
                 document.getElementById('userMenu').classList.add('active');
+                await loadEntitlements();
                 applyAdminNav();
                 
                 // Load QR codes using token from callback (NOT getSession which deadlocks)
