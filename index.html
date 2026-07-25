@@ -6101,12 +6101,19 @@ Add any product information here..."></textarea>
         async function saveClaimToAccount(qrId) {
             if (!currentUser) return;
             try {
-                var { error } = await db
-                    .from('qr_codes')
-                    .update({ business_user_id: currentUser.id, source: 'business' })
-                    .eq('id', qrId);
+                // claim_card_as_business links the card + marks the account
+                // card-origin (free hosting; no has_generator granted).
+                var { error } = await db.rpc('claim_card_as_business', { p_qr_id: qrId });
 
-                if (error) { alert('Error claiming. Please try again.'); return; }
+                if (error) {
+                    var m = String(error.message || '');
+                    if (m.indexOf('already_claimed') !== -1) { alert('This QR code has already been claimed by another account.'); return; }
+                    console.error('claim_card_as_business error:', m);
+                    alert('Error claiming. Please try again.'); return;
+                }
+
+                // Refresh entitlements so origin='card' is reflected this session.
+                await loadEntitlements();
 
                 window.history.replaceState(null, '', window.location.pathname);
                 var banner = document.getElementById('claimBanner');
