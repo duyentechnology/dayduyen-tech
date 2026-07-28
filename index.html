@@ -2751,18 +2751,58 @@ Add any product information here..."></textarea>
         // ── Paywall UI (no charges yet — informational upsell only) ──────────
         var PAYWALL_COPY = {
             generate:  { icon: '🔒', title: 'Unlock the QR generator',
-                         body: 'Create your own single QR codes with a Duyên business plan.',
-                         cta: 'See plans' },
+                         body: 'Create your own single QR codes to display on menus, tables, and signs.',
+                         cta: 'Unlock the generator — $20 one-time' },
             mint:      { icon: '✨', title: 'Multi-QR generation is a Boutique feature',
                          body: 'Generate QR codes in bulk (plus analytics and promo push) with the Boutique plan.',
-                         cta: 'Upgrade to Boutique' },
+                         cta: 'Upgrade to Boutique — $19.99/mo' },
             push:      { icon: '📣', title: 'Push promotions to your QR codes',
                          body: 'Broadcast a promo to every active QR code at once with the Insights plan.',
-                         cta: 'Upgrade to Insights' },
+                         cta: 'Upgrade to Insights — $9.99/mo' },
             insights:  { icon: '📊', title: 'Unlock Insights',
                          body: 'See scan &amp; save analytics on every QR code and push promotions to all of them — with the Insights plan.',
-                         cta: 'See plans' }
+                         cta: 'Upgrade to Insights — $9.99/mo' }
         };
+        // Which paid tier a locked feature upsells to.
+        function upgradeTierFor(feature) {
+            if (feature === 'generate') return 'generator';
+            if (feature === 'mint') return 'boutique';
+            return 'insights'; // analytics, push, insights
+        }
+        // Placeholder upgrade action — NO payment is taken yet.
+        // TODO(P2 · Stripe): open Stripe Checkout here. Create a checkout session
+        // for `tier` via a create-checkout edge function and redirect to
+        // session.url; the stripe-webhook then flips has_generator / plan /
+        // plan_status on business_accounts. Until then this is informational.
+        function startUpgrade(tier) {
+            var TIERS = {
+                generator: { title: 'Unlock the QR generator', price: '$20 · one-time',
+                             note: 'Create your own single QR codes to display on menus, tables, and signs.' },
+                insights:  { title: 'Upgrade to Insights', price: '$9.99 / month',
+                             note: 'Scan &amp; save analytics on every QR code, plus promotions to all of them.' },
+                boutique:  { title: 'Upgrade to Boutique', price: '$19.99 / month · +$0.10 per QR',
+                             note: 'Everything in Insights, plus multi-QR generation for your products.' }
+            };
+            var t = TIERS[tier] || TIERS.generator;
+            var modal = document.getElementById('startUpgradeModal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'startUpgradeModal';
+                modal.style.cssText = 'position:fixed;inset:0;z-index:11002;background:rgba(46,42,40,0.6);display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;';
+                modal.onclick = function(e) { if (e.target === modal) modal.style.display = 'none'; };
+                document.body.appendChild(modal);
+            }
+            modal.innerHTML =
+                '<div style="background:#fff;border-radius:20px;max-width:360px;width:100%;padding:26px 24px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.3);">' +
+                    '<div style="font-size:34px;margin-bottom:8px;">✨</div>' +
+                    '<div style="font-family:\'Cormorant Garamond\',serif;font-size:23px;font-weight:700;color:#2E2A28;margin-bottom:4px;">' + t.title + '</div>' +
+                    '<div style="font-family:\'Outfit\',sans-serif;font-weight:700;color:#8B3A7F;font-size:15px;margin-bottom:12px;">' + t.price + '</div>' +
+                    '<div style="font-size:14px;color:#6B5751;line-height:1.55;margin-bottom:18px;">' + t.note + '</div>' +
+                    '<div style="background:#faf6fa;border:1px solid #eaddea;border-radius:12px;padding:12px;font-size:13px;color:#8B3A7F;font-weight:600;line-height:1.45;margin-bottom:16px;">💳 Secure checkout is coming soon — we\'ll turn on payments shortly.</div>' +
+                    '<button onclick="document.getElementById(\'startUpgradeModal\').style.display=\'none\'" style="width:100%;background:#8B3A7F;color:#fff;border:none;border-radius:12px;padding:14px;font-family:\'Outfit\',sans-serif;font-weight:600;font-size:15px;cursor:pointer;">Got it</button>' +
+                '</div>';
+            modal.style.display = 'flex';
+        }
         // Plans sheet — presents all tiers. Checkout is not wired yet
         // (Stripe is P1c), so the CTAs are informational for now.
         function planCardHTML(opts) {
@@ -2778,6 +2818,7 @@ Add any product information here..."></textarea>
                 '</div>' +
                 (opts.tagline ? '<div style="font-size:13px;color:#9A8478;margin-top:3px;line-height:1.45;">' + opts.tagline + '</div>' : '') +
                 feats +
+                (opts.tier ? '<button onclick="document.getElementById(\'plansModal\').style.display=\'none\';startUpgrade(\'' + opts.tier + '\')" style="width:100%;margin-top:14px;background:' + (featured ? '#8B3A7F' : '#fff') + ';color:' + (featured ? '#fff' : '#8B3A7F') + ';border:1.5px solid #8B3A7F;border-radius:11px;padding:11px;font-family:\'Outfit\',sans-serif;font-weight:600;font-size:14px;cursor:pointer;">Choose ' + opts.title + '</button>' : '') +
             '</div>';
         }
         function showPlansInfo() {
@@ -2797,17 +2838,17 @@ Add any product information here..."></textarea>
                     '</div>' +
                     '<div style="font-size:13px;color:#9A8478;margin-bottom:16px;line-height:1.5;">Claiming and hosting a profile on a Duyên QR code is always free. These unlock more:</div>' +
                     planCardHTML({
-                        title: 'Business Profile QR', price: '$20 once', badge: 'ONE-TIME',
+                        title: 'Business Profile QR', price: '$20 once', badge: 'ONE-TIME', tier: 'generator',
                         tagline: 'A standalone QR for your business — your memory layer. Customers scan and save you for later.',
                         features: ['Generate one business-profile QR to display', 'Hosts your info, about &amp; contact', 'Yours forever — no subscription']
                     }) +
                     planCardHTML({
-                        title: 'Insights', price: '$9.99/mo',
+                        title: 'Insights', price: '$9.99/mo', tier: 'insights',
                         tagline: 'Know how your QR codes perform and reach your audience.',
                         features: ['Scan &amp; save analytics on every QR code', 'Push promotions to all your active QR codes']
                     }) +
                     planCardHTML({
-                        title: 'Boutique', price: '$19.99/mo', badge: 'MOST FEATURES', featured: true,
+                        title: 'Boutique', price: '$19.99/mo', badge: 'MOST FEATURES', featured: true, tier: 'boutique',
                         tagline: 'For shops generating QR codes for their products.',
                         features: ['Everything in Insights', 'Multi-QR generation for products', '$0.10 per QR generated']
                     }) +
@@ -2818,6 +2859,7 @@ Add any product information here..."></textarea>
         }
         function showUpgradeModal(feature) {
             var c = PAYWALL_COPY[feature] || PAYWALL_COPY.generate;
+            var tier = upgradeTierFor(feature);
             var modal = document.getElementById('upgradeModal');
             if (!modal) {
                 modal = document.createElement('div');
@@ -2831,18 +2873,19 @@ Add any product information here..."></textarea>
                     '<div style="font-size:40px;margin-bottom:10px;">' + c.icon + '</div>' +
                     '<div style="font-family:\'Cormorant Garamond\',serif;font-size:24px;font-weight:700;color:#2E2A28;margin-bottom:10px;">' + c.title + '</div>' +
                     '<div style="font-size:15px;color:#6B5751;line-height:1.55;margin-bottom:22px;">' + c.body + '</div>' +
-                    '<button onclick="showPlansInfo()" style="width:100%;background:#8B3A7F;color:#fff;border:none;border-radius:12px;padding:15px;font-family:\'Outfit\',sans-serif;font-weight:600;font-size:16px;cursor:pointer;margin-bottom:10px;">' + c.cta + '</button>' +
-                    '<button onclick="document.getElementById(\'upgradeModal\').style.display=\'none\'" style="background:none;border:none;color:#9A8478;font-size:14px;cursor:pointer;">Maybe later</button>' +
+                    '<button onclick="document.getElementById(\'upgradeModal\').style.display=\'none\';startUpgrade(\'' + tier + '\')" style="width:100%;background:#8B3A7F;color:#fff;border:none;border-radius:12px;padding:15px;font-family:\'Outfit\',sans-serif;font-weight:600;font-size:16px;cursor:pointer;margin-bottom:10px;">' + c.cta + '</button>' +
+                    '<button onclick="document.getElementById(\'upgradeModal\').style.display=\'none\';showPlansInfo()" style="background:none;border:none;color:#8B3A7F;font-size:13px;cursor:pointer;font-weight:600;">See all plans</button>' +
                 '</div>';
             modal.style.display = 'flex';
         }
         function paywallCardHTML(feature) {
             var c = PAYWALL_COPY[feature] || PAYWALL_COPY.generate;
+            var tier = upgradeTierFor(feature);
             return '<div style="background:linear-gradient(135deg,#f9f4f9,#f0e5f0);border:1.5px dashed #C9A0C4;border-radius:18px;padding:26px 22px;text-align:center;margin-bottom:24px;">' +
                 '<div style="font-size:34px;margin-bottom:8px;">' + c.icon + '</div>' +
                 '<div style="font-family:\'Cormorant Garamond\',serif;font-size:22px;font-weight:700;color:#2E2A28;margin-bottom:8px;">' + c.title + '</div>' +
                 '<div style="font-size:14px;color:#6B5751;line-height:1.5;margin-bottom:16px;">' + c.body + '</div>' +
-                '<button onclick="showPlansInfo()" style="background:#8B3A7F;color:#fff;border:none;border-radius:12px;padding:12px 24px;font-family:\'Outfit\',sans-serif;font-weight:600;font-size:15px;cursor:pointer;">' + c.cta + '</button>' +
+                '<button onclick="startUpgrade(\'' + tier + '\')" style="background:#8B3A7F;color:#fff;border:none;border-radius:12px;padding:12px 24px;font-family:\'Outfit\',sans-serif;font-weight:600;font-size:15px;cursor:pointer;">' + c.cta + '</button>' +
             '</div>';
         }
         // Analytics and push always unlock together (both are the Insights
@@ -4233,6 +4276,10 @@ Add any product information here..."></textarea>
         }
 
         async function loadDashboard() {
+            // Entitlements are the single source of truth for what's unlocked.
+            // Normally loaded on sign-in; guard here so the dashboard never
+            // renders its gates against a null cache.
+            if (!window.entitlements) { await loadEntitlements(); }
             if (!bizProfileData) {
                 await loadBizProfileFromSupabase();
             }
@@ -5035,7 +5082,7 @@ Add any product information here..."></textarea>
                     '<div style="font-size:40px;margin-bottom:10px;">✨</div>' +
                     '<div style="font-family:\'Cormorant Garamond\',serif;font-size:24px;font-weight:700;color:#2E2A28;margin-bottom:10px;">Not enough mint credits</div>' +
                     '<div style="font-size:15px;color:#6B5751;line-height:1.55;margin-bottom:22px;">You have <strong>' + have + '</strong> credit' + (have === 1 ? '' : 's') + ' but this batch needs <strong>' + wanted + '</strong> (one per QR, $0.10 each). Top up to keep generating.</div>' +
-                    '<button onclick="showPlansInfo()" style="width:100%;background:#8B3A7F;color:#fff;border:none;border-radius:12px;padding:15px;font-family:\'Outfit\',sans-serif;font-weight:600;font-size:16px;cursor:pointer;margin-bottom:10px;">Add credits</button>' +
+                    '<button onclick="document.getElementById(\'upgradeModal\').style.display=\'none\';startUpgrade(\'boutique\')" style="width:100%;background:#8B3A7F;color:#fff;border:none;border-radius:12px;padding:15px;font-family:\'Outfit\',sans-serif;font-weight:600;font-size:16px;cursor:pointer;margin-bottom:10px;">Add credits</button>' +
                     '<button onclick="document.getElementById(\'upgradeModal\').style.display=\'none\'" style="background:none;border:none;color:#9A8478;font-size:14px;cursor:pointer;">Maybe later</button>' +
                 '</div>';
             modal.style.display = 'flex';
