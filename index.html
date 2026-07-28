@@ -2824,6 +2824,21 @@ Add any product information here..."></textarea>
                 alert('Could not start checkout. Please try again.');
             }
         }
+        // Buy Boutique mint credits ($0.10 each) — one-time top-up checkout.
+        async function buyMintCredits(qty) {
+            try {
+                var res = await db.functions.invoke('business-checkout', { body: { tier: 'credits', qty: qty } });
+                if (res.error || !res.data || !res.data.url) {
+                    console.error('business-checkout credits error:', res.error || res.data);
+                    alert('Could not start checkout. Please try again.');
+                    return;
+                }
+                window.location.href = res.data.url;
+            } catch (e) {
+                console.error('buyMintCredits failed:', e);
+                alert('Could not start checkout. Please try again.');
+            }
+        }
         // After returning from Stripe Checkout (?upgrade=success), refresh
         // entitlements (the webhook activates them asynchronously) and re-gate.
         function handleUpgradeReturn() {
@@ -5125,7 +5140,10 @@ Add any product information here..."></textarea>
                     '<div style="font-size:40px;margin-bottom:10px;">✨</div>' +
                     '<div style="font-family:\'Cormorant Garamond\',serif;font-size:24px;font-weight:700;color:#2E2A28;margin-bottom:10px;">Not enough mint credits</div>' +
                     '<div style="font-size:15px;color:#6B5751;line-height:1.55;margin-bottom:22px;">You have <strong>' + have + '</strong> credit' + (have === 1 ? '' : 's') + ' but this batch needs <strong>' + wanted + '</strong> (one per QR, $0.10 each). Top up to keep generating.</div>' +
-                    '<button onclick="document.getElementById(\'upgradeModal\').style.display=\'none\';startUpgrade(\'boutique\')" style="width:100%;background:#8B3A7F;color:#fff;border:none;border-radius:12px;padding:15px;font-family:\'Outfit\',sans-serif;font-weight:600;font-size:16px;cursor:pointer;margin-bottom:10px;">Add credits</button>' +
+                    '<div style="font-size:13px;color:#9A8478;margin-bottom:10px;">Top up mint credits — $0.10 each</div>' +
+                    '<button onclick="buyMintCredits(50)" style="width:100%;background:#8B3A7F;color:#fff;border:none;border-radius:12px;padding:14px;font-family:\'Outfit\',sans-serif;font-weight:600;font-size:15px;cursor:pointer;margin-bottom:8px;">50 credits · $5</button>' +
+                    '<button onclick="buyMintCredits(100)" style="width:100%;background:#fff;color:#8B3A7F;border:1.5px solid #8B3A7F;border-radius:12px;padding:12px;font-family:\'Outfit\',sans-serif;font-weight:600;font-size:14px;cursor:pointer;margin-bottom:8px;">100 credits · $10</button>' +
+                    '<button onclick="buyMintCredits(250)" style="width:100%;background:#fff;color:#8B3A7F;border:1.5px solid #8B3A7F;border-radius:12px;padding:12px;font-family:\'Outfit\',sans-serif;font-weight:600;font-size:14px;cursor:pointer;margin-bottom:10px;">250 credits · $25</button>' +
                     '<button onclick="document.getElementById(\'upgradeModal\').style.display=\'none\'" style="background:none;border:none;color:#9A8478;font-size:14px;cursor:pointer;">Maybe later</button>' +
                 '</div>';
             modal.style.display = 'flex';
