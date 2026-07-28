@@ -2798,13 +2798,56 @@ Add any product information here..."></textarea>
                     '<div style="font-family:\'Cormorant Garamond\',serif;font-size:23px;font-weight:700;color:#2E2A28;margin-bottom:4px;">' + t.title + '</div>' +
                     '<div style="font-family:\'Outfit\',sans-serif;font-weight:700;color:#8B3A7F;font-size:15px;margin-bottom:12px;">' + t.price + '</div>' +
                     '<div style="font-size:14px;color:#6B5751;line-height:1.55;margin-bottom:18px;">' + t.note + '</div>' +
-                    '<div style="background:#faf6fa;border:1px solid #eaddea;border-radius:12px;padding:12px;font-size:13px;color:#8B3A7F;font-weight:600;line-height:1.45;margin-bottom:16px;">💳 Secure checkout is coming soon — we\'ll turn on payments shortly.</div>' +
-                    '<button onclick="document.getElementById(\'startUpgradeModal\').style.display=\'none\'" style="width:100%;background:#8B3A7F;color:#fff;border:none;border-radius:12px;padding:14px;font-family:\'Outfit\',sans-serif;font-weight:600;font-size:15px;cursor:pointer;">Got it</button>' +
+                    '<button id="startUpgradeGo" onclick="beginBusinessCheckout(\'' + tier + '\')" style="width:100%;background:#8B3A7F;color:#fff;border:none;border-radius:12px;padding:14px;font-family:\'Outfit\',sans-serif;font-weight:600;font-size:15px;cursor:pointer;">Continue to secure checkout →</button>' +
+                    '<button onclick="document.getElementById(\'startUpgradeModal\').style.display=\'none\'" style="width:100%;background:none;color:#9A8478;border:none;padding:12px;font-family:\'Outfit\',sans-serif;font-size:13px;cursor:pointer;margin-top:4px;">Maybe later</button>' +
+                    '<div style="font-size:11px;color:#B0A29A;margin-top:8px;">🔒 Secure payment by Stripe</div>' +
                 '</div>';
             modal.style.display = 'flex';
         }
-        // Plans sheet — presents all tiers. Checkout is not wired yet
-        // (Stripe is P1c), so the CTAs are informational for now.
+        // Open Stripe Checkout for a business tier and redirect the browser there.
+        // The stripe-webhook flips the entitlement on business_accounts after payment.
+        async function beginBusinessCheckout(tier) {
+            var go = document.getElementById('startUpgradeGo');
+            if (go) { go.disabled = true; go.textContent = 'Redirecting to secure checkout…'; go.style.opacity = '0.7'; }
+            try {
+                var res = await db.functions.invoke('business-checkout', { body: { tier: tier } });
+                if (res.error || !res.data || !res.data.url) {
+                    console.error('business-checkout error:', res.error || res.data);
+                    if (go) { go.disabled = false; go.textContent = 'Continue to secure checkout →'; go.style.opacity = '1'; }
+                    alert('Could not start checkout. Please try again.');
+                    return;
+                }
+                window.location.href = res.data.url;
+            } catch (e) {
+                console.error('beginBusinessCheckout failed:', e);
+                if (go) { go.disabled = false; go.textContent = 'Continue to secure checkout →'; go.style.opacity = '1'; }
+                alert('Could not start checkout. Please try again.');
+            }
+        }
+        // After returning from Stripe Checkout (?upgrade=success), refresh
+        // entitlements (the webhook activates them asynchronously) and re-gate.
+        function handleUpgradeReturn() {
+            try {
+                var params = new URLSearchParams(window.location.search);
+                var u = params.get('upgrade');
+                if (!u) return;
+                params.delete('upgrade');
+                var qs = params.toString();
+                history.replaceState({}, '', window.location.pathname + (qs ? '?' + qs : '') + window.location.hash);
+                if (u === 'success') {
+                    var refresh = function() {
+                        loadEntitlements().then(function() {
+                            if (typeof applyDashboardGating === 'function') applyDashboardGating();
+                        });
+                    };
+                    refresh();
+                    setTimeout(refresh, 3000); // webhook may lag a moment
+                    alert('Payment received — your upgrade is being activated! ✨');
+                }
+            } catch (e) { console.warn('handleUpgradeReturn error:', e); }
+        }
+        // Plans sheet — presents all tiers, each CTA opens Stripe Checkout via
+        // startUpgrade() -> beginBusinessCheckout().
         function planCardHTML(opts) {
             var feats = opts.features.map(function(f) {
                 return '<div style="display:flex;align-items:flex-start;gap:8px;font-size:13.5px;color:#5D4E44;line-height:1.5;margin-top:6px;"><span style="color:#8B3A7F;flex-shrink:0;">✓</span><span>' + f + '</span></div>';
@@ -7107,7 +7150,8 @@ Add any product information here..."></textarea>
                 document.getElementById('userMenu').classList.add('active');
                 await loadEntitlements();
                 applyAdminNav();
-                
+                handleUpgradeReturn(); // if returning from Stripe Checkout
+
                 // Load QR codes using token from callback (NOT getSession which deadlocks)
                 try {
                     var token = session.access_token;
