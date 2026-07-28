@@ -2972,7 +2972,7 @@ Add any product information here..."></textarea>
             const { data, error } = await db.auth.signUp({
                 email,
                 password,
-                options: { data: { full_name: name }, emailRedirectTo: 'https://dayduyen.tech' }
+                options: { data: { full_name: name, signup_domain: signupDomain() }, emailRedirectTo: 'https://dayduyen.tech' }
             });
             
             if (btn) { btn.textContent = 'Create Account'; btn.disabled = false; }
@@ -7001,6 +7001,27 @@ Add any product information here..."></textarea>
         }
 
         // Auth state listener - runs after all functions are defined
+        // Origin hostname (www. stripped) — stamped into user_metadata so the
+        // shared auth pool can tell which domain a user registered on.
+        function signupDomain() {
+            try { return (window.location.hostname || '').replace(/^www\./, ''); }
+            catch (e) { return ''; }
+        }
+
+        // Sets signup_domain only if not already present. Covers Google OAuth
+        // (which can't pass metadata at sign-in) and backfills existing users on
+        // their next auth. Never overwrites an existing value.
+        async function ensureSignupDomain(user) {
+            try {
+                if (!user) return;
+                var meta = user.user_metadata || {};
+                if (meta.signup_domain) return;
+                var dom = signupDomain();
+                if (!dom) return;
+                await db.auth.updateUser({ data: { signup_domain: dom } });
+            } catch (e) { console.warn('ensureSignupDomain failed', e); }
+        }
+
         var hasRoutedOnLoad = false;
         db.auth.onAuthStateChange(async (event, session) => {
             console.log('🔐 Auth event:', event);
@@ -7029,6 +7050,7 @@ Add any product information here..."></textarea>
                 const user = session.user;
                 currentUser = { email: user.email, name: user.user_metadata?.full_name || user.email, id: user.id };
                 console.log('👤 User:', currentUser.email, 'ID:', currentUser.id);
+                ensureSignupDomain(user); // stamp/backfill signup_domain (Google OAuth + existing users)
                 document.getElementById('userEmail').textContent = user.email;
                 var avBtn = document.getElementById('userAvatarBtn');
                 if (avBtn && user.email) avBtn.textContent = user.email.charAt(0).toUpperCase();
