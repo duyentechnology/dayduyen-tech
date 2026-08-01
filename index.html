@@ -2946,9 +2946,40 @@ Add any product information here..."></textarea>
                 '<button onclick="startUpgrade(\'' + tier + '\')" style="background:#8B3A7F;color:#fff;border:none;border-radius:12px;padding:12px 24px;font-family:\'Outfit\',sans-serif;font-weight:600;font-size:15px;cursor:pointer;">' + c.cta + '</button>' +
             '</div>';
         }
-        // Analytics and push always unlock together (both are the Insights
-        // plan), so a locked business sees ONE combined "Unlock Insights" card
-        // instead of two that lead to the same plans sheet.
+        // Dashboard upgrade block: show EVERY plan the business doesn't already
+        // own (generator / insights / boutique) so all tiers are visible — not
+        // just a single Insights card. Each "Choose" opens Stripe checkout.
+        function dashboardPlansHTML() {
+            var cards = '';
+            if (!canGenerateSingle()) {
+                cards += planCardHTML({
+                    title: 'Business Profile QR', price: '$20 once', badge: 'ONE-TIME', tier: 'generator',
+                    tagline: 'A standalone QR for your business — your memory layer. Customers scan and save you for later.',
+                    features: ['Generate one business-profile QR to display', 'Hosts your info, about &amp; contact', 'Yours forever — no subscription']
+                });
+            }
+            if (!canViewAnalytics()) {
+                cards += planCardHTML({
+                    title: 'Insights', price: '$9.99/mo', tier: 'insights',
+                    tagline: 'Know how your QR codes perform and reach your audience.',
+                    features: ['Scan &amp; save analytics on every QR code', 'Push promotions to all your active QR codes']
+                });
+            }
+            if (!canMint()) {
+                cards += planCardHTML({
+                    title: 'Boutique', price: '$19.99/mo', badge: 'MOST FEATURES', featured: true, tier: 'boutique',
+                    tagline: 'For shops generating QR codes for their products.',
+                    features: ['Everything in Insights', 'Multi-QR generation for products', '$0.10 per QR generated']
+                });
+            }
+            if (!cards) return '';
+            return '<div style="background:linear-gradient(135deg,#f9f4f9,#f0e5f0);border:1.5px dashed #C9A0C4;border-radius:18px;padding:22px 18px;margin-bottom:24px;">' +
+                '<div style="font-family:\'Cormorant Garamond\',serif;font-size:23px;font-weight:700;color:#2E2A28;text-align:center;margin-bottom:4px;">Upgrade your plan</div>' +
+                '<div style="font-size:13px;color:#9A8478;text-align:center;margin-bottom:16px;line-height:1.5;">Claiming a profile is always free. These unlock more for your business.</div>' +
+                cards +
+            '</div>';
+        }
+        // A locked business now sees ALL applicable tiers on the dashboard.
         function applyDashboardGating() {
             var insightsOK = canViewAnalytics() && canPush();
             var stats = document.getElementById('dashStatsSection'); // scan/save analytics
@@ -2962,13 +2993,14 @@ Add any product information here..."></textarea>
             });
 
             var pw = document.getElementById('dashInsightsPaywall');
-            if (!insightsOK) {
+            var plansHtml = dashboardPlansHTML();
+            if (plansHtml) {
                 if (!pw && stats && stats.parentNode) {
                     pw = document.createElement('div');
                     pw.id = 'dashInsightsPaywall';
                     stats.parentNode.insertBefore(pw, stats);
                 }
-                if (pw) { pw.innerHTML = paywallCardHTML('insights'); pw.style.display = ''; }
+                if (pw) { pw.innerHTML = plansHtml; pw.style.display = ''; }
             } else if (pw) {
                 pw.style.display = 'none';
             }
