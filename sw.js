@@ -7,7 +7,7 @@
 // cache (now long-lived via the upload cacheControl). Any cache error falls
 // back to a normal network fetch, so this can never break a request.
 
-const APP_CACHE = 'dayduyen-app-v2';
+const APP_CACHE = 'dayduyen-app-v3';
 const MEDIA_CACHE = 'dayduyen-media-v1';
 const MEDIA_MAX_ENTRIES = 150; // rough cap; browser also evicts under pressure
 
@@ -20,6 +20,10 @@ self.addEventListener('activate', e => {
         names.filter(n => n !== APP_CACHE && n !== MEDIA_CACHE).map(n => caches.delete(n))
       ))
       .then(() => self.clients.claim())
+      // A brand-new worker means a new deploy — reload any open windows so they
+      // pick up the fresh index.html immediately instead of showing a stale one.
+      .then(() => self.clients.matchAll({ type: 'window' }))
+      .then(clients => { clients.forEach(c => { try { c.navigate(c.url); } catch (e) {} }); })
   );
 });
 
@@ -75,6 +79,16 @@ self.addEventListener('fetch', e => {
   }
   if (req.url.includes('supabase')) return;
 
-  // App shell: network, fall back to cache (unchanged behavior).
+  // App shell (the page / HTML): always pull the freshest copy from the network,
+  // BYPASSING the browser's HTTP cache, so a new deploy shows up on the next
+  // launch instead of a stale index.html. Fall back to cache only when offline.
+  if (req.mode === 'navigate' || req.destination === 'document') {
+    e.respondWith(
+      fetch(req, { cache: 'reload' }).catch(() => caches.match(req) || caches.match('/'))
+    );
+    return;
+  }
+
+  // Everything else: network, fall back to cache.
   e.respondWith(fetch(req).catch(() => caches.match(req)));
 });
