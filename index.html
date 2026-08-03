@@ -4113,6 +4113,17 @@ Add any product information here..."></textarea>
                     await db.from('qr_codes').update({ about_photos: aboutUrls }).eq('business_user_id', user.id);
                 } catch (e) { console.error('About photos push:', e); }
 
+                // Fresh claim: profile done — take them to their QR Studio.
+                var pcQr = null;
+                try { pcQr = localStorage.getItem('postClaimQr'); } catch(e) {}
+                if (pcQr) {
+                    try { localStorage.removeItem('postClaimQr'); } catch(e) {}
+                    bizIsFirstTime = false;
+                    var pcIdx2 = savedQRCodes.findIndex(function(c){ return c.id === pcQr || c.dbId === pcQr; });
+                    if (pcIdx2 !== -1 && savedQRCodes[pcIdx2].source === 'business') { openQrStudio(pcIdx2); return; }
+                    showView('myCodes'); return;
+                }
+
                 if (bizIsFirstTime) {
                     bizIsFirstTime = false;
                     var nameEl = document.getElementById('bizSuccessName');
@@ -6362,6 +6373,10 @@ Add any product information here..."></textarea>
                 // Refresh entitlements so origin='card' is reflected this session.
                 await loadEntitlements();
 
+                // After the reload: walk them to profile setup (if needed) and
+                // then straight into the QR Studio for this claimed code.
+                try { localStorage.setItem('postClaimQr', qrId); } catch(e) {}
+
                 window.history.replaceState(null, '', window.location.pathname);
                 var banner = document.getElementById('claimBanner');
                 if (banner) {
@@ -7525,7 +7540,9 @@ Add any product information here..."></textarea>
                     console.log('🔑 Token from callback:', !!token);
                     
                     var resp = await fetch(
-                        SUPABASE_URL + '/rest/v1/qr_codes?user_id=eq.' + currentUser.id + '&order=created_at.desc',
+                        // Codes I generated OR codes I claimed as a business
+                        // (claimed cards keep the minting admin as user_id).
+                        SUPABASE_URL + '/rest/v1/qr_codes?or=(user_id.eq.' + currentUser.id + ',business_user_id.eq.' + currentUser.id + ')&order=created_at.desc',
                         {
                             headers: {
                                 'apikey': SUPABASE_ANON_KEY,
@@ -7552,6 +7569,9 @@ Add any product information here..."></textarea>
                                 updatedAt: row.updated_at || row.created_at,
                                 status: row.status || 'draft',
                                 includeLogo: row.include_logo !== false,
+                                include_logo: row.include_logo !== false,
+                                source: row.source || null,
+                                link_meta: row.link_meta || null,
                                 media: row.media || [],
                                 files: row.files || [],
                                 photo: row.photo || null,
@@ -7601,6 +7621,27 @@ Add any product information here..."></textarea>
                         showView('myCodes');
                         handleClaim(claimId);
                         hasRoutedOnLoad = true;
+                        return;
+                    }
+
+                    // Just claimed a business QR: profile setup first (if they
+                    // have none), then the QR Studio for that code.
+                    var postClaim = null;
+                    try { postClaim = localStorage.getItem('postClaimQr'); } catch(e) {}
+                    if (postClaim) {
+                        hasRoutedOnLoad = true;
+                        if (!bizProfileData || !bizProfileData.name) {
+                            bizIsFirstTime = true;
+                            showView('bizProfile'); // flag stays; studio opens after save
+                        } else {
+                            try { localStorage.removeItem('postClaimQr'); } catch(e) {}
+                            var pcIdx = savedQRCodes.findIndex(function(c){ return c.id === postClaim || c.dbId === postClaim; });
+                            if (pcIdx !== -1 && savedQRCodes[pcIdx].source === 'business') {
+                                openQrStudio(pcIdx);
+                            } else {
+                                showView('myCodes');
+                            }
+                        }
                         return;
                     }
                     if (hash && validViews.includes(hash)) {
