@@ -3,7 +3,7 @@
   "short_name": "Day Duyên",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#FBF8F4",
+  "background_color": "#F0E5F0",
   "theme_color": "#8B3A7F",
   "icons": [
     {
