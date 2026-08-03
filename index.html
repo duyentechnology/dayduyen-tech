@@ -2309,92 +2309,70 @@ Add any product information here..."></textarea>
                 <div id="profileAvatar" style="width:52px;height:52px;border-radius:50%;background:#8B3A7F;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:20px;flex-shrink:0;">?</div>
                 <div>
                     <div id="profileDisplayName" style="font-weight:700;color:#2E2A28;font-size:18px;font-family:'Outfit',sans-serif;">—</div>
-                    <div id="profileDisplayEmail" style="font-size:14px;color:#9A8478;margin-top:2px;font-family:'Outfit',sans-serif;">—</div>
+                    <div id="profileDisplayEmail" style="font-size:15px;color:#9A8478;margin-top:2px;font-family:'Outfit',sans-serif;">—</div>
                 </div>
             </div>
 
             <!-- Account Info -->
-            <div style="font-size:13px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;font-family:'Outfit',sans-serif;">Account Info</div>
+            <div style="font-size:15px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;font-family:'Outfit',sans-serif;">Account Info</div>
 
             <div style="background:#fff;border:1.5px solid #E8DDD6;border-radius:12px;overflow:hidden;margin-bottom:20px;">
                 <div style="padding:13px 16px;border-bottom:1px solid #E8DDD6;">
-                    <div style="font-size:13px;color:#9A8478;margin-bottom:5px;font-family:'Outfit',sans-serif;">Name</div>
+                    <div style="font-size:14px;color:#9A8478;margin-bottom:5px;font-family:'Outfit',sans-serif;">Name</div>
                     <div style="display:flex;align-items:center;gap:10px;">
-                        <input type="text" id="profileNameInput" placeholder="Your name" style="flex:1;border:none;outline:none;font-size:16px;color:#2E2A28;font-family:'Outfit',sans-serif;background:transparent;">
-                        <button onclick="saveProfileName()" style="font-size:14px;font-weight:600;color:#8B3A7F;background:#f0e5f0;border:none;border-radius:8px;padding:5px 12px;cursor:pointer;font-family:'Outfit',sans-serif;">Save</button>
+                        <input type="text" id="profileNameInput" placeholder="Your name" style="flex:1;border:none;outline:none;font-size:17px;color:#2E2A28;font-family:'Outfit',sans-serif;background:transparent;">
+                        <button onclick="saveProfileName()" style="font-size:15px;font-weight:600;color:#8B3A7F;background:#f0e5f0;border:none;border-radius:8px;padding:5px 12px;cursor:pointer;font-family:'Outfit',sans-serif;">Save</button>
                     </div>
                 </div>
                 <div style="padding:13px 16px;border-bottom:1px solid #E8DDD6;">
-                    <div style="font-size:13px;color:#9A8478;margin-bottom:4px;font-family:'Outfit',sans-serif;">Email</div>
-                    <div id="profileEmailDisplay" style="font-size:16px;color:#2E2A28;font-family:'Outfit',sans-serif;">—</div>
+                    <div style="font-size:14px;color:#9A8478;margin-bottom:4px;font-family:'Outfit',sans-serif;">Email</div>
+                    <div id="profileEmailDisplay" style="font-size:17px;color:#2E2A28;font-family:'Outfit',sans-serif;">—</div>
                 </div>
                 <div style="padding:13px 16px;">
-                    <div style="font-size:13px;color:#9A8478;margin-bottom:4px;font-family:'Outfit',sans-serif;">Signed in with</div>
-                    <div id="profileProviderBadge" style="font-size:15px;color:#2E2A28;font-family:'Outfit',sans-serif;">📧 Email</div>
-                </div>
-            </div>
-
-            <!-- Plan -->
-            <div style="font-size:13px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;font-family:'Outfit',sans-serif;">Plan</div>
-            <div style="background:#fff;border:1.5px solid #E8DDD6;border-radius:12px;padding:14px 16px;margin-bottom:20px;">
-                <div style="display:flex;align-items:center;justify-content:space-between;">
-                    <div>
-                        <div style="font-size:16px;font-weight:700;color:#2E2A28;font-family:'Outfit',sans-serif;">Free Tier</div>
-                        <div style="font-size:14px;color:#9A8478;margin-top:3px;font-family:'Outfit',sans-serif;">Business profile + dashboard + promotions</div>
-                    </div>
-                    <span style="font-size:12px;font-weight:700;background:#dcfce7;color:#166534;padding:3px 10px;border-radius:20px;">Active</span>
-                </div>
-                <div style="margin-top:12px;padding-top:12px;border-top:1px solid #E8DDD6;">
-                    <div style="font-size:14px;color:#9A8478;margin-bottom:8px;font-family:'Outfit',sans-serif;">Coming soon — Pro Plan includes:</div>
-                    <div style="display:flex;flex-direction:column;gap:5px;">
-                        <div style="font-size:14px;color:#9A8478;font-family:'Outfit',sans-serif;">✦ Self-generate QR codes</div>
-                        <div style="font-size:14px;color:#9A8478;font-family:'Outfit',sans-serif;">✦ Unlimited active QR codes</div>
-                        <div style="font-size:14px;color:#9A8478;font-family:'Outfit',sans-serif;">✦ Advanced scan analytics</div>
-                        <div style="font-size:14px;color:#9A8478;font-family:'Outfit',sans-serif;">✦ Custom branding & colors</div>
-                    </div>
-                    <button style="width:100%;margin-top:12px;background:#f9f4f9;color:#8B3A7F;border:1.5px solid #D4B8D0;border-radius:10px;padding:10px;font-family:'Outfit',sans-serif;font-weight:600;font-size:15px;cursor:not-allowed;opacity:0.7;">Upgrade to Pro — Coming Soon</button>
+                    <div style="font-size:14px;color:#9A8478;margin-bottom:4px;font-family:'Outfit',sans-serif;">Signed in with</div>
+                    <div id="profileProviderBadge" style="font-size:16px;color:#2E2A28;font-family:'Outfit',sans-serif;">📧 Email</div>
                 </div>
             </div>
 
             <!-- Payment (placeholder) -->
-            <div style="font-size:13px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;font-family:'Outfit',sans-serif;">Payment</div>
+            <div style="font-size:15px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;font-family:'Outfit',sans-serif;">Payment</div>
             <div style="background:#fff;border:1.5px solid #E8DDD6;border-radius:12px;padding:14px 16px;margin-bottom:20px;">
-                <div style="font-size:15px;color:#9A8478;font-family:'Outfit',sans-serif;text-align:center;padding:8px 0;">No payment method on file — available when Pro launches</div>
+                <div style="font-size:16px;color:#9A8478;font-family:'Outfit',sans-serif;text-align:center;padding:8px 0;">Payments and subscriptions are handled securely through Stripe checkout</div>
             </div>
 
             <!-- Security -->
-            <div style="font-size:13px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;font-family:'Outfit',sans-serif;">Security</div>
+            <div style="font-size:15px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;font-family:'Outfit',sans-serif;">Security</div>
             <div style="background:#fff;border:1.5px solid #E8DDD6;border-radius:12px;overflow:hidden;margin-bottom:20px;">
                 <div style="padding:13px 16px;">
-                    <button onclick="sendDayDuyenPasswordReset()" style="width:100%;background:#f9f4f9;color:#2E2A28;border:1.5px solid #E8DDD6;border-radius:10px;padding:10px;font-family:'Outfit',sans-serif;font-weight:600;font-size:15px;cursor:pointer;">🔑 Send Password Reset Email</button>
-                    <p style="font-size:13px;color:#9A8478;margin-top:8px;text-align:center;font-family:'Outfit',sans-serif;">A reset link will be sent to your email address</p>
+                    <button onclick="sendDayDuyenPasswordReset()" style="width:100%;background:#f9f4f9;color:#2E2A28;border:1.5px solid #E8DDD6;border-radius:10px;padding:10px;font-family:'Outfit',sans-serif;font-weight:600;font-size:16px;cursor:pointer;">🔑 Send Password Reset Email</button>
+                    <p style="font-size:14px;color:#9A8478;margin-top:8px;text-align:center;font-family:'Outfit',sans-serif;">A reset link will be sent to your email address</p>
                 </div>
             </div>
 
             <!-- Legal -->
-            <div style="font-size:13px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;font-family:'Outfit',sans-serif;">Legal</div>
+            <div style="font-size:15px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;font-family:'Outfit',sans-serif;">Legal</div>
             <div style="background:#fff;border:1.5px solid #E8DDD6;border-radius:12px;overflow:hidden;margin-bottom:20px;">
                 <a href="/privacy.html" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">
                     <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-bottom:1px solid #E8DDD6;cursor:pointer;">
-                        <span style="font-size:15px;color:#2E2A28;font-family:'Outfit',sans-serif;">Privacy Policy</span>
+                        <span style="font-size:16px;color:#2E2A28;font-family:'Outfit',sans-serif;">Privacy Policy</span>
                         <span style="font-size:14px;color:#9A8478;">→</span>
                     </div>
                 </a>
                 <a href="/terms.html" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">
                     <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-bottom:1px solid #E8DDD6;cursor:pointer;">
-                        <span style="font-size:15px;color:#2E2A28;font-family:'Outfit',sans-serif;">Terms of Service</span>
+                        <span style="font-size:16px;color:#2E2A28;font-family:'Outfit',sans-serif;">Terms of Service</span>
                         <span style="font-size:14px;color:#9A8478;">→</span>
                     </div>
                 </a>
                 <a href="mailto:hello@duyen.io" style="text-decoration:none;">
                     <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 16px;cursor:pointer;">
-                        <span style="font-size:15px;color:#2E2A28;font-family:'Outfit',sans-serif;">Contact Us</span>
+                        <span style="font-size:16px;color:#2E2A28;font-family:'Outfit',sans-serif;">Contact Us</span>
                         <span style="font-size:14px;color:#9A8478;">→</span>
                     </div>
                 </a>
             </div>
 
-            <button onclick="logout()" style="width:100%;background:#fff;color:#c53030;border:1.5px solid #fed7d7;border-radius:10px;padding:12px;font-family:'Outfit',sans-serif;font-weight:600;font-size:16px;cursor:pointer;">Sign Out</button>
+            <button onclick="logout()" style="width:100%;background:#fff;color:#c53030;border:1.5px solid #fed7d7;border-radius:10px;padding:12px;font-family:'Outfit',sans-serif;font-weight:600;font-size:17px;cursor:pointer;">Sign Out</button>
 
         </div>
     </div>
