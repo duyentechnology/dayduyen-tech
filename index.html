@@ -2879,7 +2879,7 @@ Add any product information here..."></textarea>
                 '</div>' +
                 (opts.tagline ? '<div style="font-size:15px;color:#9A8478;margin-top:3px;line-height:1.45;">' + opts.tagline + '</div>' : '') +
                 feats +
-                (opts.tier ? '<button onclick="document.getElementById(\'plansModal\').style.display=\'none\';startUpgrade(\'' + opts.tier + '\')" style="width:100%;margin-top:14px;background:' + (featured ? '#8B3A7F' : '#fff') + ';color:' + (featured ? '#fff' : '#8B3A7F') + ';border:1.5px solid #8B3A7F;border-radius:11px;padding:11px;font-family:\'Outfit\',sans-serif;font-weight:600;font-size:16px;cursor:pointer;">Choose ' + opts.title + '</button>' : '') +
+                (opts.tier ? '<button onclick="var _pm=document.getElementById(\'plansModal\');if(_pm)_pm.style.display=\'none\';startUpgrade(\'' + opts.tier + '\')" style="width:100%;margin-top:14px;background:' + (featured ? '#8B3A7F' : '#fff') + ';color:' + (featured ? '#fff' : '#8B3A7F') + ';border:1.5px solid #8B3A7F;border-radius:11px;padding:11px;font-family:\'Outfit\',sans-serif;font-weight:600;font-size:16px;cursor:pointer;">Choose ' + opts.title + '</button>' : '') +
             '</div>';
         }
         function showPlansInfo() {
