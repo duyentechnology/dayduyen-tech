@@ -1418,7 +1418,17 @@
     <div id="generatorView" class="view">
         <div class="generator">
             <h2 id="generatorTitle">QR Code Generator</h2>
-            
+
+            <!-- Admin only: choose what these printed QRs are for -->
+            <div id="adminPrintKind" style="display:none;background:#fff;border:1.5px solid #C9A0C4;border-radius:14px;padding:14px 16px;margin-bottom:18px;">
+                <div style="font-size:14.5px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;">What are you printing?</div>
+                <div style="display:flex;gap:10px;">
+                    <button type="button" id="printKindNote" onclick="setPrintKind('note')" style="flex:1;padding:11px 8px;border-radius:11px;border:2px solid #8B3A7F;background:#8B3A7F;color:#fff;font-family:'Outfit',sans-serif;font-weight:600;font-size:15px;cursor:pointer;">Duyên notes</button>
+                    <button type="button" id="printKindBusiness" onclick="setPrintKind('business')" style="flex:1;padding:11px 8px;border-radius:11px;border:2px solid #8B3A7F;background:#fff;color:#8B3A7F;font-family:'Outfit',sans-serif;font-weight:600;font-size:15px;cursor:pointer;">Business profile QRs</button>
+                </div>
+                <div id="printKindHint" style="font-size:13px;color:#9A8478;margin-top:9px;line-height:1.45;">Notes show the giver / receiver choice when scanned. Business QRs skip role selection — scanning goes straight to the business claim.</div>
+            </div>
+
             <div id="singleForm" style="display: none;">
                 <div class="form-group">
                     <label>QR Code Label</label>
@@ -2710,10 +2720,14 @@ Add any product information here..."></textarea>
         window.entitlements = window.entitlements || null;
         function ent() { return window.entitlements || {}; }
         // Single generation is included in the multi tier, so canMint() implies it.
-        function canGenerateSingle() { return isAdmin() || !!ent().can_generate_single || !!ent().can_mint; }
-        function canMint()           { return isAdmin() || !!ent().can_mint; }
-        function canPush()           { return isAdmin() || !!ent().can_push; }
-        function canViewAnalytics()  { return isAdmin() || !!ent().can_view_analytics; }
+        // TEMP TESTING SWITCH: while true, every tier is unlocked for every
+        // account so features can be tested/viewed without paying. Flip to
+        // false to restore the real paywalls before launch.
+        var ALL_TIERS_FREE = true;
+        function canGenerateSingle() { return ALL_TIERS_FREE || isAdmin() || !!ent().can_generate_single || !!ent().can_mint; }
+        function canMint()           { return ALL_TIERS_FREE || isAdmin() || !!ent().can_mint; }
+        function canPush()           { return ALL_TIERS_FREE || isAdmin() || !!ent().can_push; }
+        function canViewAnalytics()  { return ALL_TIERS_FREE || isAdmin() || !!ent().can_view_analytics; }
         function mintCredits()       { return Math.max(0, parseInt(ent().mint_credits, 10) || 0); }
 
         async function loadEntitlements() {
@@ -3014,6 +3028,10 @@ Add any product information here..."></textarea>
             if (view === 'mode') {
                 var batchLock = document.getElementById('modeBatchLock');
                 if (batchLock) batchLock.style.display = canMint() ? 'none' : 'block';
+            }
+            if (view === 'generator') {
+                var apk = document.getElementById('adminPrintKind');
+                if (apk) apk.style.display = isAdmin() ? 'block' : 'none';
             }
             if (view === 'myCodes') renderMyCodes();
             if (view === 'bizDashboard') loadDashboard();
@@ -4894,6 +4912,7 @@ Add any product information here..."></textarea>
                     user_id: userId,
                     label: qrData.label || 'QR Code',
                     url: qrData.url || '',
+                    source: qrData.source || null,
                     color: qrData.color || '#8B3A7F',
                     details: qrData.details || '',
                     status: qrData.status || 'draft',
@@ -5188,6 +5207,21 @@ Add any product information here..."></textarea>
             }
         }
 
+        // Admin flyer runs: what the printed QRs are for. 'note' = normal
+        // giver/receiver flow; 'business' = scan skips role selection and goes
+        // straight to the business claim.
+        var adminPrintKind = 'note';
+        function setPrintKind(kind) {
+            adminPrintKind = kind === 'business' ? 'business' : 'note';
+            var note = document.getElementById('printKindNote');
+            var biz  = document.getElementById('printKindBusiness');
+            [[note, adminPrintKind === 'note'], [biz, adminPrintKind === 'business']].forEach(function(p) {
+                if (!p[0]) return;
+                p[0].style.background = p[1] ? '#8B3A7F' : '#fff';
+                p[0].style.color      = p[1] ? '#fff' : '#8B3A7F';
+            });
+        }
+
         async function generateQR() {
             // Tier gate: single needs can_generate_single ($20+); multi/batch
             // needs can_mint ($19.99). isAdmin() bypasses both.
@@ -5354,6 +5388,8 @@ Add any product information here..."></textarea>
                     label: labels[i],
                     color: selectedColor,
                     includeLogo: includeLogo,
+                    // Admin flyer runs: 'business' QRs skip role selection on scan
+                    source: (isAdmin() && adminPrintKind === 'business') ? 'business' : null,
                     details: productData ? productData.details : '',
                     photo: productData ? productData.photo : null,
                     media: productData ? (productData.media || []) : [],
