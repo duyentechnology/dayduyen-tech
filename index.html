@@ -411,6 +411,18 @@
             text-decoration: underline;
         }
 
+        .studio-chip {
+            padding:9px 14px; border-radius:20px; border:2px solid #8B3A7F;
+            background:#fff; color:#8B3A7F; font-family:'Outfit',sans-serif;
+            font-weight:600; font-size:14px; cursor:pointer;
+        }
+        .studio-chip.sel { background:#8B3A7F; color:#fff; }
+        .studio-sw {
+            width:30px; height:30px; border-radius:50%; cursor:pointer;
+            border:2px solid #fff; box-shadow:0 0 0 1.5px #E8DDD6;
+        }
+        .studio-sw.sel { box-shadow:0 0 0 3px #8B3A7F; }
+
         .btn-social {
             display: flex;
             align-items: center;
@@ -2300,6 +2312,70 @@ Add any product information here..."></textarea>
                 <button type="button" id="dataViewerClose" style="background: rgba(255,255,255,0.2); border: none; color: white; width: 36px; height: 36px; border-radius: 50%; font-size: 18px; cursor: pointer; font-weight: bold;">✕</button>
             </div>
             <div id="dataViewerContent" style="padding: 24px;"></div>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         QR STUDIO (claimed business-profile QRs)
+    ========================================== -->
+    <div id="qrStudioView" class="view">
+        <div class="generator" style="max-width:520px;">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px;">
+                <button type="button" onclick="showView('myCodes')" style="background:none;border:none;color:#8B3A7F;font-size:22px;cursor:pointer;padding:0;">←</button>
+                <h2 style="font-family:'Cormorant Garamond',serif;font-size:1.8rem;font-weight:700;color:#8B3A7F;margin:0;">My QR Code</h2>
+            </div>
+            <div id="studioLabel" style="font-size:15px;color:#9A8478;margin-bottom:16px;"></div>
+
+            <div style="background:#fff;border:1.5px solid #E8DDD6;border-radius:14px;padding:16px;margin-bottom:16px;">
+                <div style="display:flex;justify-content:center;padding:6px 0 10px;"><canvas id="studioCanvas" style="max-width:230px;width:100%;height:auto;border-radius:8px;"></canvas></div>
+                <div style="font-size:14.5px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin:6px 0 8px;text-align:center;">QR Color</div>
+                <div id="studioFgRow" style="display:flex;gap:9px;justify-content:center;flex-wrap:wrap;"></div>
+                <div style="font-size:14.5px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin:14px 0 8px;text-align:center;">Background</div>
+                <div id="studioBgRow" style="display:flex;gap:9px;justify-content:center;flex-wrap:wrap;"></div>
+                <div id="studioContrast" style="font-size:13px;color:#9A8478;text-align:center;margin-top:12px;line-height:1.4;"></div>
+                <div style="font-size:14.5px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin:14px 0 8px;text-align:center;">Center Logo</div>
+                <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
+                    <button type="button" id="logoBtnDuyen" onclick="setStudioLogo('duyen')" class="studio-chip">緣 Duyên</button>
+                    <button type="button" id="logoBtnCustom" onclick="document.getElementById('studioLogoInput').click()" class="studio-chip">Upload logo…</button>
+                    <button type="button" id="logoBtnNone" onclick="setStudioLogo('none')" class="studio-chip">None</button>
+                    <input type="file" id="studioLogoInput" accept="image/*" style="display:none;" onchange="handleStudioLogo(this)">
+                </div>
+                <button id="studioSaveBtn" onclick="saveStudio()" style="width:100%;margin-top:16px;background:#8B3A7F;color:#fff;border:none;border-radius:11px;padding:12px;font-family:'Outfit',sans-serif;font-weight:600;font-size:16px;cursor:pointer;">Save QR Style</button>
+            </div>
+
+            <div style="background:#fff;border:1.5px solid #E8DDD6;border-radius:14px;padding:16px;margin-bottom:16px;">
+                <div style="font-size:14.5px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;">Print Center — Free</div>
+                <button type="button" onclick="printStudioPoster()" style="width:100%;text-align:left;background:#FBF7FB;border:1.5px solid #E8DDD6;border-radius:11px;padding:12px 14px;margin-bottom:8px;font-family:'Outfit',sans-serif;font-size:15.5px;color:#2E2A28;cursor:pointer;">📄 Flyer poster (PDF)<br><span style="font-size:13px;color:#9A8478;">Your QR + business name on one page</span></button>
+                <button type="button" onclick="downloadStudioPNG()" style="width:100%;text-align:left;background:#FBF7FB;border:1.5px solid #E8DDD6;border-radius:11px;padding:12px 14px;margin-bottom:14px;font-family:'Outfit',sans-serif;font-size:15.5px;color:#2E2A28;cursor:pointer;">⬇️ Download PNG<br><span style="font-size:13px;color:#9A8478;">High-res image for your own designer or printer</span></button>
+
+                <div style="font-size:15px;font-weight:700;color:#2E2A28;margin-bottom:4px;">Sticker sheet (PDF)</div>
+                <div style="font-size:13.5px;color:#5D4E44;line-height:1.55;background:#FBF7FB;border-radius:10px;padding:10px 12px;margin-bottom:10px;">
+                    <strong>How to measure your sheet:</strong> with a ruler, measure one sticker's width and height; the gap between neighboring stickers; and the distance from the top and left page edges to the first sticker. Enter everything in inches — decimals are fine (e.g. 0.13).
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+                    <label style="font-size:13px;color:#9A8478;">Sticker width (in)<input type="number" step="0.01" id="shLabelW" value="2" class="input-field" style="margin:2px 0 0;"></label>
+                    <label style="font-size:13px;color:#9A8478;">Sticker height (in)<input type="number" step="0.01" id="shLabelH" value="2" class="input-field" style="margin:2px 0 0;"></label>
+                    <label style="font-size:13px;color:#9A8478;">Gap across (in)<input type="number" step="0.01" id="shGapX" value="0.13" class="input-field" style="margin:2px 0 0;"></label>
+                    <label style="font-size:13px;color:#9A8478;">Gap down (in)<input type="number" step="0.01" id="shGapY" value="0.13" class="input-field" style="margin:2px 0 0;"></label>
+                    <label style="font-size:13px;color:#9A8478;">Top margin (in)<input type="number" step="0.01" id="shMarT" value="0.5" class="input-field" style="margin:2px 0 0;"></label>
+                    <label style="font-size:13px;color:#9A8478;">Left margin (in)<input type="number" step="0.01" id="shMarL" value="0.19" class="input-field" style="margin:2px 0 0;"></label>
+                </div>
+                <label style="font-size:13px;color:#9A8478;">Paper
+                    <select id="shPage" class="input-field" style="margin:2px 0 10px;">
+                        <option value="letter">Letter (8.5 × 11 in)</option>
+                        <option value="a4">A4 (8.27 × 11.69 in)</option>
+                    </select>
+                </label>
+                <button type="button" onclick="printStudioSheet()" style="width:100%;background:#fff;color:#8B3A7F;border:2px solid #8B3A7F;border-radius:11px;padding:11px;font-family:'Outfit',sans-serif;font-weight:600;font-size:15.5px;cursor:pointer;">🖨 Make my sticker sheet PDF</button>
+
+                <div style="font-size:13.5px;color:#5D4E44;line-height:1.6;background:#FBF7FB;border-radius:10px;padding:10px 12px;margin-top:12px;">
+                    <strong>Printing settings that matter:</strong><br>
+                    · Print at <strong>100% / Actual size</strong> — never "Fit to page"<br>
+                    · Set the paper size to match what you chose above<br>
+                    · Turn <strong>off</strong> borderless / auto-rotate options<br>
+                    · Print one test page on plain paper first and hold it against your sticker sheet to check alignment before using real sticker paper
+                </div>
+            </div>
         </div>
     </div>
 
@@ -6300,6 +6376,226 @@ Add any product information here..."></textarea>
             }
         }
         // ────────────────────────────────────────────────────────────────────
+        // QR STUDIO — customization + print for claimed business-profile QRs
+        // (source==='business' only; notes never get this).
+        var studioState = { idx: -1, fg: '#8B3A7F', bg: '#FFFFFF', logoMode: 'duyen', logoUrl: null, logoImg: null };
+        var STUDIO_FG = ['#8B3A7F', '#DA251D', '#1C1410', '#166534', '#0A66C2', '#6e2d65'];
+        var STUDIO_BG = ['#FFFFFF', '#F0E5F0', '#FDF8F5', '#FFF8E1'];
+
+        function studioItem() { return savedQRCodes[studioState.idx] || null; }
+
+        function openQrStudio(idx) {
+            var item = savedQRCodes[idx];
+            if (!item || item.source !== 'business') return;
+            var lm = item.link_meta;
+            if (typeof lm === 'string') { try { lm = JSON.parse(lm); } catch(e) { lm = null; } }
+            lm = lm || {};
+            studioState = {
+                idx: idx,
+                fg: item.color || '#8B3A7F',
+                bg: lm.qr_bg || '#FFFFFF',
+                logoMode: lm.qr_logo ? 'custom' : (item.include_logo === false ? 'none' : 'duyen'),
+                logoUrl: lm.qr_logo || null,
+                logoImg: null,
+            };
+            document.getElementById('studioLabel').textContent = item.label || 'Business QR';
+            if (studioState.logoUrl) loadStudioLogoImg(studioState.logoUrl);
+            buildStudioSwatches();
+            showView('qrStudio');
+            renderStudio();
+        }
+
+        function buildStudioSwatches() {
+            var fgRow = document.getElementById('studioFgRow');
+            var bgRow = document.getElementById('studioBgRow');
+            function row(el, colors, key) {
+                el.innerHTML = '';
+                colors.forEach(function(c) {
+                    var d = document.createElement('div');
+                    d.className = 'studio-sw' + (studioState[key].toUpperCase() === c.toUpperCase() ? ' sel' : '');
+                    d.style.background = c;
+                    d.onclick = function() { studioState[key] = c; buildStudioSwatches(); renderStudio(); };
+                    el.appendChild(d);
+                });
+                // free-pick color input
+                var pick = document.createElement('input');
+                pick.type = 'color'; pick.value = studioState[key];
+                pick.style.cssText = 'width:30px;height:30px;border:none;border-radius:50%;padding:0;background:none;cursor:pointer;';
+                pick.oninput = function() { studioState[key] = pick.value; renderStudio(); };
+                el.appendChild(pick);
+            }
+            row(fgRow, STUDIO_FG, 'fg');
+            row(bgRow, STUDIO_BG, 'bg');
+            ['duyen','custom','none'].forEach(function(m) {
+                var b = document.getElementById('logoBtn' + m.charAt(0).toUpperCase() + m.slice(1));
+                if (b) b.className = 'studio-chip' + (studioState.logoMode === m ? ' sel' : '');
+            });
+        }
+
+        function setStudioLogo(mode) { studioState.logoMode = mode; buildStudioSwatches(); renderStudio(); }
+
+        function loadStudioLogoImg(url) {
+            var img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = function() { studioState.logoImg = img; renderStudio(); };
+            img.src = url;
+        }
+
+        async function handleStudioLogo(input) {
+            var file = input.files && input.files[0];
+            input.value = '';
+            if (!file || !currentUser) return;
+            try {
+                var path = 'edit/' + currentUser.id + '/qrlogo_' + Date.now() + '.' + (file.name.split('.').pop() || 'png');
+                var up = await db.storage.from('qr-media').upload(path, file, { cacheControl: '31536000', upsert: false });
+                if (up.error) { alert('Could not upload logo: ' + up.error.message); return; }
+                var pub = db.storage.from('qr-media').getPublicUrl(path);
+                studioState.logoUrl = pub.data.publicUrl;
+                studioState.logoMode = 'custom';
+                loadStudioLogoImg(studioState.logoUrl);
+                buildStudioSwatches();
+            } catch(e) { alert('Could not upload logo. Please try again.'); }
+        }
+
+        // Relative-luminance contrast between QR and background — low contrast
+        // codes fail to scan. Block saving under 2:1, warn under 4:1.
+        function studioContrast() {
+            function lum(hex) {
+                var c = hex.replace('#',''); if (c.length === 3) c = c.replace(/./g, '$&$&');
+                var v = [0,2,4].map(function(i){ var x = parseInt(c.substr(i,2),16)/255;
+                    return x <= 0.03928 ? x/12.92 : Math.pow((x+0.055)/1.055, 2.4); });
+                return 0.2126*v[0] + 0.7152*v[1] + 0.0722*v[2];
+            }
+            var a = lum(studioState.fg), b = lum(studioState.bg);
+            return (Math.max(a,b)+0.05) / (Math.min(a,b)+0.05);
+        }
+
+        function renderStudioCanvas(canvas, size) {
+            var item = studioItem(); if (!item) return;
+            var qr = qrcode(0, 'H'); // high correction tolerates the center logo
+            qr.addData(item.url); qr.make();
+            var n = qr.getModuleCount();
+            var cell = Math.max(1, Math.floor(size / (n + 8)));
+            var dim = cell * (n + 8);
+            canvas.width = dim; canvas.height = dim;
+            var ctx = canvas.getContext('2d');
+            ctx.fillStyle = studioState.bg; ctx.fillRect(0, 0, dim, dim);
+            ctx.fillStyle = studioState.fg;
+            for (var r = 0; r < n; r++) for (var c = 0; c < n; c++)
+                if (qr.isDark(r, c)) ctx.fillRect((c+4)*cell, (r+4)*cell, cell, cell);
+            if (studioState.logoMode === 'duyen') {
+                drawLogoOnCanvas(canvas, studioState.fg);
+            } else if (studioState.logoMode === 'custom' && studioState.logoImg) {
+                var cx = dim/2, cy = dim/2, R = dim * 0.22 * 0.7;
+                ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI*2); ctx.fillStyle = '#FFFFFF'; ctx.fill();
+                ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, R*0.88, 0, Math.PI*2); ctx.clip();
+                var img = studioState.logoImg, s = (R*0.88*2) / Math.min(img.width, img.height);
+                ctx.drawImage(img, cx - img.width*s/2, cy - img.height*s/2, img.width*s, img.height*s);
+                ctx.restore();
+            }
+        }
+
+        function renderStudio() {
+            var canvas = document.getElementById('studioCanvas');
+            if (canvas) renderStudioCanvas(canvas, 460);
+            var ratio = studioContrast();
+            var el = document.getElementById('studioContrast');
+            var save = document.getElementById('studioSaveBtn');
+            if (ratio < 2) {
+                el.innerHTML = '⛔ <strong>Too little contrast — this QR will not scan.</strong> Pick a darker QR color or lighter background.';
+                el.style.color = '#c53030';
+                if (save) { save.disabled = true; save.style.opacity = '0.5'; }
+            } else if (ratio < 4) {
+                el.innerHTML = '⚠️ Low contrast — may scan poorly in dim light. A darker QR color is safer.';
+                el.style.color = '#b45309';
+                if (save) { save.disabled = false; save.style.opacity = '1'; }
+            } else {
+                el.innerHTML = '✓ Good contrast — scans reliably.';
+                el.style.color = '#166534';
+                if (save) { save.disabled = false; save.style.opacity = '1'; }
+            }
+        }
+
+        async function saveStudio() {
+            var item = studioItem(); if (!item) return;
+            var btn = document.getElementById('studioSaveBtn');
+            btn.disabled = true; btn.textContent = 'Saving…';
+            try {
+                var lm = item.link_meta;
+                if (typeof lm === 'string') { try { lm = JSON.parse(lm); } catch(e) { lm = null; } }
+                lm = lm || {};
+                lm.qr_bg = studioState.bg;
+                lm.qr_logo = studioState.logoMode === 'custom' ? studioState.logoUrl : null;
+                var { error } = await db.from('qr_codes').update({
+                    color: studioState.fg,
+                    include_logo: studioState.logoMode === 'duyen',
+                    link_meta: lm,
+                    updated_at: new Date().toISOString(),
+                }).eq('id', item.dbId || item.id);
+                if (error) { alert('Could not save: ' + error.message); return; }
+                item.color = studioState.fg;
+                item.include_logo = studioState.logoMode === 'duyen';
+                item.link_meta = lm;
+                btn.textContent = '✓ Saved';
+                setTimeout(function() { btn.textContent = 'Save QR Style'; }, 1500);
+            } catch(e) {
+                alert('Could not save. Please try again.');
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        function studioPngDataUrl(px) {
+            var c = document.createElement('canvas');
+            renderStudioCanvas(c, px || 1200);
+            return c.toDataURL('image/png');
+        }
+
+        function downloadStudioPNG() {
+            var item = studioItem(); if (!item) return;
+            var a = document.createElement('a');
+            a.href = studioPngDataUrl(1200);
+            a.download = (item.label || 'business-qr').replace(/[^\w-]+/g, '_') + '.png';
+            a.click();
+        }
+
+        function printStudioPoster() {
+            var item = studioItem(); if (!item) return;
+            var jsPDF = (window.jspdf || {}).jsPDF;
+            if (!jsPDF) { alert('PDF library not loaded — check your connection and retry.'); return; }
+            var doc = new jsPDF({ unit: 'in', format: 'letter' });
+            var name = (bizProfileData && bizProfileData.name) || item.label || 'My Business';
+            doc.setFont('times', 'bold'); doc.setFontSize(30);
+            doc.text(String(name), 4.25, 1.6, { align: 'center' });
+            doc.addImage(studioPngDataUrl(1200), 'PNG', 1.75, 2.2, 5, 5);
+            doc.setFont('helvetica', 'normal'); doc.setFontSize(13); doc.setTextColor(120);
+            doc.text('Scan to see who we are — and save us for later', 4.25, 7.7, { align: 'center' });
+            doc.save((item.label || 'business-qr').replace(/[^\w-]+/g, '_') + '_poster.pdf');
+        }
+
+        function printStudioSheet() {
+            var item = studioItem(); if (!item) return;
+            var jsPDF = (window.jspdf || {}).jsPDF;
+            if (!jsPDF) { alert('PDF library not loaded — check your connection and retry.'); return; }
+            var v = function(id) { return parseFloat(document.getElementById(id).value) || 0; };
+            var lw = v('shLabelW'), lh = v('shLabelH'), gx = v('shGapX'), gy = v('shGapY'), mt = v('shMarT'), ml = v('shMarL');
+            if (lw <= 0.4 || lh <= 0.4) { alert('Sticker size must be at least 0.4 inch — QR codes smaller than that scan poorly.'); return; }
+            var page = document.getElementById('shPage').value;
+            var pw = page === 'a4' ? 8.27 : 8.5, ph = page === 'a4' ? 11.69 : 11;
+            var cols = Math.floor((pw - ml*2 + gx) / (lw + gx));
+            var rows = Math.floor((ph - mt*2 + gy) / (lh + gy));
+            if (cols < 1 || rows < 1) { alert('Those measurements do not fit on the page — double-check the sticker size and margins.'); return; }
+            var doc = new jsPDF({ unit: 'in', format: page === 'a4' ? 'a4' : 'letter' });
+            var png = studioPngDataUrl(900);
+            var q = Math.min(lw, lh) * 0.94; // QR square inside each sticker
+            for (var r = 0; r < rows; r++) for (var c = 0; c < cols; c++) {
+                var x = ml + c*(lw+gx) + (lw-q)/2;
+                var y = mt + r*(lh+gy) + (lh-q)/2;
+                doc.addImage(png, 'PNG', x, y, q, q);
+            }
+            doc.save((item.label || 'business-qr').replace(/[^\w-]+/g, '_') + '_stickers_' + cols + 'x' + rows + '.pdf');
+        }
+        // ────────────────────────────────────────────────────────────────────
 
         function renderMyCodes() {
             var grid = document.getElementById('myCodesGrid');
@@ -6413,6 +6709,7 @@ Add any product information here..."></textarea>
                                 '<button type="button" class="card-action-btn card-action-edit" id="editBtn-' + realIndex + '">✏️ Edit</button>' +
                                 '<button type="button" class="card-action-btn card-action-download" id="dlBtn-' + realIndex + '">⬇️ PNG</button>' +
                             '</div>' +
+                            (qrItem.source === 'business' ? '<button type="button" id="studioBtn-' + realIndex + '" style="width:100%;margin-top:8px;background:#8B3A7F;color:#fff;border:none;border-radius:10px;padding:10px;font-family:\'Outfit\',sans-serif;font-weight:600;font-size:14.5px;cursor:pointer;">🎨 Customize & print</button>' : '') +
                         '</div>';
                     
                     grid.appendChild(card);
@@ -6423,6 +6720,9 @@ Add any product information here..."></textarea>
                     
                     var dlBtn = document.getElementById('dlBtn-' + realIndex);
                     if (dlBtn) dlBtn.addEventListener('click', function(ev) { ev.stopPropagation(); quickDownloadQR(realIndex); });
+
+                    var studioBtn = document.getElementById('studioBtn-' + realIndex);
+                    if (studioBtn) studioBtn.addEventListener('click', function(ev) { ev.stopPropagation(); openQrStudio(realIndex); });
                     
                     var dataArea = document.getElementById('cardData-' + realIndex);
                     if (dataArea && !batchEditMode) {
