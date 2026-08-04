@@ -4113,6 +4113,19 @@ Add any product information here..."></textarea>
                     await db.from('qr_codes').update({ about_photos: aboutUrls }).eq('business_user_id', user.id);
                 } catch (e) { console.error('About photos push:', e); }
 
+                // Arrived via a scanned code without a profile: profile is now
+                // saved, so continue the claim right away — no success modal,
+                // no camera, the code is already known.
+                var pendingClaim = null;
+                try { pendingClaim = localStorage.getItem('pendingClaimQr'); } catch(e) {}
+                if (pendingClaim) {
+                    try { localStorage.removeItem('pendingClaimQr'); } catch(e) {}
+                    bizIsFirstTime = false;
+                    showView('myCodes');
+                    handleClaim(pendingClaim);
+                    return;
+                }
+
                 // Fresh claim: profile done — take them to their QR Studio.
                 var pcQr = null;
                 try { pcQr = localStorage.getItem('postClaimQr'); } catch(e) {}
@@ -7610,6 +7623,25 @@ Add any product information here..."></textarea>
                     var isBrandNewLogin = (event === 'SIGNED_IN');
                     console.log('🧭 Routing — bizProfileData:', JSON.stringify(bizProfileData), '| hash:', hash, '| event:', event);
 
+                    // A claim arrival outranks everything — it must never be
+                    // dropped by the first-timer redirect. New accounts do
+                    // profile setup first, then the claim continues on its own
+                    // (no camera re-scan: we already know the code).
+                    if (hash && hash.startsWith('claim/')) {
+                        var claimId = hash.replace('claim/', '').trim();
+                        hasRoutedOnLoad = true;
+                        if (!bizProfileData || !bizProfileData.name) {
+                            try { localStorage.setItem('pendingClaimQr', claimId); } catch(e) {}
+                            console.log('🆕 Claim arrival, no profile → bizProfile first');
+                            bizIsFirstTime = true;
+                            showView('bizProfile');
+                            return;
+                        }
+                        showView('myCodes');
+                        handleClaim(claimId);
+                        return;
+                    }
+
                     // First-timer redirect ONLY on a brand-new login,
                     // not on every page reload (avoids the jumping bug).
                     if (isBrandNewLogin && (!bizProfileData || !bizProfileData.name)) {
@@ -7621,14 +7653,6 @@ Add any product information here..."></textarea>
                     }
 
                     bizIsFirstTime = false;
-
-                    if (hash && hash.startsWith('claim/')) {
-                        var claimId = hash.replace('claim/', '').trim();
-                        showView('myCodes');
-                        handleClaim(claimId);
-                        hasRoutedOnLoad = true;
-                        return;
-                    }
 
                     // Just claimed a business QR: profile setup first (if they
                     // have none), then the QR Studio for that code.
