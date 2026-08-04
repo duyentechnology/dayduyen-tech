@@ -4058,6 +4058,7 @@ Add any product information here..."></textarea>
                     profileId: profileId,
                     profileLabel: sanitize(profileLabel),
                     name: sanitize(name),
+                    logo: bizLogoUrl || (bizProfileData && bizProfileData.logo) || null,
                     description: sanitize((document.getElementById('bizDesc')    || {}).value || ''),
                     email:       (document.getElementById('bizEmail')   || {}).value || '',
                     phone:       (document.getElementById('bizPhone')   || {}).value || '',
@@ -4229,6 +4230,11 @@ Add any product information here..."></textarea>
 
         function populateBizProfile() {
             if (!bizProfileData) return;
+            if (bizProfileData.logo) {
+                bizLogoUrl = bizProfileData.logo;
+                var lp = document.getElementById('bizLogoPreview');
+                if (lp) lp.innerHTML = '<img src="' + bizProfileData.logo + '" style="width:64px;height:64px;object-fit:cover;border-radius:50%;border:2px solid #8B3A7F;">';
+            }
             var _f = function(id, val) { var el = document.getElementById(id); if(el) el.value = val || ''; };
             _f('bizProfileLabel', bizProfileData.profileLabel || bizProfileData.name || '');
             _f('bizName',     bizProfileData.name);
@@ -4375,14 +4381,26 @@ Add any product information here..."></textarea>
             if (addBtn) addBtn.style.display = menuPhotos.length >= MENU_MAX ? 'none' : 'flex';
         }
 
-        function previewBizLogo(input) {
+        var bizLogoUrl = null; // persisted with the profile; shown on customer scans & tapestry Polaroids
+        async function previewBizLogo(input) {
             if (!input.files || !input.files[0]) return;
+            var file = input.files[0];
             var reader = new FileReader();
             reader.onload = function(e) {
                 var el = document.getElementById('bizLogoPreview');
                 if (el) el.innerHTML = '<img src="' + e.target.result + '" style="width:64px;height:64px;object-fit:cover;border-radius:50%;border:2px solid #8B3A7F;">';
             };
-            reader.readAsDataURL(input.files[0]);
+            reader.readAsDataURL(file);
+            // Actually persist it — the preview alone used to be theater.
+            try {
+                var { data: sd } = await db.auth.getSession();
+                var user = sd && sd.session && sd.session.user;
+                if (!user) return;
+                var path = 'biz/' + user.id + '/logo_' + Date.now() + '.' + (file.name.split('.').pop() || 'png');
+                var up = await db.storage.from('qr-media').upload(path, file, { cacheControl: '31536000', upsert: false });
+                if (up.error) { console.error('Logo upload:', up.error); return; }
+                bizLogoUrl = db.storage.from('qr-media').getPublicUrl(path).data.publicUrl;
+            } catch(e) { console.error('Logo upload failed:', e); }
         }
 
         function showBizProfilePreview() {
