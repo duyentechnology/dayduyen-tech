@@ -2798,14 +2798,21 @@ Add any product information here..."></textarea>
         window.entitlements = window.entitlements || null;
         function ent() { return window.entitlements || {}; }
         // Single generation is included in the multi tier, so canMint() implies it.
-        // TEMP TESTING SWITCH: while true, every tier is unlocked for every
-        // account so features can be tested/viewed without paying. Flip to
-        // false to restore the real paywalls before launch.
-        var ALL_TIERS_FREE = false;
-        function canGenerateSingle() { return ALL_TIERS_FREE || isAdmin() || !!ent().can_generate_single || !!ent().can_mint; }
-        function canMint()           { return ALL_TIERS_FREE || isAdmin() || !!ent().can_mint; }
-        function canPush()           { return ALL_TIERS_FREE || isAdmin() || !!ent().can_push; }
-        function canViewAnalytics()  { return ALL_TIERS_FREE || isAdmin() || !!ent().can_view_analytics; }
+        // TEMP TESTING SWITCH — graduated tier grant for flow testing.
+        // '' = real experience (no subscription; paywalls fully on).
+        // 'generator' = as if the $20 one-time was bought.
+        // 'insights'  = + analytics & promotions ($9.99 tier).
+        // 'boutique'  = + batch minting (everything, $19.99 tier).
+        // Applies to every non-admin account; set back to '' before launch.
+        var TEST_GRANT_TIER = '';
+        function testTier(t) {
+            var order = ['generator', 'insights', 'boutique'];
+            return order.indexOf(TEST_GRANT_TIER) >= order.indexOf(t);
+        }
+        function canGenerateSingle() { return testTier('generator') || isAdmin() || !!ent().can_generate_single || !!ent().can_mint; }
+        function canMint()           { return testTier('boutique') || isAdmin() || !!ent().can_mint; }
+        function canPush()           { return testTier('insights') || isAdmin() || !!ent().can_push; }
+        function canViewAnalytics()  { return testTier('insights') || isAdmin() || !!ent().can_view_analytics; }
         function mintCredits()       { return Math.max(0, parseInt(ent().mint_credits, 10) || 0); }
 
         async function loadEntitlements() {
