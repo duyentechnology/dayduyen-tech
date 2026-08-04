@@ -1708,7 +1708,7 @@ Add any product information here..."></textarea>
                         <option value="draft">Drafts</option>
                     </select>
                     <button type="button" id="batchEditToggle" class="btn-primary" style="background: #3D2E24;">✏️ Batch Edit</button>
-                    <button class="btn-primary" onclick="showView('mode')">+ New QR Code</button>
+                    <button class="btn-primary" id="myCodesNewBtn" onclick="showView('mode')">+ New QR Code</button>
                 </div>
             </div>
             
@@ -6631,12 +6631,37 @@ Add any product information here..."></textarea>
         }
         // ────────────────────────────────────────────────────────────────────
 
+        function shareQRCode(idx) {
+            var item = savedQRCodes[idx];
+            if (!item) return;
+            var url = item.url || '';
+            if (navigator.share) {
+                navigator.share({ title: item.label || 'My QR code', url: url }).catch(function(){});
+            } else {
+                try {
+                    navigator.clipboard.writeText(url);
+                    alert('Link copied: ' + url);
+                } catch(e) {
+                    prompt('Copy this link:', url);
+                }
+            }
+        }
+
         function renderMyCodes() {
             var grid = document.getElementById('myCodesGrid');
             var emptyState = document.getElementById('myCodesEmpty');
             var subtitle = document.getElementById('myCodesSubtitle');
             var search = (document.getElementById('searchCodes').value || '').toLowerCase();
             var filterStatus = document.getElementById('filterStatus').value;
+
+            // Businesses get the simple list — scans, saves, share. The
+            // operator toolkit (batch edit, drafts, per-code data editing)
+            // is admin-only; their edits live on the business profile.
+            var simpleMode = !isAdmin();
+            ['batchEditToggle', 'filterStatus'].forEach(function(id) {
+                var el = document.getElementById(id);
+                if (el) el.style.display = simpleMode ? 'none' : '';
+            });
             
             var filtered = savedQRCodes.filter(function(qr) {
                 var matchSearch = !search || qr.label.toLowerCase().indexOf(search) !== -1 || (qr.details && qr.details.toLowerCase().indexOf(search) !== -1);
@@ -6730,21 +6755,37 @@ Add any product information here..."></textarea>
                         ? '<div class="batch-checkbox-overlay"><input type="checkbox" id="batchCb-' + realIndex + '" ' + (batchSelectedIndices.has(realIndex) ? 'checked' : '') + ' style="width: 22px; height: 22px; accent-color: #8B3A7F; cursor: pointer;"></div>'
                         : '';
                     
-                    card.innerHTML =
-                        checkboxHTML +
-                        '<div class="qr-card-preview"><canvas id="cardQR-' + realIndex + '" width="120" height="120"></canvas></div>' +
-                        '<div class="qr-card-body">' +
+                    var simpleStats =
+                        '<div class="qr-card-meta" style="color: var(--brand-red); font-weight: 600;">📊 ' + (qrItem.scan_count || 0) + ' scan' + ((qrItem.scan_count || 0) !== 1 ? 's' : '') +
+                        ' &nbsp;·&nbsp; 💾 ' + (qrItem.save_count || 0) + ' save' + ((qrItem.save_count || 0) !== 1 ? 's' : '') + '</div>';
+
+                    card.innerHTML = simpleMode
+                        ? '<div class="qr-card-preview"><canvas id="cardQR-' + realIndex + '" width="120" height="120"></canvas></div>' +
+                          '<div class="qr-card-body">' +
+                              '<div class="qr-card-label">' + qrItem.label + '</div>' +
+                              '<div class="qr-card-meta">Created ' + dateStr + '</div>' +
+                              simpleStats +
+                              '<div class="qr-card-actions">' +
+                                  '<button type="button" class="card-action-btn card-action-download" id="shareBtn-' + realIndex + '">📤 Share</button>' +
+                                  '<button type="button" class="card-action-btn card-action-download" id="dlBtn-' + realIndex + '">⬇️ PNG</button>' +
+                              '</div>' +
+                              (qrItem.source === 'business' ? '<button type="button" id="studioBtn-' + realIndex + '" style="width:100%;margin-top:8px;background:#8B3A7F;color:#fff;border:none;border-radius:10px;padding:10px;font-family:\'Outfit\',sans-serif;font-weight:600;font-size:14.5px;cursor:pointer;">🎨 Customize & print</button>' : '') +
+                          '</div>'
+                        : checkboxHTML +
+                          '<div class="qr-card-preview"><canvas id="cardQR-' + realIndex + '" width="120" height="120"></canvas></div>' +
+                          '<div class="qr-card-body">' +
                             '<div class="qr-card-label">' + qrItem.label + '</div>' +
                             '<div class="qr-card-meta">Created ' + dateStr + '</div>' +
-                            '<div class="qr-card-meta" style="color: var(--brand-red); font-weight: 600;">📊 ' + (qrItem.scan_count || 0) + ' scan' + ((qrItem.scan_count || 0) !== 1 ? 's' : '') + '</div>' +
+                            simpleStats +
                             '<div class="qr-card-badges">' + badges + '</div>' +
                             dataBoxesHTML +
                             '<div class="qr-card-actions">' +
                                 '<button type="button" class="card-action-btn card-action-edit" id="editBtn-' + realIndex + '">✏️ Edit</button>' +
+                                '<button type="button" class="card-action-btn card-action-download" id="shareBtn-' + realIndex + '">📤 Share</button>' +
                                 '<button type="button" class="card-action-btn card-action-download" id="dlBtn-' + realIndex + '">⬇️ PNG</button>' +
                             '</div>' +
                             (qrItem.source === 'business' ? '<button type="button" id="studioBtn-' + realIndex + '" style="width:100%;margin-top:8px;background:#8B3A7F;color:#fff;border:none;border-radius:10px;padding:10px;font-family:\'Outfit\',sans-serif;font-weight:600;font-size:14.5px;cursor:pointer;">🎨 Customize & print</button>' : '') +
-                        '</div>';
+                          '</div>';
                     
                     grid.appendChild(card);
                     
@@ -6757,6 +6798,9 @@ Add any product information here..."></textarea>
 
                     var studioBtn = document.getElementById('studioBtn-' + realIndex);
                     if (studioBtn) studioBtn.addEventListener('click', function(ev) { ev.stopPropagation(); openQrStudio(realIndex); });
+
+                    var shareBtn = document.getElementById('shareBtn-' + realIndex);
+                    if (shareBtn) shareBtn.addEventListener('click', function(ev) { ev.stopPropagation(); shareQRCode(realIndex); });
                     
                     var dataArea = document.getElementById('cardData-' + realIndex);
                     if (dataArea && !batchEditMode) {
@@ -7595,6 +7639,7 @@ Add any product information here..."></textarea>
                                 files: row.files || [],
                                 photo: row.photo || null,
                                 scan_count: row.scan_count || 0,
+                                save_count: row.save_count || 0,
                                 last_scanned_at: row.last_scanned_at || null
                             };
                         });
