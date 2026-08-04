@@ -4112,6 +4112,15 @@ Add any product information here..."></textarea>
                     await db.from('qr_codes').update({ about_photos: aboutUrls }).eq('user_id', user.id);
                     await db.from('qr_codes').update({ about_photos: aboutUrls }).eq('business_user_id', user.id);
                 } catch (e) { console.error('About photos push:', e); }
+                // Refresh the profile snapshot on every QR already carrying one,
+                // so address/phone/social edits go live on all attached codes.
+                // Rows without business_data (blank claimed notes) are left
+                // alone — their scan behavior must not change.
+                try {
+                    await db.from('qr_codes').update({ business_data: newProfile })
+                        .eq('business_user_id', user.id)
+                        .not('business_data', 'is', null);
+                } catch (e) { console.error('Business data sync:', e); }
 
                 // Arrived via a scanned code without a profile: profile is now
                 // saved, so continue the claim right away — no success modal,
