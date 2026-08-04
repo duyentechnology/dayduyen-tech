@@ -6345,11 +6345,17 @@ Add any product information here..."></textarea>
                 banner.innerHTML = '<p style="color:#8B3A7F;font-weight:600;margin:0;">🔒 This QR code has already been claimed by another account.</p>';
             } else {
                 banner.innerHTML =
-                    '<div style="font-size:1.1rem;font-weight:700;color:#3d1a38;margin-bottom:0.5rem;">📦 Claim This QR Code</div>' +
-                    '<p style="color:#5D4E44;font-size:1.025rem;margin:0 0 1rem;"><strong>' + (qrData.label || 'Unnamed Card') + '</strong><br>' +
-                    '<span style="font-size:0.905rem;color:#9A8478;">' + (qrData.url || '') + '</span></p>' +
-                    '<button onclick="saveClaimToAccount(\'' + qrData.id + '\')" style="background:#8B3A7F;color:white;border:none;border-radius:12px;padding:10px 24px;font-size:1.025rem;font-weight:600;cursor:pointer;">✅ Save to My Account</button>' +
-                    '<button onclick="document.getElementById(\'claimBanner\').remove();window.history.replaceState(null,\'\',window.location.pathname);" style="background:none;border:none;color:#9A8478;font-size:0.975rem;cursor:pointer;margin-left:1rem;">Dismiss</button>';
+                    (function() {
+                        // With a profile on the account, speak in attach language;
+                        // for brand-new accounts keep the claim wording.
+                        var bn = (bizProfileData && bizProfileData.name) ? sanitize(bizProfileData.name) : null;
+                        return '<div style="font-size:1.1rem;font-weight:700;color:#3d1a38;margin-bottom:0.5rem;">' + (bn ? '🔗 Attach this QR code to your business' : '📦 Claim This QR Code') + '</div>' +
+                        '<p style="color:#5D4E44;font-size:1.025rem;margin:0 0 1rem;"><strong>' + (qrData.label || 'Unnamed Card') + '</strong><br>' +
+                        '<span style="font-size:0.905rem;color:#9A8478;">' + (qrData.url || '') + '</span>' +
+                        (bn ? '<br><span style="font-size:0.905rem;color:#5D4E44;">Scans of this code will connect to <strong>' + bn + '</strong>.</span>' : '') + '</p>' +
+                        '<button onclick="saveClaimToAccount(\'' + qrData.id + '\')" style="background:#8B3A7F;color:white;border:none;border-radius:12px;padding:10px 24px;font-size:1.025rem;font-weight:600;cursor:pointer;">' + (bn ? '🔗 Attach ' + bn : '✅ Save to My Account') + '</button>' +
+                        '<button onclick="document.getElementById(\'claimBanner\').remove();window.history.replaceState(null,\'\',window.location.pathname);" style="background:none;border:none;color:#9A8478;font-size:0.975rem;cursor:pointer;margin-left:1rem;">Dismiss</button>';
+                    })();
             }
 
             var grid = document.getElementById('myCodesGrid');
