@@ -2778,7 +2778,9 @@ Add any product information here..."></textarea>
         }
 
         var ADMIN_EMAIL = 'redruffles@live.com';
-        var GENERATOR_VIEWS = ['mode', 'generator', 'myCodes', 'editQR'];
+        // Viewing your own codes (myCodes) is free — claimed businesses need
+        // their list, claim banner, and studio. Only creation/editing is gated.
+        var GENERATOR_VIEWS = ['mode', 'generator', 'editQR'];
 
         function isAdmin() {
             return currentUser && currentUser.email === ADMIN_EMAIL;
@@ -2799,7 +2801,7 @@ Add any product information here..."></textarea>
         // TEMP TESTING SWITCH: while true, every tier is unlocked for every
         // account so features can be tested/viewed without paying. Flip to
         // false to restore the real paywalls before launch.
-        var ALL_TIERS_FREE = true;
+        var ALL_TIERS_FREE = false;
         function canGenerateSingle() { return ALL_TIERS_FREE || isAdmin() || !!ent().can_generate_single || !!ent().can_mint; }
         function canMint()           { return ALL_TIERS_FREE || isAdmin() || !!ent().can_mint; }
         function canPush()           { return ALL_TIERS_FREE || isAdmin() || !!ent().can_push; }
@@ -3080,11 +3082,11 @@ Add any product information here..."></textarea>
         function applyAdminNav() {
             var newQR    = document.getElementById('adminNewQR');
             var myCodes  = document.getElementById('adminMyCodes');
-            // Generator nav shows for admins and any tier that can generate
-            // (single $20, or multi $19.99).
-            var show = isAdmin() || canGenerateSingle() || canMint();
-            if (newQR)   newQR.style.display   = show ? 'inline-block' : 'none';
-            if (myCodes) myCodes.style.display  = show ? 'inline-block' : 'none';
+            // + New QR shows for admins and paying generators; My Codes also
+            // shows for anyone who owns/claimed codes (viewing is free).
+            var canGen = isAdmin() || canGenerateSingle() || canMint();
+            if (newQR)   newQR.style.display   = canGen ? 'inline-block' : 'none';
+            if (myCodes) myCodes.style.display = (canGen || savedQRCodes.length > 0) ? 'inline-block' : 'none';
         }
 
         function showView(view) {
@@ -7662,6 +7664,7 @@ Add any product information here..."></textarea>
                 renderMyCodes();
                 updateQRCount();
                 loadPrintTemplates();
+                applyAdminNav(); // re-run now codes are loaded — My Codes nav shows for claimed-code owners
 
                 // Load business profile FIRST, then navigate
                 loadBizProfileFromSupabase(session.access_token).then(function() {
