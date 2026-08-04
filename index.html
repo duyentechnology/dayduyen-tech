@@ -6693,6 +6693,30 @@ Add any product information here..."></textarea>
                 var el = document.getElementById(id);
                 if (el) el.style.display = simpleMode ? 'none' : '';
             });
+            // + New QR Code only for accounts that can actually generate.
+            var newBtn = document.getElementById('myCodesNewBtn');
+            if (newBtn) newBtn.style.display = (isAdmin() || canGenerateSingle() || canMint()) ? '' : 'none';
+
+            // Free businesses (no analytics tier): just the attachment count.
+            // Scan/save data, sharing, and promotions open with the first
+            // paid tier (Insights).
+            var freeView = simpleMode && !canViewAnalytics();
+            var searchEl = document.getElementById('searchCodes');
+            if (searchEl) searchEl.style.display = freeView ? 'none' : '';
+            if (freeView) {
+                var n = savedQRCodes.length;
+                subtitle.textContent = '';
+                emptyState.style.display = 'none';
+                grid.style.display = 'grid';
+                grid.innerHTML =
+                    '<div style="grid-column:1/-1;background:#fff;border:1.5px solid #E8DDD6;border-radius:16px;padding:26px 20px;text-align:center;">' +
+                        '<div style="font-family:\'Cormorant Garamond\',serif;font-size:44px;font-weight:700;color:#8B3A7F;line-height:1;">' + n + '</div>' +
+                        '<div style="font-size:16px;color:#2E2A28;margin-top:6px;font-family:\'Outfit\',sans-serif;">QR code' + (n !== 1 ? 's' : '') + ' carrying your business profile</div>' +
+                        '<div style="font-size:14px;color:#9A8478;margin-top:12px;line-height:1.55;font-family:\'Outfit\',sans-serif;">See who scans and saves you, share your codes, and push promotions with <strong>Insights</strong> — find it under Upgrade on your dashboard.</div>' +
+                        '<button onclick="showView(\'bizDashboard\')" style="margin-top:14px;background:#8B3A7F;color:#fff;border:none;border-radius:11px;padding:11px 22px;font-family:\'Outfit\',sans-serif;font-weight:600;font-size:15px;cursor:pointer;">View plans →</button>' +
+                    '</div>';
+                return;
+            }
             
             var filtered = savedQRCodes.filter(function(qr) {
                 var matchSearch = !search || qr.label.toLowerCase().indexOf(search) !== -1 || (qr.details && qr.details.toLowerCase().indexOf(search) !== -1);
