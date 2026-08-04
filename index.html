@@ -4117,14 +4117,12 @@ Add any product information here..."></textarea>
                     await db.from('qr_codes').update({ about_photos: aboutUrls }).eq('user_id', user.id);
                     await db.from('qr_codes').update({ about_photos: aboutUrls }).eq('business_user_id', user.id);
                 } catch (e) { console.error('About photos push:', e); }
-                // Refresh the profile snapshot on every QR already carrying one,
-                // so address/phone/social edits go live on all attached codes.
-                // Rows without business_data (blank claimed notes) are left
-                // alone — their scan behavior must not change.
+                // Attach/refresh the profile on every code this business has
+                // claimed — bootstraps codes claimed before a profile existed
+                // and keeps address/phone/social edits live everywhere.
                 try {
                     await db.from('qr_codes').update({ business_data: newProfile })
-                        .eq('business_user_id', user.id)
-                        .not('business_data', 'is', null);
+                        .eq('business_user_id', user.id);
                 } catch (e) { console.error('Business data sync:', e); }
 
                 // Arrived via a scanned code without a profile: profile is now
@@ -6327,6 +6325,8 @@ Add any product information here..."></textarea>
         }
         
         // ── CLAIM QR CODE FROM DUYEN.IO REDIRECT ──────────────────────────
+        var claimOrigSource = null; // set by handleClaim, used by saveClaimToAccount
+
         async function handleClaim(qrId) {
             if (!qrId || !currentUser) return;
 
@@ -6339,9 +6339,13 @@ Add any product information here..."></textarea>
             try {
                 var { data, error } = await db
                     .from('qr_codes')
-                    .select('id, label, url, business_user_id')
+                    .select('id, label, url, business_user_id, source')
                     .eq('id', qrId)
                     .single();
+                // The claim RPC stamps source='business' on everything it
+                // touches; remember the true pre-claim source so notes stay
+                // notes (only admin-minted business QRs keep the studio).
+                claimOrigSource = (data && data.source) || null;
 
                 if (error || !data) { showClaimBanner(null, false); return; }
 
@@ -6402,6 +6406,19 @@ Add any product information here..."></textarea>
                     console.error('claim_card_as_business error:', m);
                     alert('Error claiming. Please try again.'); return;
                 }
+
+                // Repair what the claim RPC leaves wrong: attach the business
+                // profile to the code (so scans show the business and the
+                // dashboard counts it as set up), and restore the pre-claim
+                // source so claimed notes don't inherit the studio meant only
+                // for admin-minted business-profile QRs.
+                try {
+                    await db.from('qr_codes').update({
+                        business_data: (bizProfileData && bizProfileData.name) ? bizProfileData : null,
+                        source: claimOrigSource,
+                        updated_at: new Date().toISOString(),
+                    }).eq('id', qrId);
+                } catch(e) { console.error('Post-claim repair:', e); }
 
                 // Refresh entitlements so origin='card' is reflected this session.
                 await loadEntitlements();
@@ -7664,6 +7681,20 @@ Add any product information here..."></textarea>
                     console.error('💥 Load error:', e);
                 }
                 
+                // ONE-TIME LEGACY REPAIR (remove after Aug 2026): two test notes
+                // were stamped source='business' by the claim RPC before the
+                // client-side repair shipped; reset them so they behave as notes.
+                try {
+                    var legacyIds = ['ca121c01-d56f-4821-98a5-29457964dbda', 'c512b4b6-b026-4554-803b-3c2845849ffc'];
+                    savedQRCodes.forEach(function(c) {
+                        if (legacyIds.indexOf(c.dbId) !== -1 && c.source === 'business') {
+                            c.source = null;
+                            db.from('qr_codes').update({ source: null }).eq('id', c.dbId)
+                                .then(function(){ console.log('legacy source repaired:', c.dbId); });
+                        }
+                    });
+                } catch(e) {}
+
                 renderMyCodes();
                 updateQRCount();
                 loadPrintTemplates();
