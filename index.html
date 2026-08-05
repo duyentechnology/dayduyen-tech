@@ -2326,6 +2326,11 @@ Add any product information here..."></textarea>
             <div id="studioLabel" style="font-size:15px;color:#9A8478;margin-bottom:16px;"></div>
 
             <div style="background:#fff;border:1.5px solid #E8DDD6;border-radius:14px;padding:16px;margin-bottom:16px;">
+                <div style="font-size:14.5px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin:0 0 8px;text-align:center;">Design</div>
+                <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:12px;">
+                    <button type="button" id="designBtnbare" onclick="setStudioDesign('bare')" class="studio-chip on">Code only</button>
+                    <button type="button" id="designBtntent" onclick="setStudioDesign('tent')" class="studio-chip">Printable sign</button>
+                </div>
                 <div style="display:flex;justify-content:center;padding:6px 0 10px;"><canvas id="studioCanvas" style="max-width:230px;width:100%;height:auto;border-radius:8px;"></canvas></div>
                 <div style="font-size:14.5px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin:6px 0 8px;text-align:center;">QR Color</div>
                 <div id="studioFgRow" style="display:flex;gap:9px;justify-content:center;flex-wrap:wrap;"></div>
@@ -6647,7 +6652,7 @@ Add any product information here..."></textarea>
         // ────────────────────────────────────────────────────────────────────
         // QR STUDIO — customization + print for claimed business-profile QRs
         // (source==='business' only; notes never get this).
-        var studioState = { idx: -1, fg: '#8B3A7F', bg: '#FFFFFF', logoMode: 'duyen', logoUrl: null, logoImg: null };
+        var studioState = { idx: -1, fg: '#8B3A7F', bg: '#FFFFFF', logoMode: 'duyen', logoUrl: null, logoImg: null, design: 'bare' };
         var STUDIO_FG = ['#8B3A7F', '#DA251D', '#1C1410', '#166534', '#0A66C2', '#6e2d65'];
         var STUDIO_BG = ['#FFFFFF', '#F0E5F0', '#FDF8F5', '#FFF8E1'];
 
@@ -6768,7 +6773,10 @@ Add any product information here..."></textarea>
 
         function renderStudio() {
             var canvas = document.getElementById('studioCanvas');
-            if (canvas) renderStudioCanvas(canvas, 460);
+            if (canvas) {
+                if (studioState.design === 'tent') renderStudioTent(canvas, 460);
+                else renderStudioCanvas(canvas, 460);
+            }
             var ratio = studioContrast();
             var el = document.getElementById('studioContrast');
             var save = document.getElementById('studioSaveBtn');
@@ -6816,9 +6824,112 @@ Add any product information here..."></textarea>
             }
         }
 
+        // --- Print designs -------------------------------------------------
+        // 'bare' = the code alone (goes on anything they already print).
+        // 'tent' = a full sign: logo, name, their own words, and a line telling
+        // the customer what scanning gets them. Same URL either way, so
+        // anything already printed keeps working.
+        function studioProfile() {
+            var item = studioItem();
+            var b = (item && item.businessData) || bizProfileData || {};
+            return b;
+        }
+        function setStudioDesign(d) {
+            studioState.design = (d === 'tent') ? 'tent' : 'bare';
+            ['bare', 'tent'].forEach(function(k) {
+                var el = document.getElementById('designBtn' + k);
+                if (el) el.classList.toggle('on', studioState.design === k);
+            });
+            renderStudio();
+        }
+        function wrapLines(ctx, text, maxW) {
+            var words = String(text).split(/\s+/), lines = [], line = '';
+            for (var i = 0; i < words.length; i++) {
+                var t = line ? line + ' ' + words[i] : words[i];
+                if (ctx.measureText(t).width > maxW && line) { lines.push(line); line = words[i]; }
+                else line = t;
+            }
+            if (line) lines.push(line);
+            return lines;
+        }
+        // Draws the table-tent card at `w` pixels wide onto `canvas`.
+        function renderStudioTent(canvas, w) {
+            var biz = studioProfile();
+            var pad = Math.round(w * 0.075);
+            var qrSide = Math.round(w * 0.60);
+
+            // the code itself, rendered offscreen at full quality
+            var qc = document.createElement('canvas');
+            renderStudioCanvas(qc, qrSide);
+
+            var ctx = canvas.getContext('2d');
+            var nameSize = Math.round(w * 0.088);
+            var descSize = Math.round(w * 0.050);
+            var ctaSize  = Math.round(w * 0.046);
+            var logoSide = Math.round(w * 0.20);
+
+            // measure height first so nothing is clipped
+            ctx.font = 'italic ' + descSize + 'px Georgia, serif';
+            var descLines = biz.description ? wrapLines(ctx, '“' + biz.description + '”', w - pad * 2) : [];
+            var h = pad + logoSide + Math.round(w * 0.035) + nameSize
+                  + (descLines.length ? Math.round(w * 0.028) + descLines.length * Math.round(descSize * 1.45) : 0)
+                  + Math.round(w * 0.045) + qc.height + Math.round(w * 0.045) + ctaSize + pad;
+            canvas.width = w; canvas.height = h;
+            ctx = canvas.getContext('2d');
+
+            ctx.fillStyle = studioState.bg === '#FFFFFF' ? '#F0E5F0' : studioState.bg;
+            ctx.fillRect(0, 0, w, h);
+
+            var y = pad;
+            // logo tile
+            var lx = (w - logoSide) / 2;
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(lx, y, logoSide, logoSide);
+            if (studioState.logoMode === 'custom' && studioState.logoImg) {
+                var img = studioState.logoImg;
+                var sc = Math.min(logoSide * 0.86 / img.width, logoSide * 0.86 / img.height);
+                ctx.drawImage(img, lx + (logoSide - img.width * sc) / 2, y + (logoSide - img.height * sc) / 2, img.width * sc, img.height * sc);
+            } else {
+                ctx.fillStyle = studioState.fg;
+                ctx.font = 'bold ' + Math.round(logoSide * 0.5) + 'px Georgia, serif';
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillText('緣', w / 2, y + logoSide / 2);
+                ctx.textBaseline = 'alphabetic';
+            }
+            y += logoSide + Math.round(w * 0.035);
+
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#2E2A28';
+            ctx.font = 'bold ' + nameSize + 'px Georgia, serif';
+            ctx.fillText(String(biz.name || (studioItem() && studioItem().label) || 'My Business'), w / 2, y + nameSize * 0.85);
+            y += nameSize;
+
+            if (descLines.length) {
+                y += Math.round(w * 0.028);
+                ctx.fillStyle = '#5D4E44';
+                ctx.font = 'italic ' + descSize + 'px Georgia, serif';
+                var lh = Math.round(descSize * 1.45);
+                descLines.forEach(function(ln, i) { ctx.fillText(ln, w / 2, y + lh * (i + 0.8)); });
+                y += lh * descLines.length;
+            }
+
+            y += Math.round(w * 0.045);
+            // white plate behind the code keeps it scannable on a tinted card
+            var qx = (w - qc.width) / 2;
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(qx - pad * 0.35, y - pad * 0.35, qc.width + pad * 0.7, qc.height + pad * 0.7);
+            ctx.drawImage(qc, qx, y);
+            y += qc.height + Math.round(w * 0.045);
+
+            ctx.fillStyle = studioState.fg;
+            ctx.font = '600 ' + ctaSize + 'px Helvetica, Arial, sans-serif';
+            ctx.fillText('Scan · save us · get our news', w / 2, y + ctaSize * 0.85);
+        }
+
         function studioPngDataUrl(px) {
             var c = document.createElement('canvas');
-            renderStudioCanvas(c, px || 1200);
+            if (studioState.design === 'tent') renderStudioTent(c, px || 1200);
+            else renderStudioCanvas(c, px || 1200);
             return c.toDataURL('image/png');
         }
 
@@ -6835,17 +6946,31 @@ Add any product information here..."></textarea>
             var jsPDF = (window.jspdf || {}).jsPDF;
             if (!jsPDF) { alert('PDF library not loaded — check your connection and retry.'); return; }
             var doc = new jsPDF({ unit: 'in', format: 'letter' });
-            var name = (bizProfileData && bizProfileData.name) || item.label || 'My Business';
-            doc.setFont('times', 'bold'); doc.setFontSize(30);
-            doc.text(String(name), 4.25, 1.6, { align: 'center' });
-            doc.addImage(studioPngDataUrl(1200), 'PNG', 1.75, 2.2, 5, 5);
-            doc.setFont('helvetica', 'normal'); doc.setFontSize(13); doc.setTextColor(120);
-            doc.text('Scan to see who we are — and save us for later', 4.25, 7.7, { align: 'center' });
+            if (studioState.design === 'tent') {
+                // The sign carries its own name, words and call to action —
+                // adding them again would duplicate. Scale to the page.
+                var c = document.createElement('canvas');
+                renderStudioTent(c, 1200);
+                var wIn = 5.5, hIn = wIn * (c.height / c.width);
+                doc.addImage(c.toDataURL('image/png'), 'PNG', (8.5 - wIn) / 2, Math.max(0.6, (11 - hIn) / 2), wIn, hIn);
+            } else {
+                var name = (bizProfileData && bizProfileData.name) || item.label || 'My Business';
+                doc.setFont('times', 'bold'); doc.setFontSize(30);
+                doc.text(String(name), 4.25, 1.6, { align: 'center' });
+                doc.addImage(studioPngDataUrl(1200), 'PNG', 1.75, 2.2, 5, 5);
+                doc.setFont('helvetica', 'normal'); doc.setFontSize(13); doc.setTextColor(120);
+                doc.text('Scan to see who we are — and save us for later', 4.25, 7.7, { align: 'center' });
+            }
             doc.save((item.label || 'business-qr').replace(/[^\w-]+/g, '_') + '_poster.pdf');
         }
 
         function printStudioSheet() {
             var item = studioItem(); if (!item) return;
+            // Stickers are small: always the bare code, whatever design is picked.
+            var _d = studioState.design; studioState.design = 'bare';
+            try { _printStudioSheetInner(item); } finally { studioState.design = _d; }
+        }
+        function _printStudioSheetInner(item) {
             var jsPDF = (window.jspdf || {}).jsPDF;
             if (!jsPDF) { alert('PDF library not loaded — check your connection and retry.'); return; }
             var v = function(id) { return parseFloat(document.getElementById(id).value) || 0; };
