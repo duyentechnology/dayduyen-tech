@@ -2067,6 +2067,15 @@ Add any product information here..."></textarea>
             <!-- Stats -->
             <!-- What a business actually asks: how many scans, saves, shares.
                  Not which code they came from. -->
+            <!-- Always visible: a business should never have to guess how many
+                 codes carry their profile, subscription or not. -->
+            <div id="dashCodeCount" style="background:#fff;border:1.5px solid #E8DDD6;border-radius:12px;padding:13px 15px;margin-bottom:12px;display:flex;align-items:center;gap:12px;">
+                <div id="dashCodeCountNum" style="font-family:'Cormorant Garamond',serif;font-size:33px;font-weight:700;color:#8B3A7F;line-height:1;">0</div>
+                <div style="flex:1;min-width:0;">
+                    <div id="dashCodeCountLabel" style="font-size:15px;color:#2E2A28;font-family:'Outfit',sans-serif;">QR codes carrying your profile</div>
+                    <div id="dashCodeCountSub" style="font-size:13.5px;color:#9A8478;font-family:'Outfit',sans-serif;margin-top:2px;"></div>
+                </div>
+            </div>
             <div id="dashStatsSection" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;">
                 <div style="background:#fff;border:1.5px solid #E8DDD6;border-radius:12px;padding:12px;">
                     <div id="dStatTotal" style="font-family:'Cormorant Garamond',serif;font-size:33px;font-weight:700;color:#8B3A7F;line-height:1;">0</div>
@@ -2147,14 +2156,6 @@ Add any product information here..."></textarea>
                 </div>
             </div>
 
-            <!-- QR Card list -->
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-                <div style="font-family:'Cormorant Garamond',serif;font-size:21px;font-weight:700;color:#2E2A28;">My QR Codes</div>
-                <button onclick="showView('bizScanChoice')" style="font-size:16px;font-weight:600;color:#8B3A7F;background:#f0e5f0;border:none;border-radius:20px;padding:6px 16px;cursor:pointer;font-family:'Outfit',sans-serif;">+ Activate QR Codes</button>
-            </div>
-            <div id="dashQrCards" style="display:flex;flex-direction:column;gap:10px;">
-                <p style="color:#9A8478;text-align:center;padding:2rem 0;font-size:16px;">No QR codes activated yet. Tap + Activate QR Codes to get started.</p>
-            </div>
         </div>
     </div>
 
@@ -4736,21 +4737,20 @@ Add any product information here..."></textarea>
                 _s('dStatSaves',  sum('save_count'));
                 _s('dStatShares', sum('share_count'));
 
-                var grid = document.getElementById('dashQrCards');
-                if (!grid) return;
-                if (codes.length === 0) {
-                    grid.innerHTML = '<p style="color:#9A8478;text-align:center;padding:2rem 0;font-size:16px;">No QR codes activated yet. Tap + Activate QR Codes to get started.</p>';
-                    return;
-                }
-                // Businesses just attach profiles to many QR codes, so show a
-                // simple count of how many have a profile attached rather than
-                // a long per-code list.
-                grid.innerHTML =
-                    '<div style="background:#fff;border:1.5px solid #E8DDD6;border-radius:14px;padding:24px 20px;text-align:center;">' +
-                        '<div style="font-family:\'Cormorant Garamond\',serif;font-size:46px;font-weight:700;color:#8B3A7F;line-height:1;">' + activeCards + '</div>' +
-                        '<div style="font-size:17px;color:#5D4E44;margin-top:6px;">QR code' + (activeCards === 1 ? ' has' : 's have') + ' your profile attached</div>' +
-                        (drafts > 0 ? '<div style="font-size:15px;color:#9A8478;margin-top:10px;">' + drafts + ' QR code' + (drafts !== 1 ? 's' : '') + ' activated but not set up yet</div>' : '') +
-                    '</div>';
+                // Feed the always-visible counter. active = codes carrying the
+                // profile a customer would actually see; drafts are claimed but
+                // not yet attached.
+                var activeCodes = codes.filter(function(c){ return !!c.business_data; }).length;
+                var draftCodes  = codes.length - activeCodes;
+                var _n = document.getElementById('dashCodeCountNum');
+                var _l = document.getElementById('dashCodeCountLabel');
+                var _b = document.getElementById('dashCodeCountSub');
+                if (_n) _n.textContent = activeCodes;
+                if (_l) _l.textContent = 'QR code' + (activeCodes === 1 ? '' : 's') + ' carrying your profile';
+                if (_b) _b.textContent = draftCodes > 0
+                    ? draftCodes + ' more claimed, not attached yet'
+                    : (activeCodes ? 'Live and scannable' : 'Claim or create one to get started');
+
             } catch(e) { console.warn('loadDashboard error:', e); }
         }
 
