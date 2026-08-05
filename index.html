@@ -6705,6 +6705,36 @@ Add any product information here..."></textarea>
             studioSyncColorUI();
             renderStudio();
         }
+        // iOS, Chrome/Samsung/Firefox on Android and every current desktop
+        // browser open a native picker for type=color. Anywhere that does not,
+        // the spec silently degrades it to a text box — which, sitting invisible
+        // over the swatch, would make tapping do nothing. Detect that and show a
+        // real hex field instead so the colour is always changeable.
+        function studioColorInputSupported() {
+            var i = document.createElement('input');
+            try { i.setAttribute('type', 'color'); } catch (e) { return false; }
+            return i.type === 'color';
+        }
+        function studioApplyColorFallback() {
+            if (studioColorInputSupported()) return;
+            var inp = document.getElementById('studioColorInput');
+            var box = document.getElementById('studioColorBox');
+            if (!inp || inp.dataset.fallback) return;
+            inp.dataset.fallback = '1';
+            inp.type = 'text';
+            inp.setAttribute('maxlength', '7');
+            inp.setAttribute('placeholder', '#8B3A7F');
+            inp.setAttribute('autocapitalize', 'none');
+            inp.setAttribute('spellcheck', 'false');
+            inp.style.cssText = 'position:static;width:100%;opacity:1;border:1.5px solid #E8DDD6;border-radius:10px;padding:9px 11px;font-family:ui-monospace,Menlo,monospace;font-size:15px;box-sizing:border-box;margin-top:8px;';
+            // move it out of the swatch label and under the hex readout
+            var hex = document.getElementById('studioHex');
+            if (hex && hex.parentNode) hex.parentNode.appendChild(inp);
+            if (box) box.style.cursor = 'default';
+            var hint = hex && hex.parentNode ? hex.parentNode.querySelector('div:last-of-type') : null;
+            if (hint && hint !== hex) hint.textContent = 'Type a hex colour, e.g. #8B3A7F.';
+        }
+
         function studioSyncColorUI() {
             var box = document.getElementById('studioColorBox');
             var hex = document.getElementById('studioHex');
@@ -6739,6 +6769,7 @@ Add any product information here..."></textarea>
             if (studioState.logoUrl) loadStudioLogoImg(studioState.logoUrl);
             buildStudioSwatches();
             studioSyncColorUI();
+            studioApplyColorFallback();
             setStudioDesign(studioState.design);
             var _t = document.getElementById('studioText');
             if (_t) _t.value = studioState.sheetText || '';
