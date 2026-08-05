@@ -2838,6 +2838,19 @@ Add any product information here..."></textarea>
             showView('bizProfile');
             return false;
         }
+        // The $20 unlocks ONE profile. has_generator only means 'has ever
+        // paid'; what decides minting and design is whether THIS profile is
+        // in the unlocked list.
+        function unlockedProfiles() {
+            var v = ent().unlocked_profiles;
+            return Array.isArray(v) ? v : [];
+        }
+        function profileUnlocked(profileId) {
+            if (isAdmin() || testTier('generator')) return true;
+            if (canMint()) return true;   // Boutique mints freely
+            return !!profileId && unlockedProfiles().indexOf(profileId) !== -1;
+        }
+
         function canGenerateSingle() { return testTier('generator') || isAdmin() || !!ent().can_generate_single || !!ent().can_mint; }
         function canMint()           { return testTier('boutique') || isAdmin() || !!ent().can_mint; }
         function canPush()           { return testTier('insights') || isAdmin() || !!ent().can_push; }
@@ -2883,7 +2896,9 @@ Add any product information here..."></textarea>
         // for `tier` via a create-checkout edge function and redirect to
         // session.url; the stripe-webhook then flips has_generator / plan /
         // plan_status on business_accounts. Until then this is informational.
-        function startUpgrade(tier) {
+        var pendingUnlockProfile = null;   // which profile this $20 is for
+        function startUpgrade(tier, profileId) {
+            pendingUnlockProfile = profileId || null;
             var TIERS = {
                 generator: { title: 'Unlock the QR generator', price: '$20 · one-time',
                              note: 'Create your own single QR codes to display on menus, tables, and signs.' },
@@ -2924,7 +2939,9 @@ Add any product information here..."></textarea>
             var go = document.getElementById('startUpgradeGo');
             if (go) { go.disabled = true; go.textContent = 'Redirecting to secure checkout…'; go.style.opacity = '0.7'; }
             try {
-                var res = await db.functions.invoke('business-checkout', { body: { tier: tier } });
+                var _body = { tier: tier };
+                if (tier === 'generator' && pendingUnlockProfile) _body.profileId = pendingUnlockProfile;
+                var res = await db.functions.invoke('business-checkout', { body: _body });
                 if (res.error || !res.data || !res.data.url) {
                     console.error('business-checkout error:', res.error || res.data);
                     if (go) { go.disabled = false; go.textContent = 'Continue to secure checkout →'; go.style.opacity = '1'; }
@@ -4254,7 +4271,7 @@ Add any product information here..."></textarea>
         function profileQrAction(profileId) {
             var code = codeForProfile(profileId);
             if (code) { openQrStudio(savedQRCodes.indexOf(code)); return; }
-            if (!canGenerateSingle()) { startUpgrade('generator'); return; }
+            if (!profileUnlocked(profileId)) { startUpgrade('generator', profileId); return; }
             generateProfileQR(profileId);
         }
 
@@ -4270,6 +4287,7 @@ Add any product information here..."></textarea>
                 if (bizProfiles[i].profileId === profileId) { profile = bizProfiles[i]; break; }
             }
             if (!profile || !profile.name) { requireBizProfile(); return; }
+            if (!profileUnlocked(profileId)) { startUpgrade('generator', profileId); return; }
             if (codeForProfile(profileId)) { openQrStudio(savedQRCodes.indexOf(codeForProfile(profileId))); return; }
 
             _mintingProfileQR = true;
@@ -4358,7 +4376,7 @@ Add any product information here..."></textarea>
                 var name  = sanitize(p.name || '');
                 var isActive = bizProfileData && bizProfileData.profileId === p.profileId;
                 var code = codeForProfile(p.profileId);
-                var paid = canGenerateSingle();
+                var paid = profileUnlocked(p.profileId);
                 // deterministic speckle so the locked stand-in reads as a QR
                 var blurPix = '', _v = 7;
                 for (var _i = 0; _i < 81; _i++) { _v = (_v * 1103515245 + 12345) & 0x7fffffff; blurPix += '<i style="background:' + ((_v >> 16) % 100 < 45 ? '#8B3A7F' : 'transparent') + ';"></i>'; }
@@ -6746,8 +6764,9 @@ Add any product information here..."></textarea>
         function openQrStudio(idx) {
             var item = savedQRCodes[idx];
             if (!item || item.source !== 'business') return;
-            // Design + print is what the $20 buys.
-            if (!canGenerateSingle()) { showUpgradeModal('generate'); return; }
+            // Design + print is what the $20 buys — for THIS profile.
+            var _pid = item.businessData && item.businessData.profileId;
+            if (!profileUnlocked(_pid)) { startUpgrade('generator', _pid); return; }
             var lm = item.link_meta;
             if (typeof lm === 'string') { try { lm = JSON.parse(lm); } catch(e) { lm = null; } }
             lm = lm || {};
