@@ -184,6 +184,9 @@
             display: none;
             align-items: center;
             gap: 15px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            min-width: 0;
         }
         
         .user-menu.active {
@@ -3110,10 +3113,13 @@ Add any product information here..."></textarea>
         function applyAdminNav() {
             var newQR    = document.getElementById('adminNewQR');
             var myCodes  = document.getElementById('adminMyCodes');
-            // + New QR shows for admins and paying generators; My Codes also
-            // shows for anyone who owns/claimed codes (viewing is free).
+            // '+ New QR' opens the operator generator, which is for admin flyer
+            // runs and Boutique batches. A $20 business mints its code from the
+            // profile card instead, so showing it to them both leads to the wrong
+            // form and overflows the header on a phone.
             var canGen = isAdmin() || canGenerateSingle() || canMint();
-            if (newQR)   newQR.style.display   = canGen ? 'inline-block' : 'none';
+            var showNewQR = isAdmin() || canMint();
+            if (newQR)   newQR.style.display   = showNewQR ? 'inline-block' : 'none';
             if (myCodes) myCodes.style.display = (canGen || savedQRCodes.length > 0) ? 'inline-block' : 'none';
         }
 
