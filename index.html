@@ -2988,11 +2988,6 @@ Add any product information here..."></textarea>
                     '</div>' +
                     '<div style="font-size:15px;color:#9A8478;margin-bottom:16px;line-height:1.5;">Claiming and hosting a profile on a Duyên QR code is always free. These unlock more:</div>' +
                     planCardHTML({
-                        title: 'Business Profile QR', price: '$20 once', badge: 'ONE-TIME', tier: 'generator',
-                        tagline: 'A standalone QR for your business — your memory layer. Customers scan and save you for later.',
-                        features: ['Generate one business-profile QR to display', 'Hosts your info, about &amp; contact', 'Yours forever — no subscription']
-                    }) +
-                    planCardHTML({
                         title: 'Insights', price: '$9.99/mo', tier: 'insights',
                         tagline: 'Know how your QR codes perform and reach your audience.',
                         features: ['Scan &amp; save analytics on every QR code', 'Push promotions to all your active QR codes']
@@ -3043,13 +3038,8 @@ Add any product information here..."></textarea>
         // just a single Insights card. Each "Choose" opens Stripe checkout.
         function dashboardPlansHTML() {
             var cards = '';
-            if (!canGenerateSingle()) {
-                cards += planCardHTML({
-                    title: 'Business Profile QR', price: '$20 once', badge: 'ONE-TIME', tier: 'generator',
-                    tagline: 'A standalone QR for your business — your memory layer. Customers scan and save you for later.',
-                    features: ['Generate one business-profile QR to display', 'Hosts your info, about &amp; contact', 'Yours forever — no subscription']
-                });
-            }
+            // The $20 QR is sold on the profile card itself (renderProfilesList),
+            // so it is deliberately absent here — one door, in context.
             if (!canViewAnalytics()) {
                 cards += planCardHTML({
                     title: 'Insights', price: '$9.99/mo', tier: 'insights',
@@ -4218,6 +4208,52 @@ Add any product information here..."></textarea>
             showView('bizProfile');
         }
 
+        // --- A profile's own QR code -------------------------------------
+        // The code a business owns for a given profile, matched by the
+        // profileId stamped into business_data when it was generated.
+        function codeForProfile(profileId) {
+            if (!profileId || !Array.isArray(savedQRCodes)) return null;
+            for (var i = 0; i < savedQRCodes.length; i++) {
+                var q = savedQRCodes[i];
+                if (q && q.source === 'business' && q.businessData && q.businessData.profileId === profileId) return q;
+            }
+            return null;
+        }
+
+        // Tapping the QR panel: open the studio if the code exists, send them
+        // to checkout if they haven't paid, otherwise take them to generate it.
+        function profileQrAction(profileId) {
+            var code = codeForProfile(profileId);
+            if (code) { openQrStudio(savedQRCodes.indexOf(code)); return; }
+            if (!canGenerateSingle()) { startUpgrade('generator'); return; }
+            for (var i = 0; i < (bizProfiles || []).length; i++) {
+                if (bizProfiles[i].profileId === profileId) { bizProfileData = bizProfiles[i]; break; }
+            }
+            selectMode('single');
+        }
+
+        // Small QR thumbnail for the panel. Locked profiles get a blurred
+        // stand-in (there is no code yet), unlocked ones get the real thing.
+        function drawProfileQr(canvas, text, color) {
+            if (!canvas || typeof qrcode === 'undefined') return;
+            try {
+                var q = qrcode(0, 'M');
+                q.addData(text);
+                q.make();
+                var n = q.getModuleCount(), quiet = 2, total = n + quiet * 2;
+                var px = Math.max(1, Math.floor(canvas.width / total));
+                var ctx = canvas.getContext('2d');
+                ctx.fillStyle = '#fff';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = color || '#8B3A7F';
+                for (var r = 0; r < n; r++) {
+                    for (var c = 0; c < n; c++) {
+                        if (q.isDark(r, c)) ctx.fillRect((c + quiet) * px, (r + quiet) * px, px, px);
+                    }
+                }
+            } catch (e) { /* leave the canvas blank rather than break the list */ }
+        }
+
         function renderProfilesList() {
             var container = document.getElementById('dashProfilesList');
             if (!container) return;
@@ -4233,15 +4269,46 @@ Add any product information here..."></textarea>
                 var label = sanitize(p.profileLabel || p.name || 'Untitled Profile');
                 var name  = sanitize(p.name || '');
                 var isActive = bizProfileData && bizProfileData.profileId === p.profileId;
-                return '<div onclick="editProfile(\'' + p.profileId + '\')" style="background:#fff;border:1.5px solid ' + (isActive ? '#8B3A7F' : '#E8DDD6') + ';border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:border-color 0.15s;">' +
+                var code = codeForProfile(p.profileId);
+                // deterministic speckle so the locked stand-in reads as a QR
+                var blurPix = '', _v = 7;
+                for (var _i = 0; _i < 81; _i++) { _v = (_v * 1103515245 + 12345) & 0x7fffffff; blurPix += '<i style="background:' + ((_v >> 16) % 100 < 45 ? '#8B3A7F' : 'transparent') + ';"></i>'; }
+                return '<div>' +
+                    '<div onclick="editProfile(\'' + p.profileId + '\')" style="background:#fff;border:1.5px solid ' + (isActive ? '#8B3A7F' : '#E8DDD6') + ';border-radius:12px 12px 0 0;border-bottom:none;padding:12px 14px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:border-color 0.15s;">' +
                     '<div style="flex:1;min-width:0;">' +
                         '<div style="font-size:18px;font-weight:700;color:#2E2A28;font-family:\'Outfit\',sans-serif;">' + label + '</div>' +
                         (name && name !== label ? '<div style="font-size:15.5px;color:#9A8478;margin-top:2px;font-family:\'Outfit\',sans-serif;">' + name + '</div>' : '') +
                         (isActive ? '<span style="display:inline-block;font-size:13px;font-weight:700;padding:3px 9px;border-radius:6px;margin-top:4px;background:#f0e5f0;color:#8B3A7F;">Active</span>' : '') +
                     '</div>' +
                     '<span style="flex-shrink:0;color:#8B3A7F;font-size:22px;font-weight:300;line-height:1;">›</span>' +
+                '</div>' +
+                // The profile's own QR code lives under it: blurred with a price
+                // until they own it, the real code (tap to design & print) after.
+                '<div onclick="event.stopPropagation();profileQrAction(\'' + p.profileId + '\')" style="background:#FBF7FB;border:1.5px solid ' + (isActive ? '#8B3A7F' : '#E8DDD6') + ';border-top:none;border-radius:0 0 12px 12px;padding:13px 14px;display:flex;align-items:center;gap:13px;cursor:pointer;">' +
+                    (code
+                        ? '<canvas class="profQrCanvas" data-url="' + sanitize(code.url || '') + '" data-color="' + sanitize(code.color || '#8B3A7F') + '" width="124" height="124" style="width:62px;height:62px;flex-shrink:0;border-radius:6px;"></canvas>'
+                        : '<div style="position:relative;width:62px;height:62px;flex-shrink:0;">' +
+                              '<div style="position:absolute;inset:0;filter:blur(4px);opacity:.45;display:grid;grid-template-columns:repeat(9,1fr);gap:1px;">' + blurPix + '</div>' +
+                              '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">' +
+                                  '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8B3A7F" stroke-width="2.2"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>' +
+                              '</div>' +
+                          '</div>') +
+                    '<div style="flex:1;min-width:0;">' +
+                        '<div style="font-size:15.5px;font-weight:600;color:#2E2A28;font-family:\'Outfit\',sans-serif;">Your business QR code</div>' +
+                        '<div style="font-size:13.5px;color:#6B5E56;line-height:1.45;margin-top:2px;font-family:\'Outfit\',sans-serif;">' +
+                            (code ? 'Tap to design &amp; print ›' : 'Yours to display, design and print.') +
+                        '</div>' +
+                    '</div>' +
+                    (code
+                        ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8B3A7F" stroke-width="2.5" style="flex-shrink:0;"><path d="M9 6l6 6-6 6"/></svg>'
+                        : '<span style="flex-shrink:0;background:#8B3A7F;color:#fff;font-size:13px;font-weight:700;padding:7px 13px;border-radius:9px;font-family:\'Outfit\',sans-serif;">$20</span>') +
+                    '</div>' +
                 '</div>';
             }).join('');
+            // Draw the real codes once the markup is in the DOM.
+            Array.prototype.forEach.call(container.querySelectorAll('.profQrCanvas'), function(cv) {
+                drawProfileQr(cv, cv.getAttribute('data-url'), cv.getAttribute('data-color'));
+            });
         }
 
         function populateBizProfile() {
@@ -7769,6 +7836,8 @@ Add any product information here..."></textarea>
                                 includeLogo: row.include_logo !== false,
                                 include_logo: row.include_logo !== false,
                                 source: row.source || null,
+                                businessData: row.business_data || null,
+                                memoryEnabled: !!row.memory_enabled,
                                 link_meta: row.link_meta || null,
                                 media: row.media || [],
                                 files: row.files || [],
