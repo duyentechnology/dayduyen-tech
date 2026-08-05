@@ -2062,23 +2062,22 @@ Add any product information here..."></textarea>
             </div>
 
             <!-- Stats -->
-            <div id="dashStatsSection" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px;">
+            <!-- What a business actually asks: how many scans, saves, shares.
+                 Not which code they came from. -->
+            <div id="dashStatsSection" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;">
                 <div style="background:#fff;border:1.5px solid #E8DDD6;border-radius:12px;padding:12px;">
                     <div id="dStatTotal" style="font-family:'Cormorant Garamond',serif;font-size:33px;font-weight:700;color:#8B3A7F;line-height:1;">0</div>
-                    <div style="font-size:14px;color:#9A8478;text-transform:uppercase;letter-spacing:.4px;margin-top:3px;">Total Scans</div>
+                    <div style="font-size:14px;color:#9A8478;text-transform:uppercase;letter-spacing:.4px;margin-top:3px;">Scans</div>
                 </div>
                 <div style="background:#fff;border:1.5px solid #E8DDD6;border-radius:12px;padding:12px;">
-                    <div id="dStatActive" style="font-family:'Cormorant Garamond',serif;font-size:33px;font-weight:700;color:#8B3A7F;line-height:1;">0</div>
-                    <div style="font-size:14px;color:#9A8478;text-transform:uppercase;letter-spacing:.4px;margin-top:3px;">Active QR Codes</div>
+                    <div id="dStatSaves" style="font-family:'Cormorant Garamond',serif;font-size:33px;font-weight:700;color:#8B3A7F;line-height:1;">0</div>
+                    <div style="font-size:14px;color:#9A8478;text-transform:uppercase;letter-spacing:.4px;margin-top:3px;">Saves</div>
                 </div>
                 <div style="background:#fff;border:1.5px solid #E8DDD6;border-radius:12px;padding:12px;">
-                    <div id="dStatWeek" style="font-family:'Cormorant Garamond',serif;font-size:33px;font-weight:700;color:#8B3A7F;line-height:1;">0</div>
-                    <div style="font-size:14px;color:#9A8478;text-transform:uppercase;letter-spacing:.4px;margin-top:3px;">This Week</div>
+                    <div id="dStatShares" style="font-family:'Cormorant Garamond',serif;font-size:33px;font-weight:700;color:#8B3A7F;line-height:1;">0</div>
+                    <div style="font-size:14px;color:#9A8478;text-transform:uppercase;letter-spacing:.4px;margin-top:3px;">Shares</div>
                 </div>
-                <div style="background:#fff;border:1.5px solid #E8DDD6;border-radius:12px;padding:12px;">
-                    <div id="dStatDraft" style="font-family:'Cormorant Garamond',serif;font-size:33px;font-weight:700;color:#8B3A7F;line-height:1;">0</div>
-                    <div style="font-size:14px;color:#9A8478;text-transform:uppercase;letter-spacing:.4px;margin-top:3px;">Drafts</div>
-                </div>
+            </div>
             </div>
 
             <!-- Push a Promotion -->
@@ -4626,17 +4625,13 @@ Add any product information here..."></textarea>
 
                 updatePromoAudience(codes);
 
-                var totalScans = codes.reduce(function(s,c){ return s + (c.scan_count||0); }, 0);
-                var activeCards = codes.filter(function(c){ return !!c.business_data; }).length;
-                var drafts = codes.filter(function(c){ return !c.business_data; }).length;
-                var oneWeekAgo = new Date(Date.now() - 7*24*60*60*1000).toISOString();
-                var weekScans = codes.filter(function(c){ return c.updated_at > oneWeekAgo; }).length;
-
+                // Totals across every code carrying their profile — a business
+                // wants the audience number, not a per-code breakdown.
+                var sum = function(k){ return codes.reduce(function(a,c){ return a + (c[k]||0); }, 0); };
                 var _s = function(id,v){ var el=document.getElementById(id); if(el) el.textContent=v; };
-                _s('dStatTotal', totalScans);
-                _s('dStatActive', activeCards);
-                _s('dStatWeek', weekScans);
-                _s('dStatDraft', drafts);
+                _s('dStatTotal',  sum('scan_count'));
+                _s('dStatSaves',  sum('save_count'));
+                _s('dStatShares', sum('share_count'));
 
                 var grid = document.getElementById('dashQrCards');
                 if (!grid) return;
