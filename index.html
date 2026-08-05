@@ -4270,6 +4270,7 @@ Add any product information here..."></textarea>
                 var name  = sanitize(p.name || '');
                 var isActive = bizProfileData && bizProfileData.profileId === p.profileId;
                 var code = codeForProfile(p.profileId);
+                var paid = canGenerateSingle();
                 // deterministic speckle so the locked stand-in reads as a QR
                 var blurPix = '', _v = 7;
                 for (var _i = 0; _i < 81; _i++) { _v = (_v * 1103515245 + 12345) & 0x7fffffff; blurPix += '<i style="background:' + ((_v >> 16) % 100 < 45 ? '#8B3A7F' : 'transparent') + ';"></i>'; }
@@ -4296,10 +4297,14 @@ Add any product information here..."></textarea>
                     '<div style="flex:1;min-width:0;">' +
                         '<div style="font-size:15.5px;font-weight:600;color:#2E2A28;font-family:\'Outfit\',sans-serif;">Your business QR code</div>' +
                         '<div style="font-size:13.5px;color:#6B5E56;line-height:1.45;margin-top:2px;font-family:\'Outfit\',sans-serif;">' +
-                            (code ? 'Tap to design &amp; print ›' : 'Yours to display, design and print.') +
+                            (code
+                                ? (paid ? 'Tap to design &amp; print ›' : 'Unlock design &amp; printing for this code.')
+                                : (paid ? 'Tap to create this profile\'s code ›' : 'Yours to display, design and print.')) +
                         '</div>' +
                     '</div>' +
-                    (code
+                    // Price shown up front whenever it still costs, rather than
+                    // a chevron that walks them into a paywall.
+                    (paid
                         ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8B3A7F" stroke-width="2.5" style="flex-shrink:0;"><path d="M9 6l6 6-6 6"/></svg>'
                         : '<span style="flex-shrink:0;background:#8B3A7F;color:#fff;font-size:13px;font-weight:700;padding:7px 13px;border-radius:9px;font-family:\'Outfit\',sans-serif;">$20</span>') +
                     '</div>' +
