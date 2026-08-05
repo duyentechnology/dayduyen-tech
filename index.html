@@ -2364,7 +2364,7 @@ Add any product information here..."></textarea>
             <div style="background:#fff;border:1.5px solid #E8DDD6;border-radius:14px;padding:16px;margin-bottom:16px;">
                 <div style="font-size:14.5px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;">Print Center — Free</div>
                 <button type="button" onclick="printStudioPoster()" style="width:100%;text-align:left;background:#FBF7FB;border:1.5px solid #E8DDD6;border-radius:11px;padding:12px 14px;margin-bottom:8px;font-family:'Outfit',sans-serif;font-size:15.5px;color:#2E2A28;cursor:pointer;">📄 Flyer poster (PDF)<br><span style="font-size:13px;color:#9A8478;">Your QR + business name on one page</span></button>
-                <button type="button" onclick="downloadStudioPNG()" style="width:100%;text-align:left;background:#FBF7FB;border:1.5px solid #E8DDD6;border-radius:11px;padding:12px 14px;margin-bottom:14px;font-family:'Outfit',sans-serif;font-size:15.5px;color:#2E2A28;cursor:pointer;">⬇️ Download PNG<br><span style="font-size:13px;color:#9A8478;">High-res image for your own designer or printer</span></button>
+                <button type="button" id="studioPngBtn" onclick="downloadStudioPNG()" style="width:100%;text-align:left;background:#FBF7FB;border:1.5px solid #E8DDD6;border-radius:11px;padding:12px 14px;margin-bottom:14px;font-family:'Outfit',sans-serif;font-size:15.5px;color:#2E2A28;cursor:pointer;">⬇️ Download PNG<br><span style="font-size:13px;color:#9A8478;">High-res image for your own designer or printer</span></button>
 
                 <div style="font-size:15px;font-weight:700;color:#2E2A28;margin-bottom:4px;">Sticker sheet (PDF)</div>
                 <div style="font-size:13.5px;color:#5D4E44;line-height:1.55;background:#FBF7FB;border-radius:10px;padding:10px 12px;margin-bottom:10px;">
@@ -7055,12 +7055,67 @@ Add any product information here..."></textarea>
             return c.toDataURL('image/png');
         }
 
-        function downloadStudioPNG() {
+        // Saving an image from a phone is not one mechanism. iOS Safari ignores
+        // the download attribute on a data: URL, and an anchor that was never
+        // added to the document does not reliably fire in every browser — so
+        // the old version silently did nothing on a phone. Order of attempts:
+        // the share sheet (iOS "Save Image"), then a blob download (Android and
+        // desktop), then opening the image so it can be long-pressed.
+        async function downloadStudioPNG() {
             var item = studioItem(); if (!item) return;
-            var a = document.createElement('a');
-            a.href = studioPngDataUrl(1200);
-            a.download = (item.label || 'business-qr').replace(/[^\w-]+/g, '_') + '.png';
-            a.click();
+            var name = (item.label || 'business-qr').replace(/[^\w-]+/g, '_') + '.png';
+            var btn = document.getElementById('studioPngBtn');
+            var revert = btn ? btn.innerHTML : null;
+            if (btn) { btn.style.opacity = '0.6'; }
+
+            try {
+                var c = document.createElement('canvas');
+                if (studioState.design === 'tent') renderStudioTent(c, 1200);
+                else renderStudioBareWithText(c, 1200);
+
+                var blob = await new Promise(function (res) {
+                    if (c.toBlob) c.toBlob(res, 'image/png');
+                    else res(null);
+                });
+                if (!blob) { window.open(studioPngDataUrl(1200), '_blank'); return; }
+
+                // 1. Share sheet — how you save an image on iOS.
+                try {
+                    if (navigator.canShare && typeof File === 'function') {
+                        var file = new File([blob], name, { type: 'image/png' });
+                        if (navigator.canShare({ files: [file] })) {
+                            await navigator.share({ files: [file] });
+                            return;
+                        }
+                    }
+                } catch (e) {
+                    if (e && e.name === 'AbortError') return;   // they cancelled
+                }
+
+                // 2. Blob download — Android and desktop.
+                var url = URL.createObjectURL(blob);
+                var a = document.createElement('a');
+                a.href = url;
+                a.download = name;
+                a.rel = 'noopener';
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                setTimeout(function () { try { URL.revokeObjectURL(url); } catch (e) {} }, 8000);
+
+                // 3. If the browser ignored the download, at least show the image
+                // so it can be long-pressed and saved.
+                setTimeout(function () {
+                    if (!document.hidden && /iPad|iPhone|iPod/.test(navigator.userAgent)) {
+                        try { window.open(url, '_blank'); } catch (e) {}
+                    }
+                }, 700);
+            } catch (e) {
+                console.warn('PNG download failed:', e);
+                alert('Could not create the image. Please try again.');
+            } finally {
+                if (btn) { btn.style.opacity = '1'; if (revert !== null) btn.innerHTML = revert; }
+            }
         }
 
         function printStudioPoster() {
