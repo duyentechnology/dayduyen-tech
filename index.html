@@ -3117,10 +3117,14 @@ Add any product information here..."></textarea>
             // runs and Boutique batches. A $20 business mints its code from the
             // profile card instead, so showing it to them both leads to the wrong
             // form and overflows the header on a phone.
-            var canGen = isAdmin() || canGenerateSingle() || canMint();
             var showNewQR = isAdmin() || canMint();
+            // 'My QR Codes' is the per-code list — where scan/save stats live,
+            // which is a subscription feature. Without one there is nothing in
+            // there they can't see on the dashboard, where their profile card
+            // already carries the code and its design + print.
+            var showMyCodes = isAdmin() || canViewAnalytics() || canMint();
             if (newQR)   newQR.style.display   = showNewQR ? 'inline-block' : 'none';
-            if (myCodes) myCodes.style.display = (canGen || savedQRCodes.length > 0) ? 'inline-block' : 'none';
+            if (myCodes) myCodes.style.display = showMyCodes ? 'inline-block' : 'none';
         }
 
         function showView(view) {
