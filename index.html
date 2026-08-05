@@ -4220,15 +4220,74 @@ Add any product information here..."></textarea>
         }
 
         // Tapping the QR panel: open the studio if the code exists, send them
-        // to checkout if they haven't paid, otherwise take them to generate it.
+        // to checkout if they haven't paid, otherwise mint the code on the spot.
         function profileQrAction(profileId) {
             var code = codeForProfile(profileId);
             if (code) { openQrStudio(savedQRCodes.indexOf(code)); return; }
             if (!canGenerateSingle()) { startUpgrade('generator'); return; }
+            generateProfileQR(profileId);
+        }
+
+        // One tap, one code, for one profile — then straight into design.
+        // Deliberately NOT the operator generator form: a business is not
+        // uploading product photos or voice memos, they are minting the code
+        // that carries the profile they already built.
+        var _mintingProfileQR = false;
+        async function generateProfileQR(profileId) {
+            if (_mintingProfileQR) return;
+            var profile = null;
             for (var i = 0; i < (bizProfiles || []).length; i++) {
-                if (bizProfiles[i].profileId === profileId) { bizProfileData = bizProfiles[i]; break; }
+                if (bizProfiles[i].profileId === profileId) { profile = bizProfiles[i]; break; }
             }
-            selectMode('single');
+            if (!profile || !profile.name) { requireBizProfile(); return; }
+            if (codeForProfile(profileId)) { openQrStudio(savedQRCodes.indexOf(codeForProfile(profileId))); return; }
+
+            _mintingProfileQR = true;
+            try {
+                var sd = await db.auth.getSession();
+                var user = sd && sd.data && sd.data.session && sd.data.session.user;
+                if (!user) { alert('Please sign in again.'); return; }
+
+                var id  = Math.random().toString(36).substring(2, 9);
+                var url = 'https://duyen.io/q/' + id;
+                var row = {
+                    user_id: user.id,
+                    label: profile.name,
+                    url: url,
+                    source: 'business',
+                    business_data: profile,
+                    business_user_id: user.id,
+                    memory_enabled: true,
+                    color: '#8B3A7F',
+                    include_logo: true,
+                    status: 'active',
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString()
+                };
+                var res = await db.from('qr_codes').insert([row]).select();
+                if (res.error || !res.data || !res.data[0]) {
+                    console.warn('generateProfileQR failed:', res.error && res.error.message);
+                    alert('Could not create your QR code. Please try again.');
+                    return;
+                }
+                var saved = res.data[0];
+                savedQRCodes.unshift({
+                    dbId: saved.id, id: saved.id, url: saved.url, label: saved.label,
+                    color: saved.color, includeLogo: true, include_logo: true,
+                    source: 'business', businessData: profile, memoryEnabled: true,
+                    status: saved.status, details: '', media: [], files: [], photo: null,
+                    scan_count: 0, save_count: 0,
+                    createdAt: saved.created_at, updatedAt: saved.updated_at
+                });
+                updateQRCount();
+                renderProfilesList();
+                openQrStudio(0);
+            } catch (e) {
+                console.warn('generateProfileQR error:', e);
+                alert('Could not create your QR code. Please try again.');
+            } finally {
+                _mintingProfileQR = false;
+            }
         }
 
         // Small QR thumbnail for the panel. Locked profiles get a blurred
