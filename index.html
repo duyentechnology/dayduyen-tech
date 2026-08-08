@@ -5634,7 +5634,45 @@ Add any product information here..."></textarea>
                 const prefix = document.getElementById('prefix').value || 'QR';
                 labels = Array.from({length: quantity}, (_, i) => `${prefix}-${String(i+1).padStart(3, '0')}`);
             }
-            
+
+            // ---- Product tag serials -------------------------------------------
+            // A product tag prints blank and goes out as physical stock, so its
+            // label IS its identity: it prints under the code on the sheet
+            // (see the Avery/PDF paths) and is what ties a sticker in someone's
+            // hand back to a row. Both label modes above restart at 001 every
+            // run, which would put the same serial on two different tags, so
+            // continue from however many product tags already exist.
+            //
+            // The label is deliberately NOT the item name: the item arrives later
+            // when a business attaches one, and the number already printed on the
+            // sticker can never change.
+            if (isAdmin() && adminPrintKind === 'product') {
+                var _pfx = String((currentMode === 'single'
+                        ? (document.getElementById('singleLabel') || {}).value
+                        : (document.getElementById('prefix') || {}).value) || '').trim();
+                if (!_pfx || _pfx === 'QR' || _pfx === 'QR Code') _pfx = 'P';
+                var _start = null;
+                try {
+                    var _sd2 = await db.auth.getSession();
+                    var _uid2 = (((_sd2 || {}).data || {}).session || {}).user;
+                    var _cnt = await db.from('qr_codes')
+                        .select('id', { count: 'exact', head: true })
+                        .eq('user_id', _uid2 ? _uid2.id : null)
+                        .eq('source', 'product');
+                    if (!_cnt || _cnt.error || typeof _cnt.count !== 'number') throw new Error('count unavailable');
+                    _start = _cnt.count;
+                } catch (e) {
+                    // Guessing here would reprint serials that are already on
+                    // stickers, so stop instead of numbering from zero.
+                    console.warn('Product serial lookup failed:', e && e.message);
+                    alert('Could not read the product tag counter, so these tags were not generated \u2014 numbering from scratch would reprint serials that already exist.\n\nCheck your connection and try again.');
+                    return;
+                }
+                labels = Array.from({length: quantity}, function (_, i) {
+                    return _pfx + '-' + String(_start + i + 1).padStart(4, '0');
+                });
+            }
+
             for (let i = 0; i < quantity; i++) {
                 const id = Math.random().toString(36).substring(2, 9);
                 const url = baseUrl + id;
