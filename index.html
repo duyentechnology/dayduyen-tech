@@ -3005,7 +3005,9 @@
             var stats = document.getElementById('dashStatsSection'); // scan/save analytics
             var promo = document.getElementById('dashPromoSection');  // push promotions
             if (stats) stats.style.display = insightsOK ? '' : 'none';
-            if (promo) promo.style.display = insightsOK ? '' : 'none';
+            // Admin has every entitlement but no business to promote, so the
+            // push block is noise on that account. Businesses still see it.
+            if (promo) promo.style.display = (insightsOK && !isAdmin()) ? '' : 'none';
 
             // Clean up any paywalls from the older two-card design.
             ['dashStatsSectionPaywall', 'dashPromoSectionPaywall'].forEach(function(id) {
