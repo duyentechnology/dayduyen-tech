@@ -6647,11 +6647,13 @@ Add any product information here..."></textarea>
             }
 
             try {
-                var { data, error } = await db
-                    .from('qr_codes')
-                    .select('id, label, url, business_user_id, source')
-                    .eq('id', qrId)
-                    .single();
+                // Read through get_qr_for_scan: the claimer is signed in but
+                // does not own this code yet, so the owner-scoped policies
+                // don't cover it. The blanket read that used to cover it also
+                // let anyone list the whole table, so it's gone.
+                var _cl = await db.rpc('get_qr_for_scan', { p_code: qrId });
+                var data  = (_cl && _cl.data && _cl.data[0]) || null;
+                var error = (_cl && _cl.error) || (data ? null : { message: 'not found' });
                 // The claim RPC stamps source='business' on everything it
                 // touches; remember the true pre-claim source so notes stay
                 // notes (only admin-minted business QRs keep the studio).
