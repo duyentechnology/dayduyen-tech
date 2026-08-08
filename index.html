@@ -5210,20 +5210,24 @@ Add any product information here..."></textarea>
                     source: 'business',
                     updated_at: new Date().toISOString()
                 };
+                // Through activate_business_cards, not a filtered update per card.
+                // A filtered UPDATE makes Postgres apply SELECT policies too, and a
+                // business cannot see an unclaimed card — so the per-card update
+                // silently matched nothing and every card reported as not found.
+                // The function claims the batch in one call, skips cards belonging
+                // to another business, and stamps activated_at once.
                 var succeeded = 0;
                 var failed = 0;
-                for (var i = 0; i < batchScannedIds.length; i++) {
-                    var scannedUrl = batchScannedIds[i];
-                    var { data: updRows, error } = await db.from('qr_codes')
-                        .update(updateData)
-                        .eq('url', scannedUrl)
-                        .select('id');
-                    if (!error && updRows && updRows.length > 0) {
-                        succeeded++;
-                    } else {
-                        failed++;
-                        console.warn('Card not found or not updated for URL:', scannedUrl, error);
-                    }
+                var { data: activated, error } = await db.rpc('activate_business_cards', {
+                    p_urls: batchScannedIds,
+                    p_profile: bizProfileData
+                });
+                if (error) {
+                    console.warn('activate_business_cards failed:', error);
+                    failed = batchScannedIds.length;
+                } else {
+                    succeeded = (typeof activated === 'number') ? activated : 0;
+                    failed = batchScannedIds.length - succeeded;
                 }
                 if (succeeded > 0) {
                     alert('✅ ' + succeeded + ' of ' + batchScannedIds.length + ' cards activated!');
