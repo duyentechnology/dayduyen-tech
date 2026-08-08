@@ -1452,89 +1452,12 @@
                 </div>
                 
                 <!-- Product Data Entry - Single Mode -->
-                <div style="background: linear-gradient(135deg, #f9f4f9 0%, #f0e5f0 100%); border-radius: 16px; padding: 30px; margin: 30px 0; border: 3px solid var(--lantern-plum); box-shadow: 0 8px 20px rgba(139, 58, 127, 0.2);">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                        <h4 style="font-size: 22px; font-weight: 700; color: #8B3A7F; margin: 0;">📦 Product Data Upload</h4>
-                        <span style="background: linear-gradient(135deg, var(--lantern-plum) 0%, #6e2d65 100%); color: white; padding: 8px 16px; border-radius: 20px; font-size: 15px; font-weight: 700; box-shadow: 0 4px 12px rgba(139, 58, 127, 0.3);">
-                            ✨ Coming Soon: AI will extract info
-                        </span>
-                    </div>
-                    
-                    <div style="background: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; border-left: 4px solid var(--lantern-plum);">
-                        <p style="color: #3D2E24; font-size: 17px; margin: 0 0 10px 0; line-height: 1.7; font-weight: 500;">
-                            📸 <strong>Upload product photo</strong> and add details.<br>
-                            Recipients can scan the QR code to see this information.
-                        </p>
-                        <p style="color: #7D6E64; font-size: 16px; margin: 0; line-height: 1.6;">
-                            💡 <strong>Tip:</strong> You can also leave this blank and let the recipient add data by scanning the QR code!
-                        </p>
-                    </div>
-                    
-                    <div id="singleProductData">
-                        <div style="margin-bottom: 25px;">
-                            <label style="display: block; font-weight: 700; margin-bottom: 12px; font-size: 18px; color: #3D2E24;">📸 Upload Media <span style="font-weight: 400; font-size: 15px; color: #9A8478;">(Photos, Videos, Voice Memos)</span></label>
-                            <div class="photo-upload-area" onclick="document.getElementById('media-single').click()">
-                                <div id="preview-single">
-                                    <div style="font-size: 60px; margin-bottom: 15px;">📷 🎥</div>
-                                    <div style="color: #8B3A7F; font-weight: 700; font-size: 18px; margin-bottom: 8px;">Click to upload media</div>
-                                    <div style="color: #7D6E64; font-size: 16px;">Photos, videos, or audio files</div>
-                                    <div style="color: #9A8478; font-size: 14px; margin-top: 8px;">JPG, PNG, MP4, MOV, MP3, WAV, M4A — up to 25MB</div>
-                                </div>
-                            </div>
-                            <input type="file" id="media-single" accept="image/*,video/*,audio/*" multiple style="display: none;" onchange="handleMediaUpload(event, 'single')">
-                            
-                            <!-- Voice Recorder -->
-                            <div id="voiceRecorder-single" class="voice-recorder">
-                                <button type="button" id="recBtn-single" class="rec-btn" onclick="toggleRecording('single')">
-                                    <span id="recIcon-single" class="rec-icon">🎤</span>
-                                    <span id="recLabel-single">Record Voice Memo</span>
-                                </button>
-                                <div id="recStatus-single" class="rec-status" style="display: none;">
-                                    <div class="rec-pulse"></div>
-                                    <span id="recTimer-single" style="font-weight: 600; color: #c53030;">0:00</span>
-                                    <button type="button" onclick="stopRecording('single')" style="background: #c53030; color: white; border: none; padding: 6px 16px; border-radius: 6px; font-weight: 600; font-size: 15px; cursor: pointer; margin-left: 10px;">⏹ Stop</button>
-                                </div>
-                            </div>
-                            
-                            <div id="mediaList-single" style="margin-top: 10px;"></div>
-                        </div>
-                        
-                        <div style="margin-bottom: 25px;">
-                            <label style="display: block; font-weight: 700; margin-bottom: 12px; font-size: 18px; color: #3D2E24;">📎 Upload Files <span style="font-weight: 400; font-size: 15px; color: #9A8478;">(Documents, PDFs, etc.)</span></label>
-                            <div class="file-upload-area" onclick="document.getElementById('files-single').click()">
-                                <div id="filePreview-single">
-                                    <div style="font-size: 48px; margin-bottom: 10px;">📁</div>
-                                    <div style="color: #3D2E24; font-weight: 600;">Click to upload files</div>
-                                    <div style="color: #9A8478; font-size: 14px; margin-top: 5px;">PDF, DOC, XLS, TXT, ZIP — up to 10MB each</div>
-                                </div>
-                            </div>
-                            <input type="file" id="files-single" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.zip,.rar" multiple style="display: none;" onchange="handleFileUpload(event, 'single')">
-                            <div id="fileList-single" style="margin-top: 10px;"></div>
-                        </div>
-                        
-                        <div>
-                            <label style="display: block; font-weight: 700; margin-bottom: 12px; font-size: 18px; color: #3D2E24;">📝 Product Details</label>
-                            <textarea id="details-single" class="input-field" rows="6" style="font-size: 17px;" placeholder="Example:
-
-Premium Cotton T-Shirt
-100% Organic Cotton
-Machine wash cold, tumble dry low
-Made in Portugal
-$45
-
-Add any product information here..."></textarea>
-                            <div style="background: #e8f5e9; padding: 12px; border-radius: 8px; margin-top: 10px; border-left: 3px solid #81B29A;">
-                                <div style="font-size: 15px; color: #3D2E24; font-weight: 600; margin-bottom: 5px;">
-                                    🔄 Two Ways to Add Data:
-                                </div>
-                                <div style="font-size: 14px; color: #7D6E64; line-height: 1.6;">
-                                    <strong>Option 1:</strong> Add now (upload photo + type details)<br>
-                                    <strong>Option 2:</strong> Generate blank QR, then scan it to add data later
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <!-- Product data entry removed. Items are attached by scanning a tag
+                     (the modular model), not typed at generation time. The
+                     helpers that fed these panels are now unreachable and can
+                     go in a cleanup pass: toggleProductData, updateProductForms,
+                     applyFirstToAll. handleMediaUpload / handleFileUpload /
+                     toggleRecording stay — the edit-QR modal still uses them. -->
             </div>
             
             <div id="batchForm" style="display: none;">
@@ -1542,43 +1465,16 @@ Add any product information here..."></textarea>
                 <div class="form-row">
                     <div class="form-group">
                         <label>Number of QR Codes</label>
-                        <input type="number" id="quantity" class="input-field" min="1" max="50" value="5" onchange="updateProductForms()">
+                        <input type="number" id="quantity" class="input-field" min="1" max="50" value="5">
                     </div>
                     <div class="form-group">
                         <label>Label Prefix</label>
-                        <input type="text" id="prefix" class="input-field" placeholder="e.g., Card" onchange="updateProductForms()">
+                        <input type="text" id="prefix" class="input-field" placeholder="e.g., Card">
                     </div>
                 </div>
                 
                 <!-- Product Data Entry -->
-                <div style="background: linear-gradient(135deg, #f9f4f9 0%, #f0e5f0 100%); border-radius: 16px; padding: 30px; margin: 30px 0; border: 3px solid var(--lantern-plum); box-shadow: 0 8px 20px rgba(139, 58, 127, 0.2);">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                        <h4 style="font-size: 22px; font-weight: 700; color: #8B3A7F; margin: 0;">📦 Product Data Upload</h4>
-                        <span style="background: linear-gradient(135deg, var(--lantern-plum) 0%, #6e2d65 100%); color: white; padding: 8px 16px; border-radius: 20px; font-size: 15px; font-weight: 700; box-shadow: 0 4px 12px rgba(139, 58, 127, 0.3);">
-                            ✨ Coming Soon: AI will extract info
-                        </span>
-                    </div>
-                    
-                    <div style="background: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; border-left: 4px solid var(--lantern-plum);">
-                        <p style="color: #3D2E24; font-size: 17px; margin: 0 0 15px 0; line-height: 1.7; font-weight: 500;">
-                            📸 <strong>Upload product photos</strong> and add details for each QR code.<br>
-                            Recipients will see this information when they scan.
-                        </p>
-                        <div style="background: #e6f7ff; padding: 12px; border-radius: 8px; border-left: 3px solid #1890ff;">
-                            <p style="color: #0050b3; font-size: 16px; margin: 0; font-weight: 600;">
-                                💡 <strong>Optional:</strong> Leave blank and recipients can add their own data by scanning the QR codes!
-                            </p>
-                        </div>
-                    </div>
-                    
-                    <div id="productDataForms" style="margin-top: 25px;"></div>
-                    
-                    <div style="text-align: center; margin-top: 25px;">
-                        <button type="button" onclick="toggleProductData()" style="background: linear-gradient(135deg, var(--lantern-plum) 0%, #b04a2e 100%); color: white; border: none; padding: 16px 40px; border-radius: 12px; font-weight: 700; cursor: pointer; font-size: 18px; box-shadow: 0 4px 15px rgba(139, 58, 127, 0.4); transition: all 0.3s;">
-                            <span id="toggleProductDataText">📋 Show Product Upload Forms</span>
-                        </button>
-                    </div>
-                </div>
+                
             </div>
             
             <div class="form-group">
@@ -3172,6 +3068,12 @@ Add any product information here..."></textarea>
                 // match what a run would actually stamp. Does not change the
                 // kind — a choice made earlier stays made, but stays visible.
                 if (apk && isAdmin()) setPrintKind(adminPrintKind);
+                // Admin prints stock; it never types product data here. Businesses
+                // still get these panels — this only clears the admin's own view.
+                ['productPanelSingle', 'productPanelBatch'].forEach(function (id) {
+                    var el = document.getElementById(id);
+                    if (el) el.style.display = isAdmin() ? 'none' : '';
+                });
             }
             if (view === 'myCodes') renderMyCodes();
             if (view === 'bizDashboard') loadDashboard();
@@ -3182,7 +3084,8 @@ Add any product information here..."></textarea>
                 var welcome   = document.getElementById('bizProfileWelcome');
                 var saveBtn   = document.getElementById('bizProfileSaveBtn');
                 if (backBtn)  backBtn.style.display  = bizIsFirstTime ? 'none' : '';
-                if (welcome)  welcome.style.display  = bizIsFirstTime ? 'block' : 'none';
+                // Admin isn't a first-time business and doesn't need the onboarding.
+                if (welcome)  welcome.style.display  = (bizIsFirstTime && !isAdmin()) ? 'block' : 'none';
                 if (saveBtn)  saveBtn.textContent     = bizIsFirstTime ? 'Save & Continue →' : 'Save Profile →';
             }
             if (view === 'bizBatchScan') initBatchScan();
