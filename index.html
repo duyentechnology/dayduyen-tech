@@ -2820,6 +2820,11 @@ Add any product information here..."></textarea>
         // 'boutique'  = + batch minting (everything, $19.99 tier).
         // Applies to every non-admin account; set back to '' before launch.
         var TEST_GRANT_TIER = '';
+        // Boutique is finished and payable end to end, but held back for launch:
+        // multi-QR minting needs more work than the first release warrants. Set
+        // this to true to offer it again — checkout, webhook, entitlements and
+        // the mint-credit metering are all left wired and untouched.
+        var BOUTIQUE_ENABLED = false;
         function testTier(t) {
             var order = ['generator', 'insights', 'boutique'];
             return order.indexOf(TEST_GRANT_TIER) >= order.indexOf(t);
@@ -3028,11 +3033,11 @@ Add any product information here..."></textarea>
                         tagline: 'Know how your QR codes perform and reach your audience.',
                         features: ['Scan &amp; save analytics on every QR code', 'Push promotions to all your active QR codes']
                     }) +
-                    planCardHTML({
+                    (!BOUTIQUE_ENABLED ? '' : planCardHTML({
                         title: 'Boutique', price: '$19.99/mo', badge: 'MOST FEATURES', featured: true, tier: 'boutique',
                         tagline: 'For shops generating QR codes for their products.',
                         features: ['Everything in Insights', 'Multi-QR generation for products', '$0.10 per QR generated']
-                    }) +
+                    })) +
                     '<div style="font-size:14px;color:#b9a6b4;text-align:center;margin-top:6px;font-style:italic;">💳 Secure checkout is launching soon.</div>' +
                     '<button onclick="document.getElementById(\'plansModal\').style.display=\'none\'" style="width:100%;margin-top:14px;background:#8B3A7F;color:#fff;border:none;border-radius:12px;padding:14px;font-family:\'Outfit\',sans-serif;font-weight:600;font-size:17px;cursor:pointer;">Got it</button>' +
                 '</div>';
@@ -3083,7 +3088,7 @@ Add any product information here..."></textarea>
                     features: ['Scan &amp; save analytics on every QR code', 'Push promotions to all your active QR codes']
                 });
             }
-            if (!canMint()) {
+            if (BOUTIQUE_ENABLED && !canMint()) {
                 cards += planCardHTML({
                     title: 'Boutique', price: '$19.99/mo', badge: 'MOST FEATURES', featured: true, tier: 'boutique',
                     tagline: 'For shops generating QR codes for their products.',
