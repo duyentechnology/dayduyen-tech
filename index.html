@@ -1452,7 +1452,7 @@
                 </div>
                 
                 <!-- Product Data Entry - Single Mode -->
-                <div style="background: linear-gradient(135deg, #f9f4f9 0%, #f0e5f0 100%); border-radius: 16px; padding: 30px; margin: 30px 0; border: 3px solid var(--lantern-plum); box-shadow: 0 8px 20px rgba(139, 58, 127, 0.2);">
+                <div id="productPanelSingle" style="background: linear-gradient(135deg, #f9f4f9 0%, #f0e5f0 100%); border-radius: 16px; padding: 30px; margin: 30px 0; border: 3px solid var(--lantern-plum); box-shadow: 0 8px 20px rgba(139, 58, 127, 0.2);">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                         <h4 style="font-size: 22px; font-weight: 700; color: #8B3A7F; margin: 0;">📦 Product Data Upload</h4>
                         <span style="background: linear-gradient(135deg, var(--lantern-plum) 0%, #6e2d65 100%); color: white; padding: 8px 16px; border-radius: 20px; font-size: 15px; font-weight: 700; box-shadow: 0 4px 12px rgba(139, 58, 127, 0.3);">
@@ -1551,7 +1551,7 @@ Add any product information here..."></textarea>
                 </div>
                 
                 <!-- Product Data Entry -->
-                <div style="background: linear-gradient(135deg, #f9f4f9 0%, #f0e5f0 100%); border-radius: 16px; padding: 30px; margin: 30px 0; border: 3px solid var(--lantern-plum); box-shadow: 0 8px 20px rgba(139, 58, 127, 0.2);">
+                <div id="productPanelBatch" style="background: linear-gradient(135deg, #f9f4f9 0%, #f0e5f0 100%); border-radius: 16px; padding: 30px; margin: 30px 0; border: 3px solid var(--lantern-plum); box-shadow: 0 8px 20px rgba(139, 58, 127, 0.2);">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                         <h4 style="font-size: 22px; font-weight: 700; color: #8B3A7F; margin: 0;">📦 Product Data Upload</h4>
                         <span style="background: linear-gradient(135deg, var(--lantern-plum) 0%, #6e2d65 100%); color: white; padding: 8px 16px; border-radius: 20px; font-size: 15px; font-weight: 700; box-shadow: 0 4px 12px rgba(139, 58, 127, 0.3);">
@@ -3172,6 +3172,12 @@ Add any product information here..."></textarea>
                 // match what a run would actually stamp. Does not change the
                 // kind — a choice made earlier stays made, but stays visible.
                 if (apk && isAdmin()) setPrintKind(adminPrintKind);
+                // Admin prints stock; it never types product data here. Businesses
+                // still get these panels — this only clears the admin's own view.
+                ['productPanelSingle', 'productPanelBatch'].forEach(function (id) {
+                    var el = document.getElementById(id);
+                    if (el) el.style.display = isAdmin() ? 'none' : '';
+                });
             }
             if (view === 'myCodes') renderMyCodes();
             if (view === 'bizDashboard') loadDashboard();
@@ -3182,7 +3188,8 @@ Add any product information here..."></textarea>
                 var welcome   = document.getElementById('bizProfileWelcome');
                 var saveBtn   = document.getElementById('bizProfileSaveBtn');
                 if (backBtn)  backBtn.style.display  = bizIsFirstTime ? 'none' : '';
-                if (welcome)  welcome.style.display  = bizIsFirstTime ? 'block' : 'none';
+                // Admin isn't a first-time business and doesn't need the onboarding.
+                if (welcome)  welcome.style.display  = (bizIsFirstTime && !isAdmin()) ? 'block' : 'none';
                 if (saveBtn)  saveBtn.textContent     = bizIsFirstTime ? 'Save & Continue →' : 'Save Profile →';
             }
             if (view === 'bizBatchScan') initBatchScan();
