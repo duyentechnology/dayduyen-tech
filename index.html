@@ -1989,6 +1989,13 @@
             </div>
             </div>
 
+            <!-- Admin only: what happened to the codes this account printed. -->
+            <div id="dashPrintRuns" style="display:none;background:#fff;border:2px solid #8B3A7F;border-radius:18px;padding:22px 20px;margin-bottom:24px;">
+                <div style="font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:700;color:#2E2A28;margin-bottom:4px;">Print runs</div>
+                <div style="font-size:14.5px;color:#9A8478;line-height:1.5;margin-bottom:16px;">Codes this account generated, and how far each kind got. <b>In use</b> means claimed by a business, written on, or saved.</div>
+                <div id="printRunsBody" style="font-size:15px;color:#9A8478;">Loading…</div>
+            </div>
+
             <!-- Push a Promotion -->
             <div id="dashPromoSection" style="background:#fff;border:2px solid #8B3A7F;border-radius:18px;padding:26px 24px;margin-bottom:24px;box-shadow:0 6px 22px rgba(139,58,127,0.08);">
                 <div style="font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:700;color:#2E2A28;margin-bottom:8px;display:flex;align-items:center;gap:10px;"><svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="#8B3A7F" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>Push a Promotion</div>
@@ -2999,6 +3006,51 @@
                 cards +
             '</div>';
         }
+        // Admin's own panel: how many codes were generated on each path, and how
+        // many went anywhere. Reads my_print_runs(), which tallies server-side and
+        // is RLS-scoped to the caller's own codes.
+        async function loadPrintRuns() {
+            var host = document.getElementById('dashPrintRuns');
+            if (!host || !isAdmin()) { if (host) host.style.display = 'none'; return; }
+            host.style.display = '';
+            var body = document.getElementById('printRunsBody');
+            var res;
+            try { res = await db.rpc('my_print_runs'); } catch (e) { res = { error: e }; }
+            if (!res || res.error || !Array.isArray(res.data)) {
+                if (body) body.textContent = 'Could not load print runs.';
+                console.warn('my_print_runs failed:', res && res.error);
+                return;
+            }
+            if (!res.data.length) { if (body) body.textContent = 'No codes generated yet.'; return; }
+            var esc = function (v) { return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;'); };
+            var cell = 'padding:9px 6px;text-align:right;font-size:16px;color:#2E2A28;';
+            var head = 'padding:0 6px 7px;text-align:right;font-size:11.5px;font-weight:700;color:#8B3A7F;text-transform:uppercase;letter-spacing:.4px;';
+            var total = { printed:0, scanned:0, in_use:0, saved:0 };
+            var rows = res.data.map(function (r) {
+                ['printed','scanned','in_use','saved'].forEach(function (k) { total[k] += (r[k] || 0); });
+                return '<tr style="border-top:1px solid #F0E8E2;">' +
+                    '<td style="' + cell + 'text-align:left;font-weight:600;">' + esc(r.kind) + '</td>' +
+                    '<td style="' + cell + '">' + (r.printed || 0) + '</td>' +
+                    '<td style="' + cell + '">' + (r.scanned || 0) + '</td>' +
+                    '<td style="' + cell + 'color:#8B3A7F;font-weight:700;">' + (r.in_use || 0) + '</td>' +
+                    '<td style="' + cell + '">' + (r.saved || 0) + '</td>' +
+                '</tr>';
+            }).join('');
+            body.innerHTML =
+                '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;">' +
+                    '<tr><th style="' + head + 'text-align:left;">Kind</th><th style="' + head + '">Printed</th>' +
+                    '<th style="' + head + '">Scanned</th><th style="' + head + '">In use</th><th style="' + head + '">Saved</th></tr>' +
+                    rows +
+                    '<tr style="border-top:2px solid #E8DDD6;">' +
+                        '<td style="' + cell + 'text-align:left;font-weight:700;">All</td>' +
+                        '<td style="' + cell + 'font-weight:700;">' + total.printed + '</td>' +
+                        '<td style="' + cell + 'font-weight:700;">' + total.scanned + '</td>' +
+                        '<td style="' + cell + 'font-weight:700;color:#8B3A7F;">' + total.in_use + '</td>' +
+                        '<td style="' + cell + 'font-weight:700;">' + total.saved + '</td>' +
+                    '</tr>' +
+                '</table></div>';
+        }
+
         // A locked business now sees ALL applicable tiers on the dashboard.
         function applyDashboardGating() {
             var insightsOK = canViewAnalytics() && canPush();
@@ -3079,6 +3131,7 @@
             }
             if (view === 'myCodes') renderMyCodes();
             if (view === 'bizDashboard') loadDashboard();
+            if (view === 'bizDashboard') loadPrintRuns();
             if (view === 'bizProfile') {
                 populateBizProfile();
                 // Show/hide elements based on whether this is first-time setup
