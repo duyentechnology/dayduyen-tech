@@ -1437,9 +1437,10 @@
             <!-- Admin only: choose what these printed QRs are for -->
             <div id="adminPrintKind" style="display:none;background:#fff;border:1.5px solid #C9A0C4;border-radius:14px;padding:14px 16px;margin-bottom:18px;">
                 <div style="font-size:14.5px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;">What are you printing?</div>
-                <div style="display:flex;gap:10px;">
-                    <button type="button" id="printKindNote" onclick="setPrintKind('note')" style="flex:1;padding:11px 8px;border-radius:11px;border:2px solid #8B3A7F;background:#8B3A7F;color:#fff;font-family:'Outfit',sans-serif;font-weight:600;font-size:15px;cursor:pointer;">Duyên notes</button>
-                    <button type="button" id="printKindBusiness" onclick="setPrintKind('business')" style="flex:1;padding:11px 8px;border-radius:11px;border:2px solid #8B3A7F;background:#fff;color:#8B3A7F;font-family:'Outfit',sans-serif;font-weight:600;font-size:15px;cursor:pointer;">Business profile QRs</button>
+                <div style="display:flex;gap:8px;">
+                    <button type="button" id="printKindNote" onclick="setPrintKind('note')" style="flex:1;padding:11px 6px;border-radius:11px;border:2px solid #8B3A7F;font-family:'Outfit',sans-serif;font-weight:600;font-size:14px;line-height:1.2;cursor:pointer;background:#8B3A7F;color:#fff;">Duyên notes</button>
+                    <button type="button" id="printKindBusiness" onclick="setPrintKind('business')" style="flex:1;padding:11px 6px;border-radius:11px;border:2px solid #8B3A7F;font-family:'Outfit',sans-serif;font-weight:600;font-size:14px;line-height:1.2;cursor:pointer;background:#fff;color:#8B3A7F;">Business profile</button>
+                    <button type="button" id="printKindProduct" onclick="setPrintKind('product')" style="flex:1;padding:11px 6px;border-radius:11px;border:2px solid #8B3A7F;font-family:'Outfit',sans-serif;font-weight:600;font-size:14px;line-height:1.2;cursor:pointer;background:#fff;color:#8B3A7F;">Product tags</button>
                 </div>
                 <div id="printKindHint" style="font-size:13px;color:#9A8478;margin-top:9px;line-height:1.45;">Notes show the giver / receiver choice when scanned. Business QRs skip role selection — scanning goes straight to the business claim.</div>
             </div>
@@ -3167,6 +3168,10 @@ Add any product information here..."></textarea>
             if (view === 'generator') {
                 var apk = document.getElementById('adminPrintKind');
                 if (apk) apk.style.display = isAdmin() ? 'block' : 'none';
+                // Re-apply the kind in effect so the highlight and hint always
+                // match what a run would actually stamp. Does not change the
+                // kind — a choice made earlier stays made, but stays visible.
+                if (apk && isAdmin()) setPrintKind(adminPrintKind);
             }
             if (view === 'myCodes') renderMyCodes();
             if (view === 'bizDashboard') loadDashboard();
@@ -5556,15 +5561,25 @@ Add any product information here..."></textarea>
         // giver/receiver flow; 'business' = scan skips role selection and goes
         // straight to the business claim.
         var adminPrintKind = 'note';
+        // What each kind does when scanned, so the choice isn't guesswork.
+        var PRINT_KIND_HINTS = {
+            note: 'Notes show the giver / receiver choice when scanned, plus the business claim.',
+            business: 'Business QRs skip role selection — scanning goes straight to the business claim.',
+            product: 'Product tags print blank. A business scans one, attaches an item, and from then on it shows the item plus the giving / receiving choice.'
+        };
         function setPrintKind(kind) {
-            adminPrintKind = kind === 'business' ? 'business' : 'note';
+            adminPrintKind = (kind === 'business' || kind === 'product') ? kind : 'note';
             var note = document.getElementById('printKindNote');
             var biz  = document.getElementById('printKindBusiness');
-            [[note, adminPrintKind === 'note'], [biz, adminPrintKind === 'business']].forEach(function(p) {
+            var prod = document.getElementById('printKindProduct');
+            [[note, 'note'], [biz, 'business'], [prod, 'product']].forEach(function(p) {
                 if (!p[0]) return;
-                p[0].style.background = p[1] ? '#8B3A7F' : '#fff';
-                p[0].style.color      = p[1] ? '#fff' : '#8B3A7F';
+                var on = adminPrintKind === p[1];
+                p[0].style.background = on ? '#8B3A7F' : '#fff';
+                p[0].style.color      = on ? '#fff' : '#8B3A7F';
             });
+            var hint = document.getElementById('printKindHint');
+            if (hint) hint.textContent = PRINT_KIND_HINTS[adminPrintKind];
         }
 
         async function generateQR() {
@@ -5619,7 +5634,45 @@ Add any product information here..."></textarea>
                 const prefix = document.getElementById('prefix').value || 'QR';
                 labels = Array.from({length: quantity}, (_, i) => `${prefix}-${String(i+1).padStart(3, '0')}`);
             }
-            
+
+            // ---- Product tag serials -------------------------------------------
+            // A product tag prints blank and goes out as physical stock, so its
+            // label IS its identity: it prints under the code on the sheet
+            // (see the Avery/PDF paths) and is what ties a sticker in someone's
+            // hand back to a row. Both label modes above restart at 001 every
+            // run, which would put the same serial on two different tags, so
+            // continue from however many product tags already exist.
+            //
+            // The label is deliberately NOT the item name: the item arrives later
+            // when a business attaches one, and the number already printed on the
+            // sticker can never change.
+            if (isAdmin() && adminPrintKind === 'product') {
+                var _pfx = String((currentMode === 'single'
+                        ? (document.getElementById('singleLabel') || {}).value
+                        : (document.getElementById('prefix') || {}).value) || '').trim();
+                if (!_pfx || _pfx === 'QR' || _pfx === 'QR Code') _pfx = 'P';
+                var _start = null;
+                try {
+                    var _sd2 = await db.auth.getSession();
+                    var _uid2 = (((_sd2 || {}).data || {}).session || {}).user;
+                    var _cnt = await db.from('qr_codes')
+                        .select('id', { count: 'exact', head: true })
+                        .eq('user_id', _uid2 ? _uid2.id : null)
+                        .eq('source', 'product');
+                    if (!_cnt || _cnt.error || typeof _cnt.count !== 'number') throw new Error('count unavailable');
+                    _start = _cnt.count;
+                } catch (e) {
+                    // Guessing here would reprint serials that are already on
+                    // stickers, so stop instead of numbering from zero.
+                    console.warn('Product serial lookup failed:', e && e.message);
+                    alert('Could not read the product tag counter, so these tags were not generated \u2014 numbering from scratch would reprint serials that already exist.\n\nCheck your connection and try again.');
+                    return;
+                }
+                labels = Array.from({length: quantity}, function (_, i) {
+                    return _pfx + '-' + String(_start + i + 1).padStart(4, '0');
+                });
+            }
+
             for (let i = 0; i < quantity; i++) {
                 const id = Math.random().toString(36).substring(2, 9);
                 const url = baseUrl + id;
@@ -5751,7 +5804,11 @@ Add any product information here..."></textarea>
                     includeLogo: includeLogo,
                     // Admin flyer runs mint unclaimed 'business' QRs; a paying
                     // business's own code carries their profile from birth.
-                    source: ((isAdmin() && adminPrintKind === 'business') || _bizGen) ? 'business' : null,
+                    // Product tags are their own kind: they print blank, and when
+                    // scanned they show the item plus the gift roles — never the
+                    // business claim shortcut that source='business' triggers.
+                    source: (isAdmin() && adminPrintKind === 'product') ? 'product'
+                          : (((isAdmin() && adminPrintKind === 'business') || _bizGen) ? 'business' : null),
                     businessData: _bizGen ? bizProfileData : null,
                     businessUserId: _bizGen ? _bizUserId : null,
                     memoryEnabled: _bizGen,
@@ -6590,11 +6647,13 @@ Add any product information here..."></textarea>
             }
 
             try {
-                var { data, error } = await db
-                    .from('qr_codes')
-                    .select('id, label, url, business_user_id, source')
-                    .eq('id', qrId)
-                    .single();
+                // Read through get_qr_for_scan: the claimer is signed in but
+                // does not own this code yet, so the owner-scoped policies
+                // don't cover it. The blanket read that used to cover it also
+                // let anyone list the whole table, so it's gone.
+                var _cl = await db.rpc('get_qr_for_scan', { p_code: qrId });
+                var data  = (_cl && _cl.data && _cl.data[0]) || null;
+                var error = (_cl && _cl.error) || (data ? null : { message: 'not found' });
                 // The claim RPC stamps source='business' on everything it
                 // touches; remember the true pre-claim source so notes stay
                 // notes (only admin-minted business QRs keep the studio).
