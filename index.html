@@ -1992,6 +1992,7 @@
                 <div style="font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:700;color:#2E2A28;margin-bottom:4px;">Print runs</div>
                 <div style="font-size:14.5px;color:#9A8478;line-height:1.5;margin-bottom:16px;">Codes this account generated, and how far each kind got. <b>In use</b> means claimed by a business, written on, or saved.</div>
                 <div id="printRunsBody" style="font-size:15px;color:#9A8478;">Loading…</div>
+                <div id="momentFunnelBody" style="margin-top:22px;"></div>
             </div>
 
             <!-- Push a Promotion -->
@@ -3045,6 +3046,36 @@
                         '<td style="' + cell + 'font-weight:700;">' + total.saved + '</td>' +
                     '</tr>' +
                 '</table></div>';
+            renderMomentFunnel();
+        }
+
+        // Does a moment actually reach anyone? Platform-wide, admin only — the
+        // drop between stages is the point, so they are raw counts of one
+        // population rather than percentages of each other.
+        async function renderMomentFunnel() {
+            var host = document.getElementById('momentFunnelBody');
+            if (!host) return;
+            var res;
+            try { res = await db.rpc('moment_funnel'); } catch (e) { res = { error: e }; }
+            var f = res && !res.error && (Array.isArray(res.data) ? res.data[0] : res.data);
+            if (!f) { host.innerHTML = ''; console.warn('moment_funnel:', res && res.error); return; }
+            var stages = [['Created', f.created], ['Written', f.written], ['Sent', f.sent],
+                          ['Opened', f.opened], ['Replied', f.replied]];
+            host.innerHTML =
+                '<div style="border-top:1px solid #F0E8E2;padding-top:16px;">' +
+                    '<div style="font-family:\'Cormorant Garamond\',serif;font-size:21px;font-weight:700;color:#2E2A28;">The gift loop</div>' +
+                    '<div style="font-size:14px;color:#9A8478;line-height:1.5;margin:2px 0 13px;">Every moment anyone has started, and how far it got.</div>' +
+                    '<div style="display:flex;align-items:flex-end;gap:4px;">' +
+                    stages.map(function (st, i) {
+                        return (i ? '<div style="color:#C9A0C4;font-size:15px;padding-bottom:20px;">&rsaquo;</div>' : '') +
+                        '<div style="flex:1;text-align:center;">' +
+                            '<div style="font-family:\'Cormorant Garamond\',serif;font-size:27px;font-weight:700;line-height:1;color:' +
+                                (st[1] ? '#8B3A7F' : '#C9BDB4') + ';">' + (st[1] || 0) + '</div>' +
+                            '<div style="font-size:11px;color:#9A8478;text-transform:uppercase;letter-spacing:.4px;margin-top:5px;">' + st[0] + '</div>' +
+                        '</div>';
+                    }).join('') +
+                    '</div>' +
+                '</div>';
         }
 
         // A locked business now sees ALL applicable tiers on the dashboard.
