@@ -1192,7 +1192,6 @@
             <button class="cta-button" id="headerBtn" onclick="handleHeaderCTA()">Log In</button>
             <div class="user-menu" id="userMenu">
                 <button class="cta-button" id="adminNewQR" onclick="showView('mode')" style="background: white; color: #8B3A7F; border: 2px solid var(--lantern-plum); display:none;">+ New QR</button>
-                <button class="cta-button" id="adminMyCodes" onclick="showView('myCodes')" style="background: #2E2A28; color: white; display:none;">My QR Codes <span id="qrCount" style="background: #8B3A7F; color: white; padding: 2px 8px; border-radius: 10px; font-size: 13px; margin-left: 4px;">0</span></button>
                 <button class="cta-button" onclick="showView('bizDashboard')" style="background: #8B3A7F; color: white;">My Dashboard</button>
                 <div class="user-avatar-wrap">
                     <button class="user-avatar" id="userAvatarBtn" type="button" onclick="event.stopPropagation(); document.getElementById('userDropdown').classList.toggle('open');" aria-label="Account menu"></button>
@@ -1512,7 +1511,6 @@
             <div class="qr-result" id="qrResult" style="display: none;">
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 15px;">
                     <h3 style="margin: 0;">✨ Your QR Code(s)</h3>
-                    <button type="button" onclick="showView('myCodes')" style="background: #3D2E24; color: white; border: none; padding: 10px 20px; border-radius: 10px; font-weight: 600; font-size: 16px; cursor: pointer;">📋 View My QR Codes →</button>
                 </div>
                 
                 <!-- Download Options -->
@@ -2122,7 +2120,6 @@
     <div id="editQRView" class="view">
         <div class="generator" style="max-width: 800px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
-                <button type="button" onclick="showView('myCodes')" style="background: none; border: none; color: #8B3A7F; font-weight: 600; font-size: 17px; cursor: pointer;">← Back to My QR Codes</button>
                 <span id="editQRStatus" style="padding: 6px 14px; border-radius: 20px; font-size: 14px; font-weight: 600;"></span>
             </div>
             
@@ -2228,7 +2225,6 @@
     <div id="qrStudioView" class="view">
         <div class="generator" style="max-width:520px;">
             <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px;">
-                <button type="button" onclick="showView('myCodes')" style="background:none;border:none;color:#8B3A7F;font-size:22px;cursor:pointer;padding:0;">←</button>
                 <h2 style="font-family:'Cormorant Garamond',serif;font-size:1.8rem;font-weight:700;color:#8B3A7F;margin:0;">My QR Code</h2>
             </div>
             <div id="studioLabel" style="font-size:15px;color:#9A8478;margin-bottom:16px;"></div>
@@ -3129,6 +3125,10 @@
                     if (el) el.style.display = isAdmin() ? 'none' : '';
                 });
             }
+            // The My QR Codes list and the Edit screen are retired: no entry point
+            // reaches them and they are out of the deep-link routes. The markup,
+            // renderMyCodes and openEditQR are still here only because the enterprise
+            // redesign will rewrite this whole surface — delete them with it.
             if (view === 'myCodes') renderMyCodes();
             if (view === 'bizDashboard') loadDashboard();
             if (view === 'bizDashboard') loadPrintRuns();
@@ -3155,7 +3155,7 @@
         
         function handleHeaderCTA() {
             if (currentUser) {
-                isAdmin() ? showView('myCodes') : showView('bizDashboard');
+                showView('bizDashboard');
             } else {
                 document.getElementById('signupForm').style.display = 'none';
                 document.getElementById('loginForm').style.display = 'block';
@@ -4151,7 +4151,7 @@
                 if (pendingClaim) {
                     try { localStorage.removeItem('pendingClaimQr'); } catch(e) {}
                     bizIsFirstTime = false;
-                    showView('myCodes');
+                    showView('bizDashboard');
                     handleClaim(pendingClaim);
                     return;
                 }
@@ -4164,7 +4164,7 @@
                     bizIsFirstTime = false;
                     var pcIdx2 = savedQRCodes.findIndex(function(c){ return c.id === pcQr || c.dbId === pcQr; });
                     if (pcIdx2 !== -1 && savedQRCodes[pcIdx2].source === 'business') { openQrStudio(pcIdx2); return; }
-                    showView('myCodes'); return;
+                    showView('bizDashboard'); return;
                 }
 
                 if (bizIsFirstTime) {
@@ -7607,7 +7607,7 @@
             // Go back to My QR Codes and re-render
             renderMyCodes();
             updateQRCount();
-            showView('myCodes');
+            showView('bizDashboard');
         }
         
         function deleteQRCode() {
@@ -7617,7 +7617,7 @@
             savedQRCodes.splice(editingQRIndex, 1);
             editingQRIndex = null;
             updateQRCount();
-            showView('myCodes');
+            showView('bizDashboard');
         }
         
         function downloadEditQR() {
@@ -8275,7 +8275,7 @@
                     }
 
                     var hash = window.location.hash.replace('#', '');
-                    var validViews = ['myCodes', 'mode', 'generator', 'about', 'editQR', 'bizDashboard', 'bizProfile', 'bizScanChoice', 'bizBatchScan', 'profile'];
+                    var validViews = ['mode', 'generator', 'about', 'bizDashboard', 'bizProfile', 'bizScanChoice', 'bizBatchScan', 'profile'];
                     var isBrandNewLogin = (event === 'SIGNED_IN');
                     console.log('🧭 Routing — bizProfileData:', JSON.stringify(bizProfileData), '| hash:', hash, '| event:', event);
 
@@ -8293,7 +8293,7 @@
                             showView('bizProfile');
                             return;
                         }
-                        showView('myCodes');
+                        showView('bizDashboard');
                         handleClaim(claimId);
                         return;
                     }
@@ -8325,7 +8325,7 @@
                             if (pcIdx !== -1 && savedQRCodes[pcIdx].source === 'business') {
                                 openQrStudio(pcIdx);
                             } else {
-                                showView('myCodes');
+                                showView('bizDashboard');
                             }
                         }
                         return;
@@ -8928,7 +8928,7 @@
         setTimeout(function() { if (s) s.style.display = 'none'; }, 600);
         // After splash, restore hash view if already authenticated
         var hash = window.location.hash.replace('#', '');
-        var validViews = ['myCodes', 'mode', 'generator', 'about', 'editQR'];
+        var validViews = ['mode', 'generator', 'about'];
         if (hash && hash.startsWith('claim/')) {
             if (!currentUser) {
                 // Not logged in — show auth modal with claim-specific messaging
