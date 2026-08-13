@@ -7898,10 +7898,15 @@
             var ctaSize  = Math.round(w * 0.046);
             var logoSide = Math.round(w * 0.20);
 
+            // A custom logo already carries the business name — printing the name
+            // as text under it is repetitive and clashes with the logo's own font,
+            // so the name line is drawn only when there is no logo.
+            var hasLogo = studioState.logoMode === 'custom' && !!studioState.logoImg;
+
             // measure height first so nothing is clipped
             ctx.font = 'italic ' + descSize + 'px Georgia, serif';
             var descLines = biz.description ? wrapLines(ctx, '“' + biz.description + '”', w - pad * 2) : [];
-            var h = pad + logoSide + Math.round(w * 0.035) + nameSize
+            var h = pad + logoSide + Math.round(w * 0.035) + (hasLogo ? 0 : nameSize)
                   + (descLines.length ? Math.round(w * 0.028) + descLines.length * Math.round(descSize * 1.45) : 0)
                   + Math.round(w * 0.045) + qc.height + Math.round(w * 0.045) + ctaSize + pad;
             canvas.width = w; canvas.height = h;
@@ -7929,10 +7934,12 @@
             y += logoSide + Math.round(w * 0.035);
 
             ctx.textAlign = 'center';
-            ctx.fillStyle = '#2E2A28';
-            ctx.font = 'bold ' + nameSize + 'px Georgia, serif';
-            ctx.fillText(String(biz.name || (studioItem() && studioItem().label) || 'My Business'), w / 2, y + nameSize * 0.85);
-            y += nameSize;
+            if (!hasLogo) {
+                ctx.fillStyle = '#2E2A28';
+                ctx.font = 'bold ' + nameSize + 'px Georgia, serif';
+                ctx.fillText(String(biz.name || (studioItem() && studioItem().label) || 'My Business'), w / 2, y + nameSize * 0.85);
+                y += nameSize;
+            }
 
             if (descLines.length) {
                 y += Math.round(w * 0.028);
