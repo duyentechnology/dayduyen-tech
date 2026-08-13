@@ -4978,10 +4978,13 @@
             };
             if (!Array.isArray(savedQRCodes)) savedQRCodes = [];
             savedQRCodes.push(item);
-            // Mark the draft live and remember its code, then persist.
+            // Mark the draft live and remember its code, then persist. AWAIT the
+            // save before navigating — otherwise openQrStudio changes context and
+            // the async upsert can be dropped, leaving the draft as generated:false
+            // in the DB (so the app later offers to charge for it AGAIN).
             product.generated = true; product.codeId = d.id; product.codeUrl = d.url; product.expanded = false;
             renderCatalogProducts();
-            persistCatalogDrafts();
+            try { await persistCatalogDrafts(); } catch (e) { console.warn('persist after modular create failed:', e); }
             openQrStudio(savedQRCodes.length - 1);
             return true;
         }
@@ -5002,20 +5005,33 @@
 
         // Generate a modular's QR. Flat $10 each: use a modular credit if one is
         // on the account, otherwise open the $10 modular checkout.
+        var _generatingModular = false;
         async function generateCatalogQR(i) {
             var p = catalogProducts[i]; if (!p) return;
             if (p.generated && p.codeId) { reopenModularStudio(p); return; }
+            // Guard against a double-tap / re-entrant call: the first tap may be
+            // mid-flight creating the code (and spending the credit) — a second
+            // must never fall through to a fresh $10 checkout for the same item.
+            if (_generatingModular) return;
             var hasContent = (p.name || '').trim() || (p.details || '').trim() || p.photos.length;
             if (!hasContent) { alert('Add a name, details, or a photo first.'); return; }
-            await persistCatalogDrafts();
-            await loadEntitlements();
-            if (modularCredits() > 0) { await createModularAndOpenStudio(p); return; }
-            // Needs payment ($10). Remember which draft, so the return can finish it.
-            var pid = bizProfileData && (bizProfileData.profileId || currentProfileId);
-            // localStorage (not sessionStorage) so the draft reference survives the
-            // Stripe round trip even when the PWA relaunches in a fresh context.
-            try { localStorage.setItem('pendingModular', JSON.stringify({ mid: p.id, pid: pid })); } catch (e) {}
-            startModularCheckout('modular', p.id, pid);
+            _generatingModular = true;
+            try {
+                await persistCatalogDrafts();
+                await loadEntitlements();
+                // Re-check after the awaits: another in-flight call (or the return
+                // handler) may have already created the code or spent the credit.
+                if (p.generated && p.codeId) { reopenModularStudio(p); return; }
+                if (modularCredits() > 0) { await createModularAndOpenStudio(p); return; }
+                // Needs payment ($10). Remember which draft, so the return can finish it.
+                var pid = bizProfileData && (bizProfileData.profileId || currentProfileId);
+                // localStorage (not sessionStorage) so the draft reference survives the
+                // Stripe round trip even when the PWA relaunches in a fresh context.
+                try { localStorage.setItem('pendingModular', JSON.stringify({ mid: p.id, pid: pid })); } catch (e) {}
+                startModularCheckout('modular', p.id, pid);
+            } finally {
+                _generatingModular = false;
+            }
         }
 
         // Reopen the studio for an already-generated modular.
