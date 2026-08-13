@@ -5226,17 +5226,30 @@
             var details = sanitize((m.details || '').trim());
             if (!pics.length && !nm && !details) return '';
             var grid = pics.length
-                ? '<div style="display:grid;grid-template-columns:repeat(' + Math.min(pics.length, 3) + ',1fr);gap:8px;margin-bottom:' + ((nm || details) ? '12px' : '0') + ';">' +
+                ? '<div style="display:grid;grid-template-columns:repeat(' + Math.min(pics.length, 3) + ',1fr);gap:8px;margin-bottom:' + (details ? '12px' : '0') + ';">' +
                     pics.map(function(u){ return '<div style="aspect-ratio:3/4;border-radius:10px;overflow:hidden;background:#f5f0eb;"><img src="' + u + '" style="width:100%;height:100%;object-fit:cover;display:block;"></div>'; }).join('') +
                   '</div>'
                 : '';
-            return '<div style="padding:20px 16px 0;background:#F0EFED;">' +
+            // The product/menu item is the CONTENT of the preview — a plain card
+            // rendered below the business profile + About, matching the customer
+            // scan and the saved tapestry entry.
+            var nmHead = nm ? ((isMenu ? '🍽️ ' : '') + nm) : '';
+            return '<div style="padding:16px 16px 4px;background:#F0EFED;">' +
                 '<div style="background:#fff;border:1.5px solid #E8DDD6;border-radius:14px;padding:14px;">' +
-                    (nm ? '<div style="font-family:\'Crimson Pro\',serif;font-size:20px;font-weight:700;color:#8B3A7F;margin-bottom:' + ((pics.length || details) ? '10px' : '0') + ';">' + (isMenu ? '🍽️ ' : '') + nm + '</div>' : '') +
+                    (nmHead ? '<div style="font-family:\'Crimson Pro\',serif;font-size:20px;font-weight:700;color:#8B3A7F;margin-bottom:' + ((pics.length || details) ? '10px' : '0') + ';">' + nmHead + '</div>' : '') +
                     grid +
                     (details ? '<div style="font-size:15px;color:#3D2E24;line-height:1.55;white-space:pre-wrap;">' + details + '</div>' : '') +
                 '</div>' +
             '</div>';
+        }
+        // Collapse/expand the business info (About) from the header arrow.
+        function togglePreviewOrigin() {
+            var body = document.getElementById('pvOriginBody');
+            var chev = document.getElementById('pvOriginChev');
+            if (!body) return;
+            var open = body.style.display !== 'none';
+            body.style.display = open ? 'none' : 'block';
+            if (chev) chev.style.transform = open ? 'rotate(0deg)' : 'rotate(180deg)';
         }
         // Preview a modular the way a customer sees it: business profile + item.
         function previewModular(i) {
@@ -5245,18 +5258,25 @@
         }
 
         function showBizProfilePreview() {
-            // --- Read form values ---
-            var name    = (document.getElementById('bizName')    || {}).value || '';
-            var desc    = (document.getElementById('bizDesc')    || {}).value || '';
-            var phone   = (document.getElementById('bizPhone')   || {}).value || '';
-            var email   = (document.getElementById('bizEmail')   || {}).value || '';
-            var website = (document.getElementById('bizWebsite') || {}).value || '';
+            // --- Read form values, falling back to the loaded profile ---
+            // The profile FORM is only populated when you open the profile editor.
+            // Previewing a product from the single-modular editor never touches
+            // that form, so read the live form value when present but fall back
+            // to bizProfileData — otherwise the brand name and About go blank.
+            var _bp = bizProfileData || {};
+            var _bpa = _bp.address || {};
+            var _v = function(id) { return (document.getElementById(id) || {}).value || ''; };
+            var name    = _v('bizName')    || _bp.name        || '';
+            var desc    = _v('bizDesc')    || _bp.description || '';
+            var phone   = _v('bizPhone')   || _bp.phone       || '';
+            var email   = _v('bizEmail')   || _bp.email       || '';
+            var website = _v('bizWebsite') || _bp.website      || '';
             if (website && !website.match(/^https?:\/\//)) website = 'https://' + website;
-            var street  = (document.getElementById('bizStreet')  || {}).value || '';
-            var apt     = (document.getElementById('bizApt')     || {}).value || '';
-            var city    = (document.getElementById('bizCity')    || {}).value || '';
-            var state   = (document.getElementById('bizState')   || {}).value || '';
-            var zip     = (document.getElementById('bizZip')     || {}).value || '';
+            var street  = _v('bizStreet')  || _bpa.street || '';
+            var apt     = _v('bizApt')     || _bpa.apt    || '';
+            var city    = _v('bizCity')    || _bpa.city   || '';
+            var state   = _v('bizState')   || _bpa.state  || '';
+            var zip     = _v('bizZip')     || _bpa.zip    || '';
             var address = [street, apt, city && state ? city + ', ' + state : city || state, zip].filter(Boolean).join(' ');
 
             var socials = [
@@ -5277,7 +5297,9 @@
                 iconsHtml += '<a href="' + website + '" target="_blank" rel="noopener" style="' + iconStyle + '"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8B3A7F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></a>';
             }
             socials.forEach(function(s) {
-                var val = (document.getElementById(s.id) || {}).value || '';
+                var val = (document.getElementById(s.id) || {}).value
+                    || ((_bp.social || {})[s.id.replace('soc', '').toLowerCase()])
+                    || '';
                 if (!val) return;
                 iconsHtml += '<a href="' + val + '" target="_blank" rel="noopener" style="' + iconStyle + '"><svg width="17" height="17" viewBox="0 0 24 24" fill="#8B3A7F"><path d="' + s.path + '"/></svg></a>';
             });
@@ -5293,20 +5315,26 @@
             var iconRowHtml = iconsHtml ? '<div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:14px;">' + iconsHtml + '</div>' : '';
 
             // --- Assemble card body (matches duyen.io showBusinessProfile) ---
-            var safeName = sanitize(name) || 'Your Business Name';
+            // No placeholder: when there's no business name yet, the header just
+            // omits the name line (mirrors duyen.io), never prints stand-in text.
+            var safeName = sanitize(name);
             var safeDesc = sanitize(desc);
-            var aboutUrls = aboutPhotos.map(function(p){ return p.url; }).filter(Boolean);
+            var aboutUrls = (aboutPhotos.length ? aboutPhotos.map(function(p){ return p.url; })
+                                                : (Array.isArray(_bp.aboutPhotos) ? _bp.aboutPhotos : [])).filter(Boolean);
             // Logo takes the header slot when uploaded, exactly as on duyen.io.
             var pvLogo = bizLogoUrl || (bizProfileData && bizProfileData.logo) || '';
             pvLogo = (typeof pvLogo === 'string' && /^https?:\/\//.test(pvLogo)) ? pvLogo.replace(/"/g, '&quot;') : '';
 
             var _pvHeadText =
-                '<div style="font-family:\'Crimson Pro\',serif;font-size:22px;font-weight:600;color:#3D2E24;line-height:1.15;text-align:center;">Every thing has an origin</div>' +
+                '<div style="font-family:\'Crimson Pro\',serif;font-size:22px;font-weight:600;color:#3D2E24;line-height:1.15;text-align:center;padding:0 34px;">Every thing has an origin</div>' +
                 '<div style="font-size:13.5px;color:#6B5751;line-height:1.45;margin-top:6px;font-weight:300;text-align:center;">Behind this moment is a maker, a craft, and a reason it found its way to you.</div>' +
-                '<div style="font-family:\'Crimson Pro\',serif;font-size:20px;font-weight:700;color:#8B3A7F;text-align:center;margin-top:8px;">' + safeName + '</div>' +
+                (safeName ? '<div style="font-family:\'Crimson Pro\',serif;font-size:20px;font-weight:700;color:#8B3A7F;text-align:center;margin-top:8px;">' + safeName + '</div>' : '') +
                 iconRowHtml;
             var bodyHtml =
-                // Header - logo on top when uploaded, mirrors duyen.io
+                // Business-profile header, with a circular collapse arrow at the
+                // top-right that collapses About below it — mirrors duyen.io's
+                // scan view and the origin card on the tapestry.
+                '<div style="position:relative;">' +
                 (pvLogo ?
                     '<div style="background:#EFE5EF;padding:16px 14px 13px;border-bottom:1px solid #E0CFE0;">' +
                         '<img src="' + pvLogo + '" alt="' + safeName + '" style="display:block;margin:0 auto 10px;max-width:78%;max-height:185px;object-fit:contain;border-radius:14px;">' +
@@ -5321,9 +5349,12 @@
                         '<div style="flex:1;min-width:0;">' + _pvHeadText + '</div>' +
                     '</div>'
                 ) +
-                // The modular being previewed leads — brand above, item here.
-                modularItemBlockHTML(_previewModularObj) +
-                // About - the same white card the customer sees, open by default
+                    '<span onclick="togglePreviewOrigin()" style="position:absolute;top:12px;right:12px;width:32px;height:32px;border-radius:50%;background:rgba(139,58,127,0.12);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;">' +
+                        '<svg id="pvOriginChev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8B3A7F" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition:transform .2s;transform:rotate(180deg);"><polyline points="6 9 12 15 18 9"></polyline></svg>' +
+                    '</span>' +
+                '</div>' +
+                // About — collapsed by the header arrow, open by default.
+                '<div id="pvOriginBody" style="display:block;">' +
                 ((safeDesc || aboutUrls.length) ?
                     '<div style="padding:22px 16px 4px;background:#F0EFED;">' +
                         '<div style="background:#fff;border:1.5px solid #E8DDD6;border-radius:12px;overflow:hidden;margin-bottom:12px;">' +
@@ -5341,7 +5372,10 @@
                             '</div>' +
                         '</div>' +
                     '</div>'
-                : '<div style="height:20px;background:#F0EFED;"></div>');
+                : '') +
+                '</div>' +
+                // Product data — the content, below the business profile + About.
+                modularItemBlockHTML(_previewModularObj);
 
             document.getElementById('previewCardBody').innerHTML = bodyHtml;
 
