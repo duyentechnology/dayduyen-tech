@@ -5330,6 +5330,61 @@
                 '<div style="font-size:13.5px;color:#6B5751;line-height:1.45;margin-top:6px;font-weight:300;text-align:center;">Behind this moment is a maker, a craft, and a reason it found its way to you.</div>' +
                 (safeName ? '<div style="font-family:\'Crimson Pro\',serif;font-size:20px;font-weight:700;color:#8B3A7F;text-align:center;margin-top:8px;">' + safeName + '</div>' : '') +
                 iconRowHtml;
+
+            // Collapsible sections — About, What's new, Product — each toggled by
+            // its own chevron (togglePreviewSection), the same accordion the
+            // customer scan and the promo preview use.
+            var _pvAbout = (safeDesc || aboutUrls.length) ?
+                '<div style="background:#fff;border:1.5px solid #E8DDD6;border-radius:12px;overflow:hidden;margin-bottom:12px;">' +
+                    '<div onclick="togglePreviewSection(\'about\')" style="display:flex;align-items:center;gap:10px;padding:15px 16px;cursor:pointer;">' +
+                        '<span style="flex:1;font-family:\'Crimson Pro\',serif;font-size:22px;font-weight:600;color:#2E2A28;">About</span>' +
+                        '<svg id="pvChev-about" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8B3A7F" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition:transform .2s;transform:rotate(180deg);"><path d="M6 9l6 6 6-6"/></svg>' +
+                    '</div>' +
+                    '<div id="pvBody-about" style="padding:0 16px 16px;">' +
+                        (safeDesc ? '<div style="font-family:\'Crimson Pro\',serif;font-size:21px;font-style:italic;color:#5D4E44;line-height:1.7;margin-bottom:14px;">“' + safeDesc + '”</div>' : '') +
+                        (aboutUrls.length ? '<div style="display:grid;grid-template-columns:repeat(' + Math.min(aboutUrls.length,3) + ',1fr);gap:8px;">' + aboutUrls.slice(0,3).map(function(u){ return '<div style="aspect-ratio:3/4;border-radius:10px;overflow:hidden;"><img src="' + u + '" style="width:100%;height:100%;object-fit:cover;"></div>'; }).join('') + '</div>' : '') +
+                    '</div>' +
+                '</div>' : '';
+
+            // What's new — the business's current promotion (loaded into the dash
+            // form by loadLastPromotion), so a scan and this preview show the same.
+            var _pvPromoText = ((document.getElementById('dashPromoText') || {}).value || '').trim();
+            var _pvPromoPhotos = (typeof dashPromoPhotos !== 'undefined' && Array.isArray(dashPromoPhotos))
+                ? dashPromoPhotos.map(function(p){ return p.url; }).filter(Boolean) : [];
+            var _pvPromo = (_pvPromoText || _pvPromoPhotos.length) ?
+                '<div style="background:#fff;border:1.5px solid #E8DDD6;border-radius:12px;overflow:hidden;margin-bottom:12px;">' +
+                    '<div onclick="togglePreviewSection(\'promo\')" style="display:flex;align-items:center;gap:10px;padding:15px 16px;cursor:pointer;">' +
+                        '<span style="flex:1;font-family:\'Crimson Pro\',serif;font-size:22px;font-weight:600;color:#2E2A28;">What\'s new</span>' +
+                        '<span style="background:#8B3A7F;color:#fff;font-size:12px;font-weight:600;padding:2px 8px;border-radius:10px;">1</span>' +
+                        '<svg id="pvChev-promo" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8B3A7F" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition:transform .2s;transform:rotate(180deg);"><path d="M6 9l6 6 6-6"/></svg>' +
+                    '</div>' +
+                    '<div id="pvBody-promo" style="padding:0 16px 16px;">' +
+                        (_pvPromoText ? '<div style="font-family:\'Crimson Pro\',serif;font-size:21px;color:#3a2a2e;line-height:1.7;font-style:italic;">“' + sanitize(_pvPromoText) + '”</div>' : '') +
+                        (_pvPromoPhotos.length ? '<div style="display:flex;flex-direction:column;gap:8px;margin-top:10px;">' + _pvPromoPhotos.map(function(u){ return '<div style="width:100%;border-radius:8px;overflow:hidden;background:#f5f0eb;"><img src="' + u + '" style="width:100%;height:auto;display:block;"></div>'; }).join('') + '</div>' : '') +
+                    '</div>' +
+                '</div>' : '';
+
+            // Product — the previewed item, collapsible like the other sections.
+            var _pvProduct = '';
+            (function(){
+                var m = _previewModularObj; if (!m) return;
+                var isMenu = m.type === 'menu';
+                var purls = (m.photos || []).map(function(x){ return typeof x === 'string' ? x : (x && x.url); }).filter(Boolean).slice(0, 3);
+                var pnm = sanitize((m.name || '').trim());
+                var pdet = sanitize((m.details || '').trim());
+                if (!purls.length && !pnm && !pdet) return;
+                var pHead = (isMenu ? '🍽️ ' : '') + (pnm || (isMenu ? 'Menu' : 'Product'));
+                var pGrid = purls.length ? '<div style="display:grid;grid-template-columns:repeat(' + Math.min(purls.length,3) + ',1fr);gap:8px;margin-bottom:' + (pdet ? '12px' : '0') + ';">' + purls.map(function(u){ return '<div style="aspect-ratio:3/4;border-radius:10px;overflow:hidden;background:#f5f0eb;"><img src="' + u + '" style="width:100%;height:100%;object-fit:cover;display:block;"></div>'; }).join('') + '</div>' : '';
+                _pvProduct =
+                    '<div style="background:#fff;border:1.5px solid #E8DDD6;border-radius:12px;overflow:hidden;margin-bottom:12px;">' +
+                        '<div onclick="togglePreviewSection(\'product\')" style="display:flex;align-items:center;gap:10px;padding:15px 16px;cursor:pointer;">' +
+                            '<span style="flex:1;font-family:\'Crimson Pro\',serif;font-size:20px;font-weight:700;color:#8B3A7F;">' + pHead + '</span>' +
+                            '<svg id="pvChev-product" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8B3A7F" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition:transform .2s;transform:rotate(180deg);"><path d="M6 9l6 6 6-6"/></svg>' +
+                        '</div>' +
+                        '<div id="pvBody-product" style="padding:0 16px 16px;">' + pGrid + (pdet ? '<div style="font-size:15px;color:#3D2E24;line-height:1.55;white-space:pre-wrap;">' + pdet + '</div>' : '') + '</div>' +
+                    '</div>';
+            })();
+
             var bodyHtml =
                 // Business-profile header, with a circular collapse arrow at the
                 // top-right that collapses About below it — mirrors duyen.io's
@@ -5353,29 +5408,13 @@
                         '<svg id="pvOriginChev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8B3A7F" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition:transform .2s;transform:rotate(180deg);"><polyline points="6 9 12 15 18 9"></polyline></svg>' +
                     '</span>' +
                 '</div>' +
-                // About — collapsed by the header arrow, open by default.
+                // Sections — About, What's new, Product — each collapsible; the
+                // header arrow collapses the whole region. Open by default.
                 '<div id="pvOriginBody" style="display:block;">' +
-                ((safeDesc || aboutUrls.length) ?
-                    '<div style="padding:22px 16px 4px;background:#F0EFED;">' +
-                        '<div style="background:#fff;border:1.5px solid #E8DDD6;border-radius:12px;overflow:hidden;margin-bottom:12px;">' +
-                            '<div style="display:flex;align-items:center;gap:10px;padding:15px 16px;">' +
-                                '<span style="flex:1;font-family:\'Crimson Pro\',serif;font-size:22px;font-weight:600;color:#2E2A28;">About</span>' +
-                                '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8B3A7F" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(180deg);"><path d="M6 9l6 6 6-6"/></svg>' +
-                            '</div>' +
-                            '<div style="padding:0 16px 16px;">' +
-                                (safeDesc ? '<div style="font-family:\'Crimson Pro\',serif;font-size:21px;font-style:italic;color:#5D4E44;line-height:1.7;margin-bottom:14px;">“' + safeDesc + '”</div>' : '') +
-                                (aboutUrls.length ?
-                                    '<div style="display:grid;grid-template-columns:repeat(' + Math.min(aboutUrls.length,3) + ',1fr);gap:8px;">' +
-                                    aboutUrls.slice(0,3).map(function(u){ return '<div style="aspect-ratio:3/4;border-radius:10px;overflow:hidden;"><img src="' + u + '" style="width:100%;height:100%;object-fit:cover;"></div>'; }).join('') +
-                                    '</div>'
-                                : '') +
-                            '</div>' +
-                        '</div>' +
-                    '</div>'
-                : '') +
-                '</div>' +
-                // Product data — the content, below the business profile + About.
-                modularItemBlockHTML(_previewModularObj);
+                    ((_pvAbout || _pvPromo || _pvProduct) ?
+                        '<div style="padding:22px 16px 4px;background:#F0EFED;">' + _pvAbout + _pvPromo + _pvProduct + '</div>'
+                    : '') +
+                '</div>';
 
             document.getElementById('previewCardBody').innerHTML = bodyHtml;
 
