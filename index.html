@@ -1856,7 +1856,7 @@
                  pattern as Menu. -->
             <div style="border-top:1px solid #E8DDD6;padding-top:16px;margin-bottom:24px;">
                 <label style="display:block;font-size:14.5px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;">Modulars <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#9A8478;">— products &amp; menus (optional)</span></label>
-                <p style="font-size:13px;color:#9A8478;margin:0 0 12px;font-family:'Outfit',sans-serif;">Draft and edit for free. Generate a QR when you're ready — the first is included with your $20 unlock, then <b style="color:#8B3A7F;">$10 each</b>. One QR = your business profile + this modular.</p>
+                <p style="font-size:13px;color:#9A8478;margin:0 0 12px;font-family:'Outfit',sans-serif;">Draft and edit for free. Generate when you're ready — <b style="color:#8B3A7F;">$10 each</b>. Each modular is its own QR that reuses this profile.</p>
                 <div id="catalogProductsWrap"></div>
                 <div style="display:flex;gap:10px;">
                     <button type="button" onclick="addCatalogProduct()" style="flex:1;border:1.5px dashed #c5b5ad;background:transparent;color:#8B3A7F;font-weight:600;border-radius:10px;padding:14px;font-size:15px;cursor:pointer;font-family:'Outfit',sans-serif;">+ Add a product</button>
@@ -2801,9 +2801,9 @@
 
         // ── Paywall UI (no charges yet — informational upsell only) ──────────
         var PAYWALL_COPY = {
-            generate:  { icon: '🔒', title: 'Unlock the QR generator',
-                         body: 'Create your own single QR codes to display on menus, tables, and signs.',
-                         cta: 'Unlock the generator — $20 one-time' },
+            generate:  { icon: '🔒', title: 'Your business profile QR',
+                         body: 'Generate your profile\'s own QR code to display, design, and print.',
+                         cta: 'Generate profile QR — $10 one-time' },
             mint:      { icon: '✨', title: 'Multi-QR generation is a Boutique feature',
                          body: 'Generate QR codes in bulk (plus analytics and promo push) with the Boutique plan.',
                          cta: 'Upgrade to Boutique — $19.99/mo' },
@@ -2829,8 +2829,8 @@
         function startUpgrade(tier, profileId) {
             pendingUnlockProfile = profileId || null;
             var TIERS = {
-                generator: { title: 'Unlock the QR generator', price: '$20 · one-time',
-                             note: 'Create your own single QR codes to display on menus, tables, and signs.' },
+                generator: { title: 'Your business profile QR', price: '$10 · one-time',
+                             note: 'Generate your profile\'s own QR code to display, design, and print.' },
                 insights:  { title: 'Upgrade to Insights', price: '$9.99 / month',
                              note: 'Scan &amp; save analytics on every QR code, plus promotions to all of them.' },
                 boutique:  { title: 'Upgrade to Boutique', price: '$19.99 / month · +$0.10 per QR',
@@ -4397,6 +4397,72 @@
             } catch (e) { /* leave the canvas blank rather than break the list */ }
         }
 
+        // ── Dashboard modulars (attached under each profile card) ────────────
+        function dashLoadProfile(profileId) {
+            var p = (bizProfiles || []).find(function(x){ return x.profileId === profileId; });
+            if (!p) return null;
+            bizProfileData = p; currentProfileId = p.profileId;
+            catalogProducts = normalizeCatalogProducts(p.products);
+            return p;
+        }
+        // Tapping a modular row opens its editor with that card expanded.
+        function dashEditModular(profileId, modularId) {
+            editProfile(profileId);
+            setTimeout(function() {
+                catalogProducts = normalizeCatalogProducts(bizProfileData ? bizProfileData.products : []);
+                var idx = catalogProducts.findIndex(function(m){ return m.id === modularId; });
+                if (idx > -1) catalogProducts.forEach(function(m, k){ m.expanded = (k === idx); });
+                renderCatalogProducts();
+                var el = document.getElementById('catalogProductsWrap');
+                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 130);
+        }
+        function dashAddModular(profileId, type) {
+            editProfile(profileId);
+            setTimeout(function() {
+                catalogProducts = normalizeCatalogProducts(bizProfileData ? bizProfileData.products : []);
+                addCatalogModular(type);
+                var el = document.getElementById('catalogProductsWrap');
+                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 130);
+        }
+        async function dashGenerateModular(profileId, modularId) {
+            if (!dashLoadProfile(profileId)) return;
+            var idx = catalogProducts.findIndex(function(m){ return m.id === modularId; });
+            if (idx > -1) await generateCatalogQR(idx);
+        }
+        function dashReopenModular(profileId, modularId) {
+            if (!dashLoadProfile(profileId)) return;
+            var m = catalogProducts.find(function(x){ return x.id === modularId; });
+            if (m && m.codeId) reopenModularStudio(m);
+            else if (m) generateCatalogQR(catalogProducts.indexOf(m));
+        }
+        function dashModularsSectionHTML(p, isActive) {
+            var mods = Array.isArray(p.products) ? p.products : [];
+            var rows = mods.map(function(m) {
+                var isMenu = m.type === 'menu';
+                var mName = sanitize((m.name || '').trim() || (isMenu ? 'Menu' : 'Product'));
+                var live = !!m.generated;
+                return '<div onclick="dashEditModular(\'' + p.profileId + '\',\'' + m.id + '\')" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid #E8DDD6;border-radius:10px;margin-bottom:8px;background:#fff;cursor:pointer;">' +
+                    '<div style="width:34px;height:34px;border-radius:8px;background:#F3E9F3;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">' + (isMenu ? '🍽️' : '📦') + '</div>' +
+                    '<div style="flex:1;min-width:0;"><div style="font-size:15px;font-weight:700;color:#2E2A28;font-family:\'Outfit\',sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + mName + '</div>' +
+                    '<div style="font-size:12px;color:' + (live ? '#3A8F6E' : '#9A8478') + ';font-family:\'Outfit\',sans-serif;">' + (live ? '✓ Live · scannable' : 'Draft') + '</div></div>' +
+                    (live
+                        ? '<button onclick="event.stopPropagation();dashReopenModular(\'' + p.profileId + '\',\'' + m.id + '\')" style="flex-shrink:0;background:#fff;color:#8B3A7F;border:1.5px solid #8B3A7F;border-radius:9px;padding:7px 11px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:\'Outfit\',sans-serif;">Design &amp; print</button>'
+                        : '<button onclick="event.stopPropagation();dashGenerateModular(\'' + p.profileId + '\',\'' + m.id + '\')" style="flex-shrink:0;background:#8B3A7F;color:#fff;border:none;border-radius:9px;padding:8px 12px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:\'Outfit\',sans-serif;">Generate · $10</button>') +
+                    '</div>';
+            }).join('');
+            return '<div style="background:#fff;border-top:1px solid #F0E5F0;padding:13px 14px;">' +
+                '<div style="font-size:12px;font-weight:700;color:#9A8478;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;font-family:\'Outfit\',sans-serif;">Modulars under this profile</div>' +
+                rows +
+                '<div style="display:flex;gap:9px;">' +
+                    '<button onclick="dashAddModular(\'' + p.profileId + '\',\'product\')" style="flex:1;border:1.5px dashed #c5b5ad;background:transparent;color:#8B3A7F;font-weight:600;border-radius:10px;padding:10px;font-size:14px;cursor:pointer;font-family:\'Outfit\',sans-serif;">+ Add product</button>' +
+                    '<button onclick="dashAddModular(\'' + p.profileId + '\',\'menu\')" style="flex:1;border:1.5px dashed #c5b5ad;background:transparent;color:#8B3A7F;font-weight:600;border-radius:10px;padding:10px;font-size:14px;cursor:pointer;font-family:\'Outfit\',sans-serif;">+ Add menu</button>' +
+                '</div>' +
+                '<div style="font-size:12px;color:#B0A29A;text-align:center;margin-top:9px;font-family:\'Outfit\',sans-serif;">Each modular is its own QR · $10 · reuses this profile</div>' +
+            '</div>';
+        }
+
         function renderProfilesList() {
             var container = document.getElementById('dashProfilesList');
             if (!container) return;
@@ -4417,40 +4483,40 @@
                 // deterministic speckle so the locked stand-in reads as a QR
                 var blurPix = '', _v = 7;
                 for (var _i = 0; _i < 81; _i++) { _v = (_v * 1103515245 + 12345) & 0x7fffffff; blurPix += '<i style="background:' + ((_v >> 16) % 100 < 45 ? '#8B3A7F' : 'transparent') + ';"></i>'; }
-                return '<div>' +
-                    '<div onclick="editProfile(\'' + p.profileId + '\')" style="background:#fff;border:1.5px solid ' + (isActive ? '#8B3A7F' : '#E8DDD6') + ';border-radius:12px 12px 0 0;border-bottom:none;padding:12px 14px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:border-color 0.15s;">' +
-                    '<div style="flex:1;min-width:0;">' +
-                        '<div style="font-size:18px;font-weight:700;color:#2E2A28;font-family:\'Outfit\',sans-serif;">' + label + '</div>' +
-                        (name && name !== label ? '<div style="font-size:15.5px;color:#9A8478;margin-top:2px;font-family:\'Outfit\',sans-serif;">' + name + '</div>' : '') +
-                        (isActive ? '<span style="display:inline-block;font-size:13px;font-weight:700;padding:3px 9px;border-radius:6px;margin-top:4px;background:#f0e5f0;color:#8B3A7F;">Active</span>' : '') +
-                    '</div>' +
-                    '<span style="flex-shrink:0;color:#8B3A7F;font-size:22px;font-weight:300;line-height:1;">›</span>' +
-                '</div>' +
-                // The profile's own QR code lives under it: blurred with a price
-                // until they own it, the real code (tap to design & print) after.
-                '<div onclick="event.stopPropagation();profileQrAction(\'' + p.profileId + '\')" style="background:#FBF7FB;border:1.5px solid ' + (isActive ? '#8B3A7F' : '#E8DDD6') + ';border-top:none;border-radius:0 0 12px 12px;padding:13px 14px;display:flex;align-items:center;gap:13px;cursor:pointer;">' +
-                    (code
-                        ? '<canvas class="profQrCanvas" data-url="' + sanitize(code.url || '') + '" data-color="' + sanitize(code.color || '#8B3A7F') + '" width="124" height="124" style="width:62px;height:62px;flex-shrink:0;border-radius:6px;"></canvas>'
-                        : '<div style="position:relative;width:62px;height:62px;flex-shrink:0;">' +
-                              '<div style="position:absolute;inset:0;filter:blur(4px);opacity:.45;display:grid;grid-template-columns:repeat(9,1fr);gap:1px;">' + blurPix + '</div>' +
-                              '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">' +
-                                  '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8B3A7F" stroke-width="2.2"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>' +
-                              '</div>' +
-                          '</div>') +
-                    '<div style="flex:1;min-width:0;">' +
-                        '<div style="font-size:15.5px;font-weight:600;color:#2E2A28;font-family:\'Outfit\',sans-serif;">Your business QR code</div>' +
-                        '<div style="font-size:13.5px;color:#6B5E56;line-height:1.45;margin-top:2px;font-family:\'Outfit\',sans-serif;">' +
-                            (code
-                                ? (paid ? 'Tap to design &amp; print ›' : 'Unlock design &amp; printing for this code.')
-                                : (paid ? 'Tap to create this profile\'s code ›' : 'Yours to display, design and print.')) +
+                // One profile box: header, the profile's own QR ($10), then the
+                // modulars attached under it. The profile is built once and reused.
+                return '<div style="border:1.5px solid ' + (isActive ? '#8B3A7F' : '#E8DDD6') + ';border-radius:14px;overflow:hidden;margin-bottom:14px;">' +
+                    '<div onclick="editProfile(\'' + p.profileId + '\')" style="background:#fff;padding:12px 14px;display:flex;align-items:center;gap:12px;cursor:pointer;">' +
+                        '<div style="flex:1;min-width:0;">' +
+                            '<div style="font-size:18px;font-weight:700;color:#2E2A28;font-family:\'Outfit\',sans-serif;">' + label + '</div>' +
+                            (name && name !== label ? '<div style="font-size:15.5px;color:#9A8478;margin-top:2px;font-family:\'Outfit\',sans-serif;">' + name + '</div>' : '') +
+                            (isActive ? '<span style="display:inline-block;font-size:13px;font-weight:700;padding:3px 9px;border-radius:6px;margin-top:4px;background:#f0e5f0;color:#8B3A7F;">Active</span>' : '') +
                         '</div>' +
+                        '<span style="flex-shrink:0;color:#8B3A7F;font-size:22px;font-weight:300;line-height:1;">›</span>' +
                     '</div>' +
-                    // Price shown up front whenever it still costs, rather than
-                    // a chevron that walks them into a paywall.
-                    (paid
-                        ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8B3A7F" stroke-width="2.5" style="flex-shrink:0;"><path d="M9 6l6 6-6 6"/></svg>'
-                        : '<span style="flex-shrink:0;background:#8B3A7F;color:#fff;font-size:13px;font-weight:700;padding:7px 13px;border-radius:9px;font-family:\'Outfit\',sans-serif;">$20</span>') +
+                    // Business profile QR — $10 to generate, then design & print.
+                    '<div onclick="profileQrAction(\'' + p.profileId + '\')" style="background:#FBF7FB;border-top:1px solid #F0E5F0;padding:13px 14px;display:flex;align-items:center;gap:13px;cursor:pointer;">' +
+                        (code
+                            ? '<canvas class="profQrCanvas" data-url="' + sanitize(code.url || '') + '" data-color="' + sanitize(code.color || '#8B3A7F') + '" width="124" height="124" style="width:56px;height:56px;flex-shrink:0;border-radius:6px;"></canvas>'
+                            : '<div style="position:relative;width:56px;height:56px;flex-shrink:0;">' +
+                                  '<div style="position:absolute;inset:0;filter:blur(4px);opacity:.45;display:grid;grid-template-columns:repeat(9,1fr);gap:1px;">' + blurPix + '</div>' +
+                                  '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">' +
+                                      '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8B3A7F" stroke-width="2.2"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>' +
+                                  '</div>' +
+                              '</div>') +
+                        '<div style="flex:1;min-width:0;">' +
+                            '<div style="font-size:15.5px;font-weight:700;color:#2E2A28;font-family:\'Outfit\',sans-serif;">Business profile QR</div>' +
+                            '<div style="font-size:13px;color:#6B5E56;line-height:1.4;margin-top:2px;font-family:\'Outfit\',sans-serif;">' +
+                                (code
+                                    ? (paid ? 'Tap to design &amp; print ›' : 'Unlock design &amp; printing.')
+                                    : 'Your storefront code — design &amp; print.') +
+                            '</div>' +
+                        '</div>' +
+                        (code && paid
+                            ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8B3A7F" stroke-width="2.5" style="flex-shrink:0;"><path d="M9 6l6 6-6 6"/></svg>'
+                            : '<span style="flex-shrink:0;background:#8B3A7F;color:#fff;font-size:13px;font-weight:700;padding:8px 13px;border-radius:9px;font-family:\'Outfit\',sans-serif;">Generate · $10</span>') +
                     '</div>' +
+                    dashModularsSectionHTML(p, isActive) +
                 '</div>';
             }).join('');
             // Draw the real codes once the markup is in the DOM.
@@ -4872,23 +4938,20 @@
             } catch (e) { console.error('startModularCheckout failed:', e); alert('Could not start checkout. Please try again.'); }
         }
 
-        // Generate a product's QR: free if a modular credit is available (first
-        // one is bundled into the $20), else $10 — or $20 if the profile was
-        // never unlocked (that $20 includes this first modular).
+        // Generate a modular's QR. Flat $10 each: use a modular credit if one is
+        // on the account, otherwise open the $10 modular checkout.
         async function generateCatalogQR(i) {
             var p = catalogProducts[i]; if (!p) return;
             if (p.generated && p.codeId) { reopenModularStudio(p); return; }
-            if (!(p.name || '').trim() && !(p.details || '').trim() && !p.photos.length) {
-                alert('Add a name, details, or a photo first.'); return;
-            }
-            var btnLabelBefore;
+            var hasContent = (p.name || '').trim() || (p.details || '').trim() || p.photos.length;
+            if (!hasContent) { alert('Add a name, details, or a photo first.'); return; }
             await persistCatalogDrafts();
             await loadEntitlements();
             if (modularCredits() > 0) { await createModularAndOpenStudio(p); return; }
-            // Needs payment. Remember which draft, so the return can finish it.
+            // Needs payment ($10). Remember which draft, so the return can finish it.
             var pid = bizProfileData && (bizProfileData.profileId || currentProfileId);
             try { sessionStorage.setItem('pendingModular', JSON.stringify({ mid: p.id, pid: pid })); } catch (e) {}
-            startModularCheckout(profileUnlocked(pid) ? 'modular' : 'generator', p.id, pid);
+            startModularCheckout('modular', p.id, pid);
         }
 
         // Reopen the studio for an already-generated modular.
@@ -7943,7 +8006,7 @@
                                   '<button type="button" class="card-action-btn card-action-download" id="shareBtn-' + realIndex + '">📤 Share</button>' +
                                   '<button type="button" class="card-action-btn card-action-download" id="dlBtn-' + realIndex + '">⬇️ PNG</button>' +
                               '</div>' +
-                              (qrItem.source === 'business' ? '<button type="button" id="studioBtn-' + realIndex + '" style="width:100%;margin-top:8px;background:#8B3A7F;color:#fff;border:none;border-radius:10px;padding:10px;font-family:\'Outfit\',sans-serif;font-weight:600;font-size:14.5px;cursor:pointer;">🎨 Customize & print' + (canGenerateSingle() ? '' : ' — $20') + '</button>' : '') +
+                              (qrItem.source === 'business' ? '<button type="button" id="studioBtn-' + realIndex + '" style="width:100%;margin-top:8px;background:#8B3A7F;color:#fff;border:none;border-radius:10px;padding:10px;font-family:\'Outfit\',sans-serif;font-weight:600;font-size:14.5px;cursor:pointer;">🎨 Customize & print' + (canGenerateSingle() ? '' : ' — $10') + '</button>' : '') +
                           '</div>'
                         : checkboxHTML +
                           '<div class="qr-card-preview"><canvas id="cardQR-' + realIndex + '" width="120" height="120"></canvas></div>' +
@@ -7958,7 +8021,7 @@
                                 '<button type="button" class="card-action-btn card-action-download" id="shareBtn-' + realIndex + '">📤 Share</button>' +
                                 '<button type="button" class="card-action-btn card-action-download" id="dlBtn-' + realIndex + '">⬇️ PNG</button>' +
                             '</div>' +
-                            (qrItem.source === 'business' ? '<button type="button" id="studioBtn-' + realIndex + '" style="width:100%;margin-top:8px;background:#8B3A7F;color:#fff;border:none;border-radius:10px;padding:10px;font-family:\'Outfit\',sans-serif;font-weight:600;font-size:14.5px;cursor:pointer;">🎨 Customize & print' + (canGenerateSingle() ? '' : ' — $20') + '</button>' : '') +
+                            (qrItem.source === 'business' ? '<button type="button" id="studioBtn-' + realIndex + '" style="width:100%;margin-top:8px;background:#8B3A7F;color:#fff;border:none;border-radius:10px;padding:10px;font-family:\'Outfit\',sans-serif;font-weight:600;font-size:14.5px;cursor:pointer;">🎨 Customize & print' + (canGenerateSingle() ? '' : ' — $10') + '</button>' : '') +
                           '</div>';
                     
                     grid.appendChild(card);
