@@ -2917,7 +2917,13 @@
                 var params = new URLSearchParams(window.location.search);
                 var u = params.get('upgrade');
                 if (!u) return;
-                var hadModular = !!params.get('mid');
+                // The success URL is the source of truth for which modular/profile
+                // was paid for — sessionStorage does NOT survive the Stripe round
+                // trip on iOS PWAs (the app relaunches in a fresh context), so we
+                // read mid/pid from the URL and pass them through.
+                var midParam = params.get('mid') || '';
+                var pidParam = params.get('pid') || '';
+                var hadModular = !!midParam;
                 params.delete('upgrade'); params.delete('mid'); params.delete('pid');
                 var qs = params.toString();
                 history.replaceState({}, '', window.location.pathname + (qs ? '?' + qs : '') + window.location.hash);
@@ -2930,8 +2936,8 @@
                     refresh();
                     setTimeout(refresh, 3000); // webhook may lag a moment
                     // A modular purchase finishes itself: create the code + open the studio.
-                    var pend = null; try { pend = sessionStorage.getItem('pendingModular'); } catch (e) {}
-                    if (hadModular || pend) { finishPendingModular(); }
+                    var pend = null; try { pend = localStorage.getItem('pendingModular') || sessionStorage.getItem('pendingModular'); } catch (e) {}
+                    if (hadModular || pend) { finishPendingModular(midParam, pidParam); }
                     else { alert('Payment received — your upgrade is being activated! ✨'); }
                 }
             } catch (e) { console.warn('handleUpgradeReturn error:', e); }
@@ -4444,6 +4450,10 @@
         }
         function dashModularsSectionHTML(p, isActive) {
             var mods = Array.isArray(p.products) ? p.products : [];
+            // When a paid credit is already banked, the CTA must not read like a
+            // fresh charge — generating spends the credit, it does not re-bill.
+            var _hasCredit = (typeof modularCredits === 'function') && modularCredits() > 0;
+            var _genLabel = _hasCredit ? 'Generate · credit' : 'Generate · $10';
             // Clean line icons — no emoji. A product/menu with a photo shows its
             // own thumbnail; otherwise a plum outline glyph (box / utensils).
             var BOX_SVG  = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8B3A7F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8v8a2 2 0 0 1-1 1.73l-7 4a2 2 0 0 1-2 0l-7-4A2 2 0 0 1 3 16V8a2 2 0 0 1 1-1.73l7-4a2 2 0 0 1 2 0l7 4A2 2 0 0 1 21 8z"/><path d="M3.3 7 12 12l8.7-5"/><path d="M12 22V12"/></svg>';
@@ -4462,7 +4472,7 @@
                     '<div style="font-size:12px;color:' + (live ? '#3A8F6E' : '#9A8478') + ';font-family:\'Outfit\',sans-serif;">' + (live ? '✓ Live · scannable' : (isMenu ? 'Menu · draft' : 'Product · draft')) + '</div></div>' +
                     (live
                         ? '<button onclick="event.stopPropagation();dashReopenModular(\'' + p.profileId + '\',\'' + m.id + '\')" style="flex-shrink:0;background:#fff;color:#8B3A7F;border:1.5px solid #8B3A7F;border-radius:9px;padding:7px 11px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:\'Outfit\',sans-serif;">Design &amp; print</button>'
-                        : '<button onclick="event.stopPropagation();dashGenerateModular(\'' + p.profileId + '\',\'' + m.id + '\')" style="flex-shrink:0;background:#8B3A7F;color:#fff;border:none;border-radius:9px;padding:8px 12px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:\'Outfit\',sans-serif;">Generate · $10</button>') +
+                        : '<button onclick="event.stopPropagation();dashGenerateModular(\'' + p.profileId + '\',\'' + m.id + '\')" style="flex-shrink:0;background:#8B3A7F;color:#fff;border:none;border-radius:9px;padding:8px 12px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:\'Outfit\',sans-serif;">' + _genLabel + '</button>') +
                     '</div>';
             }).join('');
             return '<div style="background:#fff;border-top:1px solid #F0E5F0;padding:14px;">' +
@@ -4968,7 +4978,9 @@
             if (modularCredits() > 0) { await createModularAndOpenStudio(p); return; }
             // Needs payment ($10). Remember which draft, so the return can finish it.
             var pid = bizProfileData && (bizProfileData.profileId || currentProfileId);
-            try { sessionStorage.setItem('pendingModular', JSON.stringify({ mid: p.id, pid: pid })); } catch (e) {}
+            // localStorage (not sessionStorage) so the draft reference survives the
+            // Stripe round trip even when the PWA relaunches in a fresh context.
+            try { localStorage.setItem('pendingModular', JSON.stringify({ mid: p.id, pid: pid })); } catch (e) {}
             startModularCheckout('modular', p.id, pid);
         }
 
@@ -4989,11 +5001,15 @@
 
         // After returning from Stripe Checkout for a modular: wait for the credit
         // (webhook may lag), then create that draft's code and open the studio.
-        async function finishPendingModular() {
-            var raw; try { raw = sessionStorage.getItem('pendingModular'); } catch (e) { raw = null; }
-            if (!raw) return false;
-            var pend; try { pend = JSON.parse(raw); } catch (e) { pend = null; }
-            if (!pend || !pend.mid) { try { sessionStorage.removeItem('pendingModular'); } catch (e) {} return false; }
+        function _clearPendingModular() { try { localStorage.removeItem('pendingModular'); sessionStorage.removeItem('pendingModular'); } catch (e) {} }
+        async function finishPendingModular(midArg, pidArg) {
+            var raw; try { raw = localStorage.getItem('pendingModular') || sessionStorage.getItem('pendingModular'); } catch (e) { raw = null; }
+            var pend = null;
+            if (raw) { try { pend = JSON.parse(raw); } catch (e) { pend = null; } }
+            // Fall back to the mid/pid carried in the return URL — the durable
+            // source of truth when storage was wiped by the Stripe round trip.
+            if ((!pend || !pend.mid) && midArg) { pend = { mid: midArg, pid: pidArg || (pend && pend.pid) || null }; }
+            if (!pend || !pend.mid) { _clearPendingModular(); return false; }
             // Make sure the profile + its product drafts are loaded.
             if (!bizProfiles || !bizProfiles.length) {
                 try { var s = await db.auth.getSession(); await loadBizProfileFromSupabase(s && s.data && s.data.session && s.data.session.access_token); } catch (e) {}
@@ -5003,12 +5019,12 @@
             bizProfileData = prof; currentProfileId = prof.profileId;
             catalogProducts = normalizeCatalogProducts(prof.products);
             var product = catalogProducts.find(function(p){ return p.id === pend.mid; });
-            if (!product) { try { sessionStorage.removeItem('pendingModular'); } catch (e) {} return false; }
+            if (!product) { _clearPendingModular(); return false; }
             // Poll a few times for the credit (webhook lag).
             for (var attempt = 0; attempt < 6; attempt++) {
                 await loadEntitlements();
                 if (modularCredits() > 0) {
-                    try { sessionStorage.removeItem('pendingModular'); } catch (e) {}
+                    _clearPendingModular();
                     return await createModularAndOpenStudio(product);
                 }
                 await new Promise(function(r){ setTimeout(r, 2000); });
@@ -5067,7 +5083,8 @@
             var pill = p.generated
                 ? '<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:#E8F4EF;color:#3A8F6E;">✓ LIVE</span>'
                 : '<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:#F3E9F3;color:#8B3A7F;">DRAFT · FREE</span>';
-            var genLabel = p.generated ? 'Design &amp; Print' : 'Generate QR — $10';
+            var genLabel = p.generated ? 'Design &amp; Print'
+                : (((typeof modularCredits === 'function') && modularCredits() > 0) ? 'Generate QR — use credit' : 'Generate QR — $10');
             if (!p.expanded) {
                 var firstPhoto = p.photos.find(function(x){ return x.url; });
                 var thumb = firstPhoto
