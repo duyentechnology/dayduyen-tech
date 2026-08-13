@@ -1861,6 +1861,16 @@
                 </div>
             </div>
 
+            <!-- Products — free draft/edit catalog. Each product becomes its own
+                 $10 QR at generation (step 2). Stored on the profile JSON, same
+                 pattern as Menu. -->
+            <div style="border-top:1px solid #E8DDD6;padding-top:16px;margin-bottom:24px;">
+                <label style="display:block;font-size:14.5px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;">Products <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#9A8478;">(optional)</span></label>
+                <p style="font-size:13px;color:#9A8478;margin:0 0 12px;font-family:'Outfit',sans-serif;">Draft and edit products for free. Generate a QR when you're ready — <b style="color:#8B3A7F;">$10 each</b>. One QR = your business profile + this product.</p>
+                <div id="catalogProductsWrap"></div>
+                <button type="button" onclick="addCatalogProduct()" style="width:100%;border:1.5px dashed #c5b5ad;background:transparent;color:#8B3A7F;font-weight:600;border-radius:10px;padding:14px;font-size:16px;cursor:pointer;font-family:'Outfit',sans-serif;">+ Add a product</button>
+            </div>
+
             <div style="display:flex;gap:12px;">
                 <button type="button" onclick="showBizProfilePreview()" style="flex:1;background:#fff;color:#8B3A7F;border:2px solid #8B3A7F;border-radius:12px;padding:14px;font-family:'Outfit',sans-serif;font-weight:600;font-size:17px;cursor:pointer;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;"><path d="M1.5 12S5 5.5 12 5.5 22.5 12 22.5 12 19 18.5 12 18.5 1.5 12 1.5 12Z"/><circle cx="12" cy="12" r="3.2"/></svg>Preview</button>
                 <button class="btn-primary" id="bizProfileSaveBtn" onclick="saveBizProfile()" style="flex:2;font-size:17px;padding:14px;">Save Profile →</button>
@@ -4167,6 +4177,13 @@
                 newProfile.menuPhotos = menuUrls;
                 bizProfileData.menuPhotos = menuUrls;
 
+                // Products (draft catalog) live on the profile JSON too — same
+                // no-schema-change pattern. Photos/video/file are already uploaded;
+                // we persist their URLs. Generation ($10) comes in step 2.
+                var catalogSerialized = serializeCatalogProducts();
+                newProfile.products = catalogSerialized;
+                bizProfileData.products = catalogSerialized;
+
                 console.log('💾 Saving profiles for user:', user.id, '| count:', bizProfiles.length);
                 var { error: saveError } = await db.from('profiles')
                     .upsert({ id: user.id, business_profile: bizProfileData, business_profiles: bizProfiles }, { onConflict: 'id' });
@@ -4272,6 +4289,8 @@
             renderAboutPhotos();
             menuPhotos = [];
             renderMenuPhotos();
+            catalogProducts = [];
+            renderCatalogProducts();
             showView('bizProfile');
         }
 
@@ -4476,6 +4495,8 @@
             renderAboutPhotos();
             menuPhotos = (Array.isArray(bizProfileData.menuPhotos) ? bizProfileData.menuPhotos : []).map(function(u){ return { url: u }; });
             renderMenuPhotos();
+            catalogProducts = normalizeCatalogProducts(bizProfileData.products);
+            renderCatalogProducts();
         }
 
         // --- About photos (max 3, business-wide, uploaded to Storage on save) ---
@@ -4666,6 +4687,234 @@
             var t = document.getElementById('productDetails');
             if (t) t.value = '';
             renderProductPhotos();
+        }
+
+        // ==========================================
+        // PRODUCTS MODULE (business profile) — free draft/edit catalog.
+        // Each product: name + details + up to 3 photos + 1 video + 1 file.
+        // Persisted on the profile JSON (business_profiles[].products), same
+        // no-schema-change approach as menuPhotos. "Generate QR — $10" links to
+        // checkout + design/print in step 2; here it is a friendly stub.
+        // ==========================================
+        var catalogProducts = [];   // [{ id, name, details, photos:[{url}|{uploading}], video:{url}|{uploading}|null, file:{url,name}|{uploading}|null, expanded }]
+        var CATALOG_PHOTO_MAX = 3;
+        var CATALOG_VIDEO_MAX_MB = 50;
+        var CATALOG_FILE_MAX_MB = 10;
+
+        function catEsc(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+        async function catalogUser() {
+            var sess = await db.auth.getSession();
+            var user = sess && sess.data && sess.data.session && sess.data.session.user;
+            if (!user) { alert('Please log in again.'); return null; }
+            return user;
+        }
+
+        // Raw storage upload for video/file (uploadPromoPhoto resizes images only).
+        async function uploadCatalogAsset(file, userId, prefix) {
+            try {
+                var dot = file.name ? file.name.lastIndexOf('.') : -1;
+                var ext = dot > -1 ? file.name.substring(dot) : '';
+                var path = 'product/' + userId + '/' + Date.now() + '_' + prefix + ext;
+                var up = await db.storage.from('qr-media').upload(path, file, { contentType: file.type || 'application/octet-stream', cacheControl: '31536000', upsert: false });
+                if (up.error) { console.error('catalog asset upload error:', up.error); return null; }
+                var pub = db.storage.from('qr-media').getPublicUrl(path);
+                return pub && pub.data ? pub.data.publicUrl : null;
+            } catch (e) { console.error('catalog asset upload exception:', e); return null; }
+        }
+
+        function newCatalogProduct() {
+            return { id: 'prod_' + Date.now() + '_' + Math.floor(Math.random() * 1e4), name: '', details: '', photos: [], video: null, file: null, expanded: true };
+        }
+        function addCatalogProduct() {
+            catalogProducts.forEach(function(p){ p.expanded = false; });
+            catalogProducts.push(newCatalogProduct());
+            renderCatalogProducts();
+        }
+        function removeCatalogProduct(i) {
+            if (!confirm('Remove this product draft?')) return;
+            catalogProducts.splice(i, 1);
+            renderCatalogProducts();
+        }
+        function toggleCatalogProduct(i) {
+            if (catalogProducts[i]) { catalogProducts[i].expanded = !catalogProducts[i].expanded; renderCatalogProducts(); }
+        }
+        // Text edits update state without a re-render (keeps input focus).
+        function catalogSetName(i, v) { if (catalogProducts[i]) catalogProducts[i].name = v; }
+        function catalogSetDetails(i, v) { if (catalogProducts[i]) catalogProducts[i].details = v; }
+
+        async function handleCatalogPhoto(i, input) {
+            if (!input.files || !input.files.length) return;
+            var files = Array.from(input.files); input.value = '';
+            var user = await catalogUser(); if (!user) return;
+            var p = catalogProducts[i]; if (!p) return;
+            for (var k = 0; k < files.length; k++) {
+                if (p.photos.length >= CATALOG_PHOTO_MAX) break;
+                var f = files[k];
+                if (f.type.indexOf('image/') !== 0) { alert('Photos only.'); continue; }
+                var item = { uploading: true }; p.photos.push(item); renderCatalogProducts();
+                var url = await uploadPromoPhoto(f, user.id, 'prodimg_' + Date.now() + '_' + k);
+                if (url) { item.url = url; item.uploading = false; }
+                else { var idx = p.photos.indexOf(item); if (idx > -1) p.photos.splice(idx, 1); alert('That photo could not be uploaded.'); }
+                renderCatalogProducts();
+            }
+        }
+        function removeCatalogPhoto(i, j) { if (catalogProducts[i]) { catalogProducts[i].photos.splice(j, 1); renderCatalogProducts(); } }
+
+        async function handleCatalogVideo(i, input) {
+            if (!input.files || !input.files[0]) return;
+            var f = input.files[0]; input.value = '';
+            if (f.type.indexOf('video/') !== 0) { alert('Video files only.'); return; }
+            if (f.size > CATALOG_VIDEO_MAX_MB * 1024 * 1024) { alert('Video must be under ' + CATALOG_VIDEO_MAX_MB + 'MB.'); return; }
+            var user = await catalogUser(); if (!user) return;
+            var p = catalogProducts[i]; if (!p) return;
+            p.video = { uploading: true }; renderCatalogProducts();
+            var url = await uploadCatalogAsset(f, user.id, 'prodvid');
+            if (url) p.video = { url: url }; else { p.video = null; alert('That video could not be uploaded.'); }
+            renderCatalogProducts();
+        }
+        function removeCatalogVideo(i) { if (catalogProducts[i]) { catalogProducts[i].video = null; renderCatalogProducts(); } }
+
+        async function handleCatalogFile(i, input) {
+            if (!input.files || !input.files[0]) return;
+            var f = input.files[0]; input.value = '';
+            if (f.size > CATALOG_FILE_MAX_MB * 1024 * 1024) { alert('File must be under ' + CATALOG_FILE_MAX_MB + 'MB.'); return; }
+            var user = await catalogUser(); if (!user) return;
+            var p = catalogProducts[i]; if (!p) return;
+            p.file = { uploading: true, name: f.name }; renderCatalogProducts();
+            var url = await uploadCatalogAsset(f, user.id, 'prodfile');
+            if (url) p.file = { url: url, name: f.name }; else { p.file = null; alert('That file could not be uploaded.'); }
+            renderCatalogProducts();
+        }
+        function removeCatalogFile(i) { if (catalogProducts[i]) { catalogProducts[i].file = null; renderCatalogProducts(); } }
+
+        // Step-2 stub: payment ($10) + design/print routing not wired yet.
+        function generateCatalogQR(i) {
+            var p = catalogProducts[i]; if (!p) return;
+            if (!(p.name || '').trim() && !(p.details || '').trim() && !p.photos.length) {
+                alert('Add a name, details, or a photo first.'); return;
+            }
+            alert('Generating this product QR — $10 — is coming next.\n\nYour product is saved as a draft on your profile. Payment and the design & print step are being wired up.');
+        }
+
+        // --- render ---
+        var CAT_TILE = 'width:64px;height:64px;border-radius:10px;';
+        function catAddTile(emoji, label, onclick) {
+            return '<div onclick="' + onclick + '" style="' + CAT_TILE + 'border:1.5px dashed #C9A0C4;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;background:#FBF7FB;">' +
+                '<div style="font-size:20px;line-height:1;">' + emoji + '</div>' +
+                '<div style="font-size:11px;color:#8B3A7F;font-weight:600;margin-top:2px;">' + label + '</div></div>';
+        }
+        function catUploadingTile() {
+            return '<div style="' + CAT_TILE + 'border:1px solid #E8DDD6;background:#EFE5EF;display:flex;align-items:center;justify-content:center;font-size:18px;">⏳</div>';
+        }
+        function catRemoveX(onclick) {
+            return '<div onclick="' + onclick + '" style="position:absolute;top:3px;right:3px;width:18px;height:18px;line-height:18px;text-align:center;background:rgba(0,0,0,0.6);color:#fff;border-radius:50%;font-size:13px;cursor:pointer;">✕</div>';
+        }
+        function catPhotoTiles(p, i) {
+            var out = p.photos.map(function(ph, j) {
+                if (ph.uploading) return catUploadingTile();
+                return '<div style="position:relative;' + CAT_TILE + 'overflow:hidden;border:1px solid #E8DDD6;background:#EFE5EF;">' +
+                    '<img src="' + catEsc(ph.url) + '" style="width:100%;height:100%;object-fit:cover;">' +
+                    catRemoveX('removeCatalogPhoto(' + i + ',' + j + ')') + '</div>';
+            }).join('');
+            if (p.photos.length < CATALOG_PHOTO_MAX) out += catAddTile('📷', 'Add', "document.getElementById('catPhotoInput_" + i + "').click()");
+            return out;
+        }
+        function catVideoTile(p, i) {
+            if (p.video && p.video.uploading) return catUploadingTile();
+            if (p.video && p.video.url) {
+                return '<div style="position:relative;' + CAT_TILE + 'border:1px solid #E8DDD6;background:#2E2A28;display:flex;align-items:center;justify-content:center;">' +
+                    '<span style="font-size:22px;">🎬</span>' + catRemoveX('removeCatalogVideo(' + i + ')') + '</div>';
+            }
+            return catAddTile('🎥', 'Video', "document.getElementById('catVideoInput_" + i + "').click()");
+        }
+        function catFileTile(p, i) {
+            if (p.file && p.file.uploading) return catUploadingTile();
+            if (p.file && p.file.url) {
+                return '<div style="position:relative;' + CAT_TILE + 'border:1px solid #E8DDD6;background:#FBF7FB;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4px;box-sizing:border-box;">' +
+                    '<span style="font-size:20px;">📎</span>' +
+                    '<div style="font-size:9px;color:#6B5751;max-width:56px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + catEsc(p.file.name || 'file') + '</div>' +
+                    catRemoveX('removeCatalogFile(' + i + ')') + '</div>';
+            }
+            return catAddTile('📎', 'File', "document.getElementById('catFileInput_" + i + "').click()");
+        }
+        function catSubLabel(t) {
+            return '<div style="font-size:12px;font-weight:600;color:#9A8478;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">' + t + '</div>';
+        }
+        function catalogCardHTML(p, i) {
+            var title = (p.name || '').trim() || ('Product ' + (i + 1));
+            if (!p.expanded) {
+                var firstPhoto = p.photos.find(function(x){ return x.url; });
+                var thumb = firstPhoto
+                    ? '<div style="width:36px;height:36px;border-radius:8px;overflow:hidden;border:1px solid #E8DDD6;flex-shrink:0;"><img src="' + catEsc(firstPhoto.url) + '" style="width:100%;height:100%;object-fit:cover;"></div>'
+                    : '<div style="width:36px;height:36px;border-radius:8px;background:#F3E9F3;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">📦</div>';
+                var sub = (p.details || '').trim() ? catEsc((p.details || '').trim()).slice(0, 40) : 'Tap to edit';
+                return '<div style="border:1.5px solid #E8DDD6;border-radius:12px;background:#fff;margin-bottom:12px;overflow:hidden;">' +
+                    '<div onclick="toggleCatalogProduct(' + i + ')" style="display:flex;align-items:center;justify-content:space-between;padding:13px 14px;cursor:pointer;">' +
+                        '<div style="display:flex;align-items:center;gap:10px;min-width:0;">' + thumb +
+                            '<div style="min-width:0;"><div style="font-family:\'Outfit\',sans-serif;font-weight:700;font-size:16px;color:#2E2A28;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + catEsc(title) + '</div>' +
+                            '<div style="font-size:12.5px;color:#9A8478;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + sub + '</div></div></div>' +
+                        '<span style="font-size:16px;color:#C9A0C4;flex-shrink:0;margin-left:8px;">▸</span>' +
+                    '</div></div>';
+            }
+            return '<div style="border:1.5px solid #E8DDD6;border-radius:12px;background:#fff;margin-bottom:12px;overflow:hidden;">' +
+                '<div onclick="toggleCatalogProduct(' + i + ')" style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-bottom:1px solid #F0E5F0;cursor:pointer;">' +
+                    '<div style="font-family:\'Outfit\',sans-serif;font-weight:700;font-size:16px;color:#2E2A28;">' + catEsc(title) + '</div>' +
+                    '<div style="display:flex;align-items:center;gap:10px;">' +
+                        '<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:#F3E9F3;color:#8B3A7F;">DRAFT · FREE</span>' +
+                        '<span style="font-size:16px;color:#C9A0C4;">▾</span>' +
+                    '</div></div>' +
+                '<input value="' + catEsc(p.name) + '" oninput="catalogSetName(' + i + ', this.value)" placeholder="Product name — e.g. Rainbow Twirl Dress" style="width:100%;border:none;outline:none;border-bottom:1px solid #F0E5F0;padding:13px 14px;font-family:\'Outfit\',sans-serif;font-size:16.5px;font-weight:600;color:#2E2A28;box-sizing:border-box;background:transparent;">' +
+                '<textarea oninput="catalogSetDetails(' + i + ', this.value)" placeholder="Describe this product — materials, size, care, story…" style="width:100%;min-height:66px;resize:vertical;border:none;outline:none;padding:14px;font-family:\'Outfit\',sans-serif;font-size:17.5px;color:#2E2A28;box-sizing:border-box;background:transparent;">' + catEsc(p.details) + '</textarea>' +
+                '<div style="border-top:1px solid #F0E5F0;padding:12px;">' +
+                    catSubLabel('Photos (up to 3)') +
+                    '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;">' + catPhotoTiles(p, i) + '</div>' +
+                    catSubLabel('Video &amp; file (optional)') +
+                    '<div style="display:flex;flex-wrap:wrap;gap:8px;">' + catVideoTile(p, i) + catFileTile(p, i) + '</div>' +
+                    '<input type="file" id="catPhotoInput_' + i + '" accept="image/*" multiple style="display:none;" onchange="handleCatalogPhoto(' + i + ', this)">' +
+                    '<input type="file" id="catVideoInput_' + i + '" accept="video/*" style="display:none;" onchange="handleCatalogVideo(' + i + ', this)">' +
+                    '<input type="file" id="catFileInput_' + i + '" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.zip,.rar,image/*" style="display:none;" onchange="handleCatalogFile(' + i + ', this)">' +
+                '</div>' +
+                '<div style="border-top:1px solid #F0E5F0;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;">' +
+                    '<button type="button" onclick="removeCatalogProduct(' + i + ')" style="background:none;border:none;color:#B0857D;font-size:13px;cursor:pointer;font-family:\'Outfit\',sans-serif;">Delete</button>' +
+                    '<button type="button" onclick="generateCatalogQR(' + i + ')" style="background:#8B3A7F;color:#fff;border:none;border-radius:10px;padding:11px 18px;font-family:\'Outfit\',sans-serif;font-weight:700;font-size:15px;cursor:pointer;">Generate QR — $10</button>' +
+                '</div></div>';
+        }
+        function renderCatalogProducts() {
+            var wrap = document.getElementById('catalogProductsWrap');
+            if (!wrap) return;
+            if (!catalogProducts.length) {
+                wrap.innerHTML = '<div style="font-size:13.5px;color:#9A8478;padding:2px 2px 12px;font-family:\'Outfit\',sans-serif;">No products yet — add one to draft it for free.</div>';
+                return;
+            }
+            wrap.innerHTML = catalogProducts.map(function(p, i){ return catalogCardHTML(p, i); }).join('');
+        }
+        function serializeCatalogProducts() {
+            return catalogProducts.map(function(p) {
+                return {
+                    id: p.id,
+                    name: (p.name || '').trim(),
+                    details: (p.details || '').trim(),
+                    photos: (p.photos || []).map(function(x){ return x.url; }).filter(Boolean),
+                    video: (p.video && p.video.url) ? p.video.url : null,
+                    file: (p.file && p.file.url) ? { url: p.file.url, name: p.file.name || '' } : null
+                };
+            }).filter(function(p){ return p.name || p.details || p.photos.length || p.video || p.file; });
+        }
+        function normalizeCatalogProducts(arr) {
+            if (!Array.isArray(arr)) return [];
+            return arr.map(function(p, idx) {
+                p = p || {};
+                return {
+                    id: p.id || ('prod_' + Date.now() + '_' + idx),
+                    name: p.name || '',
+                    details: p.details || '',
+                    photos: (Array.isArray(p.photos) ? p.photos : []).map(function(u){ return { url: u }; }),
+                    video: p.video ? { url: p.video } : null,
+                    file: (p.file && p.file.url) ? { url: p.file.url, name: p.file.name || '' } : null,
+                    expanded: false
+                };
+            });
         }
 
         var bizLogoUrl = null; // persisted with the profile; shown on customer scans & tapestry Polaroids
