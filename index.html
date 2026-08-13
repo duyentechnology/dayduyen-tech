@@ -1851,23 +1851,34 @@
                  preserved by the save/load code; this UI just no longer edits
                  them here. -->
 
-            <!-- Products — free draft/edit catalog. Each product becomes its own
-                 $10 QR at generation (step 2). Stored on the profile JSON, same
-                 pattern as Menu. -->
-            <div style="border-top:1px solid #E8DDD6;padding-top:16px;margin-bottom:24px;">
-                <label style="display:block;font-size:14.5px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;">Modulars <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#9A8478;">— products &amp; menus (optional)</span></label>
-                <p style="font-size:13px;color:#9A8478;margin:0 0 12px;font-family:'Outfit',sans-serif;">Draft and edit for free. Generate when you're ready — <b style="color:#8B3A7F;">$10 each</b>. Each modular is its own QR that reuses this profile.</p>
-                <div id="catalogProductsWrap"></div>
-                <div style="display:flex;gap:10px;">
-                    <button type="button" onclick="addCatalogProduct()" style="flex:1;border:1.5px dashed #c5b5ad;background:transparent;color:#8B3A7F;font-weight:600;border-radius:10px;padding:14px;font-size:15px;cursor:pointer;font-family:'Outfit',sans-serif;">+ Add a product</button>
-                    <button type="button" onclick="addCatalogMenu()" style="flex:1;border:1.5px dashed #c5b5ad;background:transparent;color:#8B3A7F;font-weight:600;border-radius:10px;padding:14px;font-size:15px;cursor:pointer;font-family:'Outfit',sans-serif;">+ Add a menu</button>
-                </div>
-            </div>
+            <!-- Products & menus are NOT edited here — they're attached to the
+                 profile from its dashboard box (added at the bottom of the box,
+                 each opened in its own single-product editor). The profile form
+                 is just the profile. -->
+
 
             <div style="display:flex;gap:12px;">
                 <button type="button" onclick="showBizProfilePreview()" style="flex:1;background:#fff;color:#8B3A7F;border:2px solid #8B3A7F;border-radius:12px;padding:14px;font-family:'Outfit',sans-serif;font-weight:600;font-size:17px;cursor:pointer;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;"><path d="M1.5 12S5 5.5 12 5.5 22.5 12 22.5 12 19 18.5 12 18.5 1.5 12 1.5 12Z"/><circle cx="12" cy="12" r="3.2"/></svg>Preview</button>
                 <button class="btn-primary" id="bizProfileSaveBtn" onclick="saveBizProfile()" style="flex:2;font-size:17px;padding:14px;">Save Profile →</button>
             </div>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         SINGLE MODULAR EDITOR
+         One product/menu at a time. Opened from the profile's dashboard box
+         ("+ Add product" / tap a modular row). Attaches to that profile;
+         Preview shows the whole customer view — business profile + this item.
+    ========================================== -->
+    <div id="modularEditView" class="view">
+        <div class="generator" style="max-width: 600px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+                <h2 id="modularEditTitle" style="font-family:'Cormorant Garamond',serif;font-size:1.8rem;font-weight:700;color:#8B3A7F;margin:0;">Product</h2>
+                <button type="button" onclick="closeModularEditor()" style="background:#fff;color:#8B3A7F;border:2px solid #8B3A7F;padding:8px 18px;border-radius:10px;font-family:'Outfit',sans-serif;font-weight:600;font-size:15px;cursor:pointer;">← Done</button>
+            </div>
+            <p id="modularEditProfileName" style="color:#9A8478;font-size:15px;margin:0 0 20px;font-family:'Outfit',sans-serif;"></p>
+            <div id="singleModularWrap"></div>
+            <button type="button" onclick="closeModularEditor()" class="btn-primary" style="width:100%;font-size:17px;padding:14px;margin-top:4px;">Done →</button>
         </div>
     </div>
 
@@ -4174,9 +4185,11 @@
                 newProfile.menuPhotos = menuUrls;
                 bizProfileData.menuPhotos = menuUrls;
 
-                // Products (draft catalog) live on the profile JSON too — same
-                // no-schema-change pattern. Photos/video/file are already uploaded;
-                // we persist their URLs. Generation ($10) comes in step 2.
+                // Products/menus (modulars) live on the profile JSON too — same
+                // no-schema-change pattern. They're edited in the single-modular
+                // editor, not this form; populateBizProfile() keeps catalogProducts
+                // in sync with the profile being edited, so serializing here just
+                // preserves them across a profile-form save.
                 var catalogSerialized = serializeCatalogProducts();
                 newProfile.products = catalogSerialized;
                 bizProfileData.products = catalogSerialized;
@@ -4405,26 +4418,18 @@
             catalogProducts = normalizeCatalogProducts(p.products);
             return p;
         }
-        // Tapping a modular row opens its editor with that card expanded.
+        // Tapping a modular row opens the single-modular editor on that item.
         function dashEditModular(profileId, modularId) {
-            editProfile(profileId);
-            setTimeout(function() {
-                catalogProducts = normalizeCatalogProducts(bizProfileData ? bizProfileData.products : []);
-                var idx = catalogProducts.findIndex(function(m){ return m.id === modularId; });
-                if (idx > -1) catalogProducts.forEach(function(m, k){ m.expanded = (k === idx); });
-                renderCatalogProducts();
-                var el = document.getElementById('catalogProductsWrap');
-                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }, 130);
+            if (!dashLoadProfile(profileId)) return;
+            var idx = catalogProducts.findIndex(function(m){ return m.id === modularId; });
+            if (idx > -1) openModularEditor(idx);
         }
+        // "+ Add product/menu" drafts a new modular under this profile and opens
+        // the single-modular editor straight away.
         function dashAddModular(profileId, type) {
-            editProfile(profileId);
-            setTimeout(function() {
-                catalogProducts = normalizeCatalogProducts(bizProfileData ? bizProfileData.products : []);
-                addCatalogModular(type);
-                var el = document.getElementById('catalogProductsWrap');
-                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }, 130);
+            if (!dashLoadProfile(profileId)) return;
+            addCatalogModular(type);
+            openModularEditor(catalogProducts.length - 1);
         }
         async function dashGenerateModular(profileId, modularId) {
             if (!dashLoadProfile(profileId)) return;
@@ -4802,6 +4807,9 @@
         function removeCatalogProduct(i) {
             if (!confirm('Remove this product draft?')) return;
             catalogProducts.splice(i, 1);
+            // In the single-modular editor, deleting the item ends the edit —
+            // persist the shortened list and return to the dashboard box.
+            if (_editingModularIndex >= 0) { _editingModularIndex = -1; closeModularEditor(); return; }
             renderCatalogProducts();
         }
         function toggleCatalogProduct(i) {
@@ -5103,14 +5111,48 @@
             return '<div style="border:1.5px solid #E8DDD6;border-radius:12px;background:#fff;margin-bottom:12px;overflow:hidden;">' +
                 header + nameRow + media + footer + '</div>';
         }
+        // The one modular the single-modular editor is currently on (-1 = none).
+        var _editingModularIndex = -1;
+
+        // Open the single-modular editor on catalogProducts[index]. Assumes the
+        // owning profile is already loaded into bizProfileData/catalogProducts.
+        function openModularEditor(index) {
+            if (index < 0 || !catalogProducts[index]) return;
+            _editingModularIndex = index;
+            catalogProducts.forEach(function(m, k){ m.expanded = (k === index); });
+            var m = catalogProducts[index];
+            var titleEl = document.getElementById('modularEditTitle');
+            if (titleEl) titleEl.textContent = (m.type === 'menu') ? 'Menu' : 'Product';
+            var nameEl = document.getElementById('modularEditProfileName');
+            if (nameEl) {
+                var pn = (bizProfileData && (bizProfileData.name || bizProfileData.profileLabel)) || '';
+                nameEl.textContent = pn ? ('Attaches to ' + pn) : '';
+            }
+            showView('modularEdit');
+            renderCatalogProducts();
+        }
+
+        // Leave the editor: persist the draft quietly and return to the dashboard
+        // box, which re-lists this profile's modulars.
+        async function closeModularEditor() {
+            await persistCatalogDrafts();
+            _editingModularIndex = -1;
+            showView('bizDashboard');
+        }
+
+        // Products/menus are edited one at a time in the single-modular editor
+        // (#singleModularWrap), opened from a profile's dashboard box. This only
+        // renders the modular currently being edited — the profile form no
+        // longer carries an ongoing list.
         function renderCatalogProducts() {
-            var wrap = document.getElementById('catalogProductsWrap');
+            var wrap = document.getElementById('singleModularWrap');
             if (!wrap) return;
-            if (!catalogProducts.length) {
-                wrap.innerHTML = '<div style="font-size:13.5px;color:#9A8478;padding:2px 2px 12px;font-family:\'Outfit\',sans-serif;">No modulars yet — add a product or a menu to draft it for free.</div>';
+            if (_editingModularIndex < 0 || !catalogProducts[_editingModularIndex]) {
+                wrap.innerHTML = '';
                 return;
             }
-            wrap.innerHTML = catalogProducts.map(function(p, i){ return catalogCardHTML(p, i); }).join('');
+            catalogProducts[_editingModularIndex].expanded = true; // always open in the editor
+            wrap.innerHTML = catalogCardHTML(catalogProducts[_editingModularIndex], _editingModularIndex);
         }
         function serializeCatalogProducts() {
             return catalogProducts.map(function(p) {
