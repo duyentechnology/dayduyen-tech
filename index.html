@@ -5338,9 +5338,9 @@
                 '<div style="background:#fff;border:1.5px solid #E8DDD6;border-radius:12px;overflow:hidden;margin-bottom:12px;">' +
                     '<div onclick="togglePreviewSection(\'about\')" style="display:flex;align-items:center;gap:10px;padding:15px 16px;cursor:pointer;">' +
                         '<span style="flex:1;font-family:\'Crimson Pro\',serif;font-size:22px;font-weight:600;color:#2E2A28;">About</span>' +
-                        '<svg id="pvChev-about" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8B3A7F" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition:transform .2s;transform:rotate(180deg);"><path d="M6 9l6 6 6-6"/></svg>' +
+                        '<svg id="pvChev-about" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8B3A7F" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition:transform .2s;transform:rotate(0deg);"><path d="M6 9l6 6 6-6"/></svg>' +
                     '</div>' +
-                    '<div id="pvBody-about" style="padding:0 16px 16px;">' +
+                    '<div id="pvBody-about" style="display:none;padding:0 16px 16px;">' +
                         (safeDesc ? '<div style="font-family:\'Crimson Pro\',serif;font-size:21px;font-style:italic;color:#5D4E44;line-height:1.7;margin-bottom:14px;">“' + safeDesc + '”</div>' : '') +
                         (aboutUrls.length ? '<div style="display:grid;grid-template-columns:repeat(' + Math.min(aboutUrls.length,3) + ',1fr);gap:8px;">' + aboutUrls.slice(0,3).map(function(u){ return '<div style="aspect-ratio:3/4;border-radius:10px;overflow:hidden;"><img src="' + u + '" style="width:100%;height:100%;object-fit:cover;"></div>'; }).join('') + '</div>' : '') +
                     '</div>' +
@@ -5356,9 +5356,9 @@
                     '<div onclick="togglePreviewSection(\'promo\')" style="display:flex;align-items:center;gap:10px;padding:15px 16px;cursor:pointer;">' +
                         '<span style="flex:1;font-family:\'Crimson Pro\',serif;font-size:22px;font-weight:600;color:#2E2A28;">What\'s new</span>' +
                         '<span style="background:#8B3A7F;color:#fff;font-size:12px;font-weight:600;padding:2px 8px;border-radius:10px;">1</span>' +
-                        '<svg id="pvChev-promo" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8B3A7F" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition:transform .2s;transform:rotate(180deg);"><path d="M6 9l6 6 6-6"/></svg>' +
+                        '<svg id="pvChev-promo" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8B3A7F" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition:transform .2s;transform:rotate(0deg);"><path d="M6 9l6 6 6-6"/></svg>' +
                     '</div>' +
-                    '<div id="pvBody-promo" style="padding:0 16px 16px;">' +
+                    '<div id="pvBody-promo" style="display:none;padding:0 16px 16px;">' +
                         (_pvPromoText ? '<div style="font-family:\'Crimson Pro\',serif;font-size:21px;color:#3a2a2e;line-height:1.7;font-style:italic;">“' + sanitize(_pvPromoText) + '”</div>' : '') +
                         (_pvPromoPhotos.length ? '<div style="display:flex;flex-direction:column;gap:8px;margin-top:10px;">' + _pvPromoPhotos.map(function(u){ return '<div style="width:100%;border-radius:8px;overflow:hidden;background:#f5f0eb;"><img src="' + u + '" style="width:100%;height:auto;display:block;"></div>'; }).join('') + '</div>' : '') +
                     '</div>' +
