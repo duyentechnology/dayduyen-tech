@@ -5201,18 +5201,6 @@
             _previewModularObj = catalogProducts[i] || null;
             try { showBizProfilePreview(); } finally { _previewModularObj = null; }
         }
-        // What the preview injects under the brand header: a single modular when
-        // one is being previewed, otherwise the whole storefront (every product
-        // and menu on this profile).
-        function previewModulesHTML() {
-            var list = _previewModularObj ? [_previewModularObj] : (catalogProducts || []);
-            var items = list.map(modularItemBlockHTML).filter(Boolean);
-            if (!items.length) return '';
-            var heading = (!_previewModularObj && items.length > 1)
-                ? '<div style="padding:20px 16px 0;background:#F0EFED;"><div style="font-family:\'Crimson Pro\',serif;font-size:22px;font-weight:600;color:#2E2A28;">Products &amp; menus</div></div>'
-                : '';
-            return heading + items.join('');
-        }
 
         function showBizProfilePreview() {
             // --- Read form values ---
@@ -5291,9 +5279,8 @@
                         '<div style="flex:1;min-width:0;">' + _pvHeadText + '</div>' +
                     '</div>'
                 ) +
-                // Under the brand: the single modular being previewed, or the
-                // whole storefront (all products & menus) for a profile preview.
-                previewModulesHTML() +
+                // The modular being previewed leads — brand above, item here.
+                modularItemBlockHTML(_previewModularObj) +
                 // About - the same white card the customer sees, open by default
                 ((safeDesc || aboutUrls.length) ?
                     '<div style="padding:22px 16px 4px;background:#F0EFED;">' +
