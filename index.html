@@ -1861,6 +1861,16 @@
                 <button type="button" onclick="showBizProfilePreview()" style="flex:1;background:#fff;color:#8B3A7F;border:2px solid #8B3A7F;border-radius:12px;padding:14px;font-family:'Outfit',sans-serif;font-weight:600;font-size:17px;cursor:pointer;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;"><path d="M1.5 12S5 5.5 12 5.5 22.5 12 22.5 12 19 18.5 12 18.5 1.5 12 1.5 12Z"/><circle cx="12" cy="12" r="3.2"/></svg>Preview</button>
                 <button class="btn-primary" id="bizProfileSaveBtn" onclick="saveBizProfile()" style="flex:2;font-size:17px;padding:14px;">Save Profile →</button>
             </div>
+
+            <!-- Generate the profile's own QR — the payment lives here in profile
+                 setup now, not as a $10 CTA on the dashboard box. -->
+            <div style="border-top:1px solid #F0E5F0;margin-top:20px;padding-top:18px;">
+                <button type="button" id="bizProfileGenBtn" onclick="generateProfileQrFromEditor()" style="width:100%;background:#fff;color:#8B3A7F;border:1.5px solid #8B3A7F;border-radius:12px;padding:14px;font-family:'Outfit',sans-serif;font-weight:700;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:9px;">
+                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3"/><path d="M21 14v.01"/><path d="M14 21h7"/><path d="M21 17v4"/></svg>
+                    <span id="bizProfileGenLabel">Generate this profile’s QR — $10</span>
+                </button>
+                <div style="font-size:13px;color:#9A8478;text-align:center;margin-top:8px;line-height:1.5;font-family:'Outfit',sans-serif;">A standalone QR that opens this profile when scanned. Design &amp; print after generating.</div>
+            </div>
         </div>
     </div>
 
@@ -2937,7 +2947,9 @@
                     setTimeout(refresh, 3000); // webhook may lag a moment
                     // A modular purchase finishes itself: create the code + open the studio.
                     var pend = null; try { pend = localStorage.getItem('pendingModular') || sessionStorage.getItem('pendingModular'); } catch (e) {}
+                    var pendProf = null; try { pendProf = localStorage.getItem('pendingProfileQr'); } catch (e) {}
                     if (hadModular || pend) { finishPendingModular(midParam, pidParam); }
+                    else if (pidParam || pendProf) { finishPendingProfile(pidParam || pendProf); }
                     else { alert('Payment received — your upgrade is being activated! ✨'); }
                 }
             } catch (e) { console.warn('handleUpgradeReturn error:', e); }
@@ -4331,6 +4343,33 @@
             generateProfileQR(profileId);
         }
 
+        // Generate the profile's own QR from inside the profile editor. The
+        // profile must be saved first (needs a profileId + name); then route the
+        // same way the dashboard used to: studio if live, checkout if unpaid,
+        // mint if already paid. Payment now lives here, in profile setup.
+        function generateProfileQrFromEditor() {
+            var pid = currentProfileId || (bizProfileData && bizProfileData.profileId);
+            var nameVal = ((document.getElementById('bizName') || {}).value || '').trim();
+            if (!nameVal) { alert('Add your business name first.'); return; }
+            var saved = pid && (bizProfiles || []).some(function(p){ return p.profileId === pid; });
+            if (!saved) { alert('Tap “Save Profile” first, then generate this profile’s QR.'); return; }
+            // Remember which profile is being paid for, so the Stripe return can
+            // finish it even if the PWA relaunches (iOS clears in-memory + session).
+            try { localStorage.setItem('pendingProfileQr', pid); } catch (e) {}
+            profileQrAction(pid);
+        }
+
+        // Keep the editor's generate button honest about state/price.
+        function updateProfileGenBtn() {
+            var lbl = document.getElementById('bizProfileGenLabel');
+            if (!lbl) return;
+            var pid = currentProfileId || (bizProfileData && bizProfileData.profileId);
+            var saved = pid && (bizProfiles || []).some(function(p){ return p.profileId === pid; });
+            if (saved && codeForProfile(pid) && profileUnlocked(pid)) lbl.textContent = 'Design & print this profile’s QR';
+            else if (saved && profileUnlocked(pid)) lbl.textContent = 'Generate this profile’s QR';
+            else lbl.textContent = 'Generate this profile’s QR — $10';
+        }
+
         // One tap, one code, for one profile — then straight into design.
         // Deliberately NOT the operator generator form: a business is not
         // uploading product photos or voice memos, they are minting the code
@@ -4515,10 +4554,10 @@
                         '<span style="flex-shrink:0;color:#8B3A7F;font-size:22px;font-weight:300;line-height:1;">›</span>' +
                     '</div>' +
                     // The profile's OWN QR — the storefront code that opens this
-                    // exact profile. A plum left-accent + "for <name>" ties it to
-                    // the header above so it reads as this profile's code, not a
-                    // separate thing. $10 to generate, then design & print.
-                    '<div onclick="profileQrAction(\'' + p.profileId + '\')" style="background:#FBF7FB;border-top:1px solid #F0E5F0;border-left:3px solid #8B3A7F;padding:13px 14px 13px 12px;display:flex;align-items:center;gap:13px;cursor:pointer;">' +
+                    // exact profile. Not generated yet → tapping opens the profile
+                    // editor, where generation/payment now lives; once generated,
+                    // tapping opens design & print. No inline price CTA here.
+                    '<div onclick="' + (code ? 'profileQrAction' : 'editProfile') + '(\'' + p.profileId + '\')" style="background:#FBF7FB;border-top:1px solid #F0E5F0;border-left:3px solid #8B3A7F;padding:13px 14px 13px 12px;display:flex;align-items:center;gap:13px;cursor:pointer;">' +
                         (code
                             ? '<canvas class="profQrCanvas" data-url="' + sanitize(code.url || '') + '" data-color="' + sanitize(code.color || '#8B3A7F') + '" width="124" height="124" style="width:56px;height:56px;flex-shrink:0;border-radius:6px;"></canvas>'
                             : '<div style="width:56px;height:56px;flex-shrink:0;border-radius:10px;background:#F3E9F3;display:flex;align-items:center;justify-content:center;">' +
@@ -4530,12 +4569,10 @@
                             '<div style="font-size:13px;color:#6B5E56;line-height:1.4;margin-top:1px;font-family:\'Outfit\',sans-serif;">' +
                                 (code
                                     ? (paid ? 'Tap to design &amp; print ›' : 'Unlock design &amp; printing.')
-                                    : 'A standalone QR — scan opens your profile. Design &amp; print.') +
+                                    : 'A standalone QR — open your profile to generate it.') +
                             '</div>' +
                         '</div>' +
-                        (code && paid
-                            ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8B3A7F" stroke-width="2.5" style="flex-shrink:0;"><path d="M9 6l6 6-6 6"/></svg>'
-                            : '<span style="flex-shrink:0;background:#8B3A7F;color:#fff;font-size:13px;font-weight:700;padding:8px 13px;border-radius:9px;font-family:\'Outfit\',sans-serif;">Generate · $10</span>') +
+                        '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8B3A7F" stroke-width="2.5" style="flex-shrink:0;"><path d="M9 6l6 6-6 6"/></svg>' +
                     '</div>' +
                     dashModularsSectionHTML(p, isActive) +
                 '</div>';
@@ -4581,6 +4618,7 @@
             renderMenuPhotos();
             catalogProducts = normalizeCatalogProducts(bizProfileData.products);
             renderCatalogProducts();
+            updateProfileGenBtn();
         }
 
         // --- About photos (max 3, business-wide, uploaded to Storage on save) ---
@@ -5026,6 +5064,33 @@
                 await new Promise(function(r){ setTimeout(r, 2000); });
             }
             alert('Payment received — activating your modular. If the QR doesn\'t open, reopen your profile and tap Generate again.');
+            return false;
+        }
+
+        // After returning from Stripe Checkout for a PROFILE QR ($10 generator):
+        // wait for the unlock (webhook may lag), then mint the profile's code and
+        // open the studio. Uses the pid from the return URL / localStorage so it
+        // survives the iOS PWA relaunch, just like the modular path.
+        function _clearPendingProfileQr() { try { localStorage.removeItem('pendingProfileQr'); } catch (e) {} }
+        async function finishPendingProfile(pid) {
+            if (!pid) return false;
+            if (!bizProfiles || !bizProfiles.length) {
+                try { var s = await db.auth.getSession(); await loadBizProfileFromSupabase(s && s.data && s.data.session && s.data.session.access_token); } catch (e) {}
+            }
+            var prof = (bizProfiles || []).find(function(p){ return p.profileId === pid; });
+            if (!prof) { _clearPendingProfileQr(); return false; }
+            bizProfileData = prof; currentProfileId = prof.profileId;
+            for (var attempt = 0; attempt < 6; attempt++) {
+                await loadEntitlements();
+                if (profileUnlocked(pid)) {
+                    _clearPendingProfileQr();
+                    var existing = codeForProfile(pid);
+                    if (existing) { openQrStudio(savedQRCodes.indexOf(existing)); return true; }
+                    return await generateProfileQR(pid);
+                }
+                await new Promise(function(r){ setTimeout(r, 2000); });
+            }
+            alert('Payment received — activating your profile QR. If it doesn\'t open, reopen your profile and tap Generate again.');
             return false;
         }
 
