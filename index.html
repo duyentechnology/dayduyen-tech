@@ -2307,13 +2307,18 @@
                     <button type="button" id="logoBtnNone" onclick="setStudioLogo('none')" class="studio-chip">None</button>
                     <input type="file" id="studioLogoInput" accept="image/*" style="display:none;" onchange="handleStudioLogo(this)">
                 </div>
-                <button id="studioSaveBtn" onclick="saveStudio()" style="width:100%;margin-top:16px;background:#8B3A7F;color:#fff;border:none;border-radius:11px;padding:12px;font-family:'Outfit',sans-serif;font-weight:600;font-size:16px;cursor:pointer;">Save QR Style</button>
+                <!-- Download is right here with the preview, so you can grab the
+                     design you're looking at (the printable sign OR the code-only)
+                     without scrolling down to the Print Center. -->
+                <div style="display:flex;gap:10px;margin-top:16px;">
+                    <button id="studioSaveBtn" onclick="saveStudio()" style="flex:1;background:#fff;color:#8B3A7F;border:1.5px solid #8B3A7F;border-radius:11px;padding:12px;font-family:'Outfit',sans-serif;font-weight:600;font-size:15.5px;cursor:pointer;">Save style</button>
+                    <button id="studioDownloadBtn" onclick="downloadStudioPNG()" style="flex:1.5;background:#8B3A7F;color:#fff;border:none;border-radius:11px;padding:12px;font-family:'Outfit',sans-serif;font-weight:700;font-size:15.5px;cursor:pointer;">⬇️ <span id="studioDownloadLabel">Download</span></button>
+                </div>
             </div>
 
             <div style="background:#fff;border:1.5px solid #E8DDD6;border-radius:14px;padding:16px;margin-bottom:16px;">
                 <div style="font-size:14.5px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;">Print Center — Free</div>
-                <button type="button" onclick="printStudioPoster()" style="width:100%;text-align:left;background:#FBF7FB;border:1.5px solid #E8DDD6;border-radius:11px;padding:12px 14px;margin-bottom:8px;font-family:'Outfit',sans-serif;font-size:15.5px;color:#2E2A28;cursor:pointer;">📄 Flyer poster (PDF)<br><span style="font-size:13px;color:#9A8478;">Your QR + business name on one page</span></button>
-                <button type="button" id="studioPngBtn" onclick="downloadStudioPNG()" style="width:100%;text-align:left;background:#FBF7FB;border:1.5px solid #E8DDD6;border-radius:11px;padding:12px 14px;margin-bottom:14px;font-family:'Outfit',sans-serif;font-size:15.5px;color:#2E2A28;cursor:pointer;">⬇️ Download PNG<br><span style="font-size:13px;color:#9A8478;">High-res image for your own designer or printer</span></button>
+                <button type="button" onclick="printStudioPoster()" style="width:100%;text-align:left;background:#FBF7FB;border:1.5px solid #E8DDD6;border-radius:11px;padding:12px 14px;margin-bottom:14px;font-family:'Outfit',sans-serif;font-size:15.5px;color:#2E2A28;cursor:pointer;">📄 Flyer poster (PDF)<br><span style="font-size:13px;color:#9A8478;">Your QR + business name on one page</span></button>
 
                 <div style="font-size:15px;font-weight:700;color:#2E2A28;margin-bottom:4px;">Sticker sheet (PDF)</div>
                 <div style="font-size:13.5px;color:#5D4E44;line-height:1.55;background:#FBF7FB;border-radius:10px;padding:10px 12px;margin-bottom:10px;">
@@ -7870,6 +7875,8 @@
                 var el = document.getElementById('designBtn' + k);
                 if (el) el.className = 'studio-chip' + (studioState.design === k ? ' sel' : '');
             });
+            var dl = document.getElementById('studioDownloadLabel');
+            if (dl) dl.textContent = (studioState.design === 'tent') ? 'Download sign' : 'Download code';
             renderStudio();
         }
         function wrapLines(ctx, text, maxW) {
@@ -7999,7 +8006,7 @@
         async function downloadStudioPNG() {
             var item = studioItem(); if (!item) return;
             var name = (item.label || 'business-qr').replace(/[^\w-]+/g, '_') + '.png';
-            var btn = document.getElementById('studioPngBtn');
+            var btn = document.getElementById('studioDownloadBtn') || document.getElementById('studioPngBtn');
             var revert = btn ? btn.innerHTML : null;
             if (btn) { btn.style.opacity = '0.6'; }
 
