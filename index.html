@@ -1846,27 +1846,17 @@
                 </div>
             </div>
 
-            <!-- Menu -->
-            <div style="border-top:1px solid #E8DDD6;padding-top:16px;margin-bottom:24px;">
-                <label style="display:block;font-size:14.5px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;">Menu <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#9A8478;">(optional)</span></label>
-                <div style="border:1.5px solid #E8DDD6;border-radius:12px;background:#fff;overflow:hidden;padding:12px;">
-                    <div style="font-size:12px;font-weight:600;color:#9A8478;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Photos of your menu (up to 10 pages)</div>
-                    <div id="menuPhotosWrap" style="display:flex;flex-wrap:wrap;gap:8px;">
-                        <div id="menuPhotosAdd" onclick="document.getElementById('menuPhotosInput').click()" style="width:64px;height:64px;border:1.5px dashed #C9A0C4;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;background:#FBF7FB;">
-                            <div style="font-size:20px;line-height:1;">🍽️</div>
-                            <div style="font-size:11px;color:#8B3A7F;font-weight:600;margin-top:2px;">Add</div>
-                        </div>
-                        <input type="file" id="menuPhotosInput" accept="image/*" multiple style="display:none;" onchange="handleMenuPhotos(this)">
-                    </div>
-                </div>
-            </div>
+            <!-- Menu is no longer a profile fixture — it's a modular now (added
+                 via "+ Add a menu" below). Existing menuPhotos on a profile are
+                 preserved by the save/load code; this UI just no longer edits
+                 them here. -->
 
             <!-- Products — free draft/edit catalog. Each product becomes its own
                  $10 QR at generation (step 2). Stored on the profile JSON, same
                  pattern as Menu. -->
             <div style="border-top:1px solid #E8DDD6;padding-top:16px;margin-bottom:24px;">
-                <label style="display:block;font-size:14.5px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;">Products <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#9A8478;">(optional)</span></label>
-                <p style="font-size:13px;color:#9A8478;margin:0 0 12px;font-family:'Outfit',sans-serif;">Draft and edit products for free. Generate a QR when you're ready — <b style="color:#8B3A7F;">$10 each</b>. One QR = your business profile + this product.</p>
+                <label style="display:block;font-size:14.5px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;">Modulars <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#9A8478;">— products &amp; menus (optional)</span></label>
+                <p style="font-size:13px;color:#9A8478;margin:0 0 12px;font-family:'Outfit',sans-serif;">Draft and edit for free. Generate a QR when you're ready — the first is included with your $20 unlock, then <b style="color:#8B3A7F;">$10 each</b>. One QR = your business profile + this modular.</p>
                 <div id="catalogProductsWrap"></div>
                 <div style="display:flex;gap:10px;">
                     <button type="button" onclick="addCatalogProduct()" style="flex:1;border:1.5px dashed #c5b5ad;background:transparent;color:#8B3A7F;font-weight:600;border-radius:10px;padding:14px;font-size:15px;cursor:pointer;font-family:'Outfit',sans-serif;">+ Add a product</button>
