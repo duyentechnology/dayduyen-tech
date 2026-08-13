@@ -5312,6 +5312,9 @@
             if (address) {
                 iconsHtml += '<a href="https://maps.google.com/?q=' + encodeURIComponent(address) + '" target="_blank" rel="noopener" style="' + iconStyle + '"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8B3A7F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></a>';
             }
+            // Share — always shown, mirroring the live customer scan (which shares
+            // the code's QR URL). Inert here since a preview has no live URL yet.
+            iconsHtml += '<a href="#" onclick="return false;" aria-label="Share" style="' + iconStyle + '"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8B3A7F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="M8.2 10.8l7.6-4.6"/><path d="M8.2 13.2l7.6 4.6"/></svg></a>';
             var iconRowHtml = iconsHtml ? '<div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:14px;">' + iconsHtml + '</div>' : '';
 
             // --- Assemble card body (matches duyen.io showBusinessProfile) ---
