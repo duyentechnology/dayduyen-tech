@@ -2913,7 +2913,8 @@
                 var params = new URLSearchParams(window.location.search);
                 var u = params.get('upgrade');
                 if (!u) return;
-                params.delete('upgrade');
+                var hadModular = !!params.get('mid');
+                params.delete('upgrade'); params.delete('mid'); params.delete('pid');
                 var qs = params.toString();
                 history.replaceState({}, '', window.location.pathname + (qs ? '?' + qs : '') + window.location.hash);
                 if (u === 'success') {
@@ -2924,7 +2925,10 @@
                     };
                     refresh();
                     setTimeout(refresh, 3000); // webhook may lag a moment
-                    alert('Payment received — your upgrade is being activated! ✨');
+                    // A modular purchase finishes itself: create the code + open the studio.
+                    var pend = null; try { pend = sessionStorage.getItem('pendingModular'); } catch (e) {}
+                    if (hadModular || pend) { finishPendingModular(); }
+                    else { alert('Payment received — your upgrade is being activated! ✨'); }
                 }
             } catch (e) { console.warn('handleUpgradeReturn error:', e); }
         }
@@ -4788,13 +4792,145 @@
         }
         function removeCatalogFile(i) { if (catalogProducts[i]) { catalogProducts[i].file = null; renderCatalogProducts(); } }
 
-        // Step-2 stub: payment ($10) + design/print routing not wired yet.
-        function generateCatalogQR(i) {
+        function modularCredits() { return Math.max(0, parseInt(ent().modular_credits, 10) || 0); }
+
+        // Persist the current profile's product drafts quietly (no UI), so a
+        // draft survives the round-trip to Stripe Checkout.
+        async function persistCatalogDrafts() {
+            try {
+                if (!bizProfileData) return;
+                bizProfileData.products = serializeCatalogProducts();
+                var pid = bizProfileData.profileId || currentProfileId;
+                var idx = bizProfiles.findIndex(function(p){ return p.profileId === pid; });
+                if (idx > -1) bizProfiles[idx] = bizProfileData; else bizProfiles.push(bizProfileData);
+                var sess = await db.auth.getSession();
+                var user = sess && sess.data && sess.data.session && sess.data.session.user;
+                if (!user) return;
+                await db.from('profiles').upsert(
+                    { id: user.id, business_profile: bizProfileData, business_profiles: bizProfiles },
+                    { onConflict: 'id' });
+            } catch (e) { console.warn('persistCatalogDrafts failed:', e); }
+        }
+
+        // Spend a modular credit, create the code (profile + this product), and
+        // drop straight into the design & print studio.
+        async function createModularAndOpenStudio(product) {
+            var photoUrls = (product.photos || []).map(function(x){ return x.url; }).filter(Boolean);
+            var media = photoUrls.slice(1);
+            if (product.video && product.video.url) media.push(product.video.url);
+            var res = await db.rpc('create_modular_qr', {
+                p_label: (product.name || '').trim() || 'Product QR',
+                p_details: (product.details || '').trim(),
+                p_photo: photoUrls[0] || null,
+                p_media: media,
+                p_business_data: bizProfileData || {},
+                p_source: 'product'
+            });
+            if (res.error) {
+                console.error('create_modular_qr error:', res.error);
+                alert(/no_modular_credit/.test(res.error.message || '')
+                    ? 'You have no modular credits left. Please purchase one to generate this QR.'
+                    : 'Could not create the QR. Please try again.');
+                return false;
+            }
+            var d = res.data || {};
+            var item = {
+                dbId: d.id, id: d.id, url: d.url,
+                label: (product.name || '').trim() || 'Product QR', color: '#8B3A7F',
+                details: (product.details || '').trim(),
+                createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+                status: 'active', includeLogo: true, include_logo: true,
+                source: 'product', businessData: bizProfileData || null,
+                memoryEnabled: false, link_meta: null,
+                media: media, files: [], photo: photoUrls[0] || null,
+                scan_count: 0, save_count: 0, last_scanned_at: null
+            };
+            if (!Array.isArray(savedQRCodes)) savedQRCodes = [];
+            savedQRCodes.push(item);
+            // Mark the draft live and remember its code, then persist.
+            product.generated = true; product.codeId = d.id; product.codeUrl = d.url; product.expanded = false;
+            renderCatalogProducts();
+            persistCatalogDrafts();
+            openQrStudio(savedQRCodes.length - 1);
+            return true;
+        }
+
+        // Open Stripe Checkout for a modular, carrying which draft it's for.
+        async function startModularCheckout(tier, modularId, profileId) {
+            try {
+                var body = { tier: tier, modularId: modularId };
+                if (profileId) body.profileId = profileId;
+                var res = await db.functions.invoke('business-checkout', { body: body });
+                if (res.error || !res.data || !res.data.url) {
+                    console.error('modular checkout error:', res.error || res.data);
+                    alert('Could not start checkout. Please try again.'); return;
+                }
+                window.location.href = res.data.url;
+            } catch (e) { console.error('startModularCheckout failed:', e); alert('Could not start checkout. Please try again.'); }
+        }
+
+        // Generate a product's QR: free if a modular credit is available (first
+        // one is bundled into the $20), else $10 — or $20 if the profile was
+        // never unlocked (that $20 includes this first modular).
+        async function generateCatalogQR(i) {
             var p = catalogProducts[i]; if (!p) return;
+            if (p.generated && p.codeId) { reopenModularStudio(p); return; }
             if (!(p.name || '').trim() && !(p.details || '').trim() && !p.photos.length) {
                 alert('Add a name, details, or a photo first.'); return;
             }
-            alert('Generating this product QR — $10 — is coming next.\n\nYour product is saved as a draft on your profile. Payment and the design & print step are being wired up.');
+            var btnLabelBefore;
+            await persistCatalogDrafts();
+            await loadEntitlements();
+            if (modularCredits() > 0) { await createModularAndOpenStudio(p); return; }
+            // Needs payment. Remember which draft, so the return can finish it.
+            var pid = bizProfileData && (bizProfileData.profileId || currentProfileId);
+            try { sessionStorage.setItem('pendingModular', JSON.stringify({ mid: p.id, pid: pid })); } catch (e) {}
+            startModularCheckout(profileUnlocked(pid) ? 'modular' : 'generator', p.id, pid);
+        }
+
+        // Reopen the studio for an already-generated modular.
+        function reopenModularStudio(product) {
+            var idx = (savedQRCodes || []).findIndex(function(x){ return x.dbId === product.codeId || x.id === product.codeId; });
+            if (idx > -1) { openQrStudio(idx); return; }
+            // Not loaded yet — push a minimal item from what we know.
+            var item = { dbId: product.codeId, id: product.codeId, url: product.codeUrl,
+                label: (product.name || '').trim() || 'Product QR', color: '#8B3A7F',
+                details: (product.details || '').trim(), status: 'active',
+                includeLogo: true, include_logo: true, source: 'product',
+                businessData: bizProfileData || null, link_meta: null,
+                media: [], files: [], photo: (product.photos && product.photos[0] && product.photos[0].url) || null };
+            savedQRCodes.push(item);
+            openQrStudio(savedQRCodes.length - 1);
+        }
+
+        // After returning from Stripe Checkout for a modular: wait for the credit
+        // (webhook may lag), then create that draft's code and open the studio.
+        async function finishPendingModular() {
+            var raw; try { raw = sessionStorage.getItem('pendingModular'); } catch (e) { raw = null; }
+            if (!raw) return false;
+            var pend; try { pend = JSON.parse(raw); } catch (e) { pend = null; }
+            if (!pend || !pend.mid) { try { sessionStorage.removeItem('pendingModular'); } catch (e) {} return false; }
+            // Make sure the profile + its product drafts are loaded.
+            if (!bizProfiles || !bizProfiles.length) {
+                try { var s = await db.auth.getSession(); await loadBizProfileFromSupabase(s && s.data && s.data.session && s.data.session.access_token); } catch (e) {}
+            }
+            var prof = (bizProfiles || []).find(function(p){ return p.profileId === pend.pid; }) || bizProfileData;
+            if (!prof) return false;
+            bizProfileData = prof; currentProfileId = prof.profileId;
+            catalogProducts = normalizeCatalogProducts(prof.products);
+            var product = catalogProducts.find(function(p){ return p.id === pend.mid; });
+            if (!product) { try { sessionStorage.removeItem('pendingModular'); } catch (e) {} return false; }
+            // Poll a few times for the credit (webhook lag).
+            for (var attempt = 0; attempt < 6; attempt++) {
+                await loadEntitlements();
+                if (modularCredits() > 0) {
+                    try { sessionStorage.removeItem('pendingModular'); } catch (e) {}
+                    return await createModularAndOpenStudio(product);
+                }
+                await new Promise(function(r){ setTimeout(r, 2000); });
+            }
+            alert('Payment received — activating your modular. If the QR doesn\'t open, reopen your profile and tap Generate again.');
+            return false;
         }
 
         // --- render ---
@@ -4848,20 +4984,26 @@
                 var thumb = firstPhoto
                     ? '<div style="width:36px;height:36px;border-radius:8px;overflow:hidden;border:1px solid #E8DDD6;flex-shrink:0;"><img src="' + catEsc(firstPhoto.url) + '" style="width:100%;height:100%;object-fit:cover;"></div>'
                     : '<div style="width:36px;height:36px;border-radius:8px;background:#F3E9F3;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">📦</div>';
-                var sub = (p.details || '').trim() ? catEsc((p.details || '').trim()).slice(0, 40) : 'Tap to edit';
+                var sub = p.generated ? 'Live · tap to design &amp; print'
+                    : ((p.details || '').trim() ? catEsc((p.details || '').trim()).slice(0, 40) : 'Tap to edit');
+                var rightGlyph = p.generated
+                    ? '<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:#E8F4EF;color:#3A8F6E;flex-shrink:0;margin-left:8px;">✓ LIVE</span>'
+                    : '<span style="font-size:16px;color:#C9A0C4;flex-shrink:0;margin-left:8px;">▸</span>';
                 return '<div style="border:1.5px solid #E8DDD6;border-radius:12px;background:#fff;margin-bottom:12px;overflow:hidden;">' +
                     '<div onclick="toggleCatalogProduct(' + i + ')" style="display:flex;align-items:center;justify-content:space-between;padding:13px 14px;cursor:pointer;">' +
                         '<div style="display:flex;align-items:center;gap:10px;min-width:0;">' + thumb +
                             '<div style="min-width:0;"><div style="font-family:\'Outfit\',sans-serif;font-weight:700;font-size:16px;color:#2E2A28;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + catEsc(title) + '</div>' +
                             '<div style="font-size:12.5px;color:#9A8478;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + sub + '</div></div></div>' +
-                        '<span style="font-size:16px;color:#C9A0C4;flex-shrink:0;margin-left:8px;">▸</span>' +
+                        rightGlyph +
                     '</div></div>';
             }
             return '<div style="border:1.5px solid #E8DDD6;border-radius:12px;background:#fff;margin-bottom:12px;overflow:hidden;">' +
                 '<div onclick="toggleCatalogProduct(' + i + ')" style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-bottom:1px solid #F0E5F0;cursor:pointer;">' +
                     '<div style="font-family:\'Outfit\',sans-serif;font-weight:700;font-size:16px;color:#2E2A28;">' + catEsc(title) + '</div>' +
                     '<div style="display:flex;align-items:center;gap:10px;">' +
-                        '<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:#F3E9F3;color:#8B3A7F;">DRAFT · FREE</span>' +
+                        (p.generated
+                            ? '<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:#E8F4EF;color:#3A8F6E;">✓ LIVE</span>'
+                            : '<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:#F3E9F3;color:#8B3A7F;">DRAFT · FREE</span>') +
                         '<span style="font-size:16px;color:#C9A0C4;">▾</span>' +
                     '</div></div>' +
                 '<input value="' + catEsc(p.name) + '" oninput="catalogSetName(' + i + ', this.value)" placeholder="Product name — e.g. Rainbow Twirl Dress" style="width:100%;border:none;outline:none;border-bottom:1px solid #F0E5F0;padding:13px 14px;font-family:\'Outfit\',sans-serif;font-size:16.5px;font-weight:600;color:#2E2A28;box-sizing:border-box;background:transparent;">' +
@@ -4877,7 +5019,7 @@
                 '</div>' +
                 '<div style="border-top:1px solid #F0E5F0;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;">' +
                     '<button type="button" onclick="removeCatalogProduct(' + i + ')" style="background:none;border:none;color:#B0857D;font-size:13px;cursor:pointer;font-family:\'Outfit\',sans-serif;">Delete</button>' +
-                    '<button type="button" onclick="generateCatalogQR(' + i + ')" style="background:#8B3A7F;color:#fff;border:none;border-radius:10px;padding:11px 18px;font-family:\'Outfit\',sans-serif;font-weight:700;font-size:15px;cursor:pointer;">Generate QR — $10</button>' +
+                    '<button type="button" onclick="generateCatalogQR(' + i + ')" style="background:#8B3A7F;color:#fff;border:none;border-radius:10px;padding:11px 18px;font-family:\'Outfit\',sans-serif;font-weight:700;font-size:15px;cursor:pointer;">' + (p.generated ? 'Design &amp; Print' : 'Generate QR — $10') + '</button>' +
                 '</div></div>';
         }
         function renderCatalogProducts() {
@@ -4897,9 +5039,12 @@
                     details: (p.details || '').trim(),
                     photos: (p.photos || []).map(function(x){ return x.url; }).filter(Boolean),
                     video: (p.video && p.video.url) ? p.video.url : null,
-                    file: (p.file && p.file.url) ? { url: p.file.url, name: p.file.name || '' } : null
+                    file: (p.file && p.file.url) ? { url: p.file.url, name: p.file.name || '' } : null,
+                    generated: !!p.generated,
+                    codeId: p.codeId || null,
+                    codeUrl: p.codeUrl || null
                 };
-            }).filter(function(p){ return p.name || p.details || p.photos.length || p.video || p.file; });
+            }).filter(function(p){ return p.name || p.details || p.photos.length || p.video || p.file || p.generated; });
         }
         function normalizeCatalogProducts(arr) {
             if (!Array.isArray(arr)) return [];
@@ -4912,6 +5057,9 @@
                     photos: (Array.isArray(p.photos) ? p.photos : []).map(function(u){ return { url: u }; }),
                     video: p.video ? { url: p.video } : null,
                     file: (p.file && p.file.url) ? { url: p.file.url, name: p.file.name || '' } : null,
+                    generated: !!p.generated,
+                    codeId: p.codeId || null,
+                    codeUrl: p.codeUrl || null,
                     expanded: false
                 };
             });
@@ -7184,10 +7332,15 @@
 
         function openQrStudio(idx) {
             var item = savedQRCodes[idx];
-            if (!item || item.source !== 'business') return;
-            // Design + print is what the $20 buys — for THIS profile.
-            var _pid = item.businessData && item.businessData.profileId;
-            if (!profileUnlocked(_pid)) { startUpgrade('generator', _pid); return; }
+            if (!item) return;
+            // Business-profile codes gate on the $20 profile unlock. Product
+            // modular codes are already paid (a credit was spent to create
+            // them), so they go straight in.
+            if (item.source !== 'business' && item.source !== 'product') return;
+            if (item.source === 'business') {
+                var _pid = item.businessData && item.businessData.profileId;
+                if (!profileUnlocked(_pid)) { startUpgrade('generator', _pid); return; }
+            }
             var lm = item.link_meta;
             if (typeof lm === 'string') { try { lm = JSON.parse(lm); } catch(e) { lm = null; } }
             lm = lm || {};
