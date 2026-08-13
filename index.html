@@ -5230,28 +5230,22 @@
                     pics.map(function(u){ return '<div style="aspect-ratio:3/4;border-radius:10px;overflow:hidden;background:#f5f0eb;"><img src="' + u + '" style="width:100%;height:100%;object-fit:cover;display:block;"></div>'; }).join('') +
                   '</div>'
                 : '';
-            // Collapsible product card — a header with the item name and a
-            // chevron (like About), body holds the photos + details. Open by
-            // default; the arrow collapses the product data.
-            var headLabel = (isMenu ? '🍽️ ' : '') + (nm || (isMenu ? 'Menu' : 'Product'));
-            return '<div style="padding:20px 16px 0;background:#F0EFED;">' +
-                '<div style="background:#fff;border:1.5px solid #E8DDD6;border-radius:14px;overflow:hidden;">' +
-                    '<div onclick="togglePreviewProduct()" style="display:flex;align-items:center;gap:10px;padding:14px 14px;cursor:pointer;">' +
-                        '<span style="flex:1;font-family:\'Crimson Pro\',serif;font-size:20px;font-weight:700;color:#8B3A7F;">' + headLabel + '</span>' +
-                        '<svg id="pvProdChev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8B3A7F" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition:transform .2s;transform:rotate(180deg);flex-shrink:0;"><path d="M6 9l6 6 6-6"/></svg>' +
-                    '</div>' +
-                    ((pics.length || details) ?
-                        '<div id="pvProdBody" style="display:block;padding:0 14px 14px;">' + grid +
-                            (details ? '<div style="font-size:15px;color:#3D2E24;line-height:1.55;white-space:pre-wrap;">' + details + '</div>' : '') +
-                        '</div>'
-                    : '') +
+            // The product/menu item is the CONTENT of the preview — a plain card
+            // rendered below the business profile + About, matching the customer
+            // scan and the saved tapestry entry.
+            var nmHead = nm ? ((isMenu ? '🍽️ ' : '') + nm) : '';
+            return '<div style="padding:16px 16px 4px;background:#F0EFED;">' +
+                '<div style="background:#fff;border:1.5px solid #E8DDD6;border-radius:14px;padding:14px;">' +
+                    (nmHead ? '<div style="font-family:\'Crimson Pro\',serif;font-size:20px;font-weight:700;color:#8B3A7F;margin-bottom:' + ((pics.length || details) ? '10px' : '0') + ';">' + nmHead + '</div>' : '') +
+                    grid +
+                    (details ? '<div style="font-size:15px;color:#3D2E24;line-height:1.55;white-space:pre-wrap;">' + details + '</div>' : '') +
                 '</div>' +
             '</div>';
         }
-        // Collapse/expand the previewed product's photos + details.
-        function togglePreviewProduct() {
-            var body = document.getElementById('pvProdBody');
-            var chev = document.getElementById('pvProdChev');
+        // Collapse/expand the business info (About) from the header arrow.
+        function togglePreviewOrigin() {
+            var body = document.getElementById('pvOriginBody');
+            var chev = document.getElementById('pvOriginChev');
             if (!body) return;
             var open = body.style.display !== 'none';
             body.style.display = open ? 'none' : 'block';
@@ -5332,12 +5326,15 @@
             pvLogo = (typeof pvLogo === 'string' && /^https?:\/\//.test(pvLogo)) ? pvLogo.replace(/"/g, '&quot;') : '';
 
             var _pvHeadText =
-                '<div style="font-family:\'Crimson Pro\',serif;font-size:22px;font-weight:600;color:#3D2E24;line-height:1.15;text-align:center;">Every thing has an origin</div>' +
+                '<div style="font-family:\'Crimson Pro\',serif;font-size:22px;font-weight:600;color:#3D2E24;line-height:1.15;text-align:center;padding:0 34px;">Every thing has an origin</div>' +
                 '<div style="font-size:13.5px;color:#6B5751;line-height:1.45;margin-top:6px;font-weight:300;text-align:center;">Behind this moment is a maker, a craft, and a reason it found its way to you.</div>' +
                 (safeName ? '<div style="font-family:\'Crimson Pro\',serif;font-size:20px;font-weight:700;color:#8B3A7F;text-align:center;margin-top:8px;">' + safeName + '</div>' : '') +
                 iconRowHtml;
             var bodyHtml =
-                // Header - logo on top when uploaded, mirrors duyen.io
+                // Business-profile header, with a circular collapse arrow at the
+                // top-right that collapses About below it — mirrors duyen.io's
+                // scan view and the origin card on the tapestry.
+                '<div style="position:relative;">' +
                 (pvLogo ?
                     '<div style="background:#EFE5EF;padding:16px 14px 13px;border-bottom:1px solid #E0CFE0;">' +
                         '<img src="' + pvLogo + '" alt="' + safeName + '" style="display:block;margin:0 auto 10px;max-width:78%;max-height:185px;object-fit:contain;border-radius:14px;">' +
@@ -5352,9 +5349,12 @@
                         '<div style="flex:1;min-width:0;">' + _pvHeadText + '</div>' +
                     '</div>'
                 ) +
-                // The modular being previewed leads — brand above, item here.
-                modularItemBlockHTML(_previewModularObj) +
-                // About - the same white card the customer sees, open by default
+                    '<span onclick="togglePreviewOrigin()" style="position:absolute;top:12px;right:12px;width:32px;height:32px;border-radius:50%;background:rgba(139,58,127,0.12);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;">' +
+                        '<svg id="pvOriginChev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8B3A7F" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition:transform .2s;transform:rotate(180deg);"><polyline points="6 9 12 15 18 9"></polyline></svg>' +
+                    '</span>' +
+                '</div>' +
+                // About — collapsed by the header arrow, open by default.
+                '<div id="pvOriginBody" style="display:block;">' +
                 ((safeDesc || aboutUrls.length) ?
                     '<div style="padding:22px 16px 4px;background:#F0EFED;">' +
                         '<div style="background:#fff;border:1.5px solid #E8DDD6;border-radius:12px;overflow:hidden;margin-bottom:12px;">' +
@@ -5372,7 +5372,10 @@
                             '</div>' +
                         '</div>' +
                     '</div>'
-                : '<div style="height:20px;background:#F0EFED;"></div>');
+                : '') +
+                '</div>' +
+                // Product data — the content, below the business profile + About.
+                modularItemBlockHTML(_previewModularObj);
 
             document.getElementById('previewCardBody').innerHTML = bodyHtml;
 
