@@ -1846,29 +1846,22 @@
                 </div>
             </div>
 
-            <!-- Menu -->
-            <div style="border-top:1px solid #E8DDD6;padding-top:16px;margin-bottom:24px;">
-                <label style="display:block;font-size:14.5px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;">Menu <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#9A8478;">(optional)</span></label>
-                <div style="border:1.5px solid #E8DDD6;border-radius:12px;background:#fff;overflow:hidden;padding:12px;">
-                    <div style="font-size:12px;font-weight:600;color:#9A8478;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Photos of your menu (up to 10 pages)</div>
-                    <div id="menuPhotosWrap" style="display:flex;flex-wrap:wrap;gap:8px;">
-                        <div id="menuPhotosAdd" onclick="document.getElementById('menuPhotosInput').click()" style="width:64px;height:64px;border:1.5px dashed #C9A0C4;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;background:#FBF7FB;">
-                            <div style="font-size:20px;line-height:1;">🍽️</div>
-                            <div style="font-size:11px;color:#8B3A7F;font-weight:600;margin-top:2px;">Add</div>
-                        </div>
-                        <input type="file" id="menuPhotosInput" accept="image/*" multiple style="display:none;" onchange="handleMenuPhotos(this)">
-                    </div>
-                </div>
-            </div>
+            <!-- Menu is no longer a profile fixture — it's a modular now (added
+                 via "+ Add a menu" below). Existing menuPhotos on a profile are
+                 preserved by the save/load code; this UI just no longer edits
+                 them here. -->
 
             <!-- Products — free draft/edit catalog. Each product becomes its own
                  $10 QR at generation (step 2). Stored on the profile JSON, same
                  pattern as Menu. -->
             <div style="border-top:1px solid #E8DDD6;padding-top:16px;margin-bottom:24px;">
-                <label style="display:block;font-size:14.5px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;">Products <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#9A8478;">(optional)</span></label>
-                <p style="font-size:13px;color:#9A8478;margin:0 0 12px;font-family:'Outfit',sans-serif;">Draft and edit products for free. Generate a QR when you're ready — <b style="color:#8B3A7F;">$10 each</b>. One QR = your business profile + this product.</p>
+                <label style="display:block;font-size:14.5px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;">Modulars <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#9A8478;">— products &amp; menus (optional)</span></label>
+                <p style="font-size:13px;color:#9A8478;margin:0 0 12px;font-family:'Outfit',sans-serif;">Draft and edit for free. Generate a QR when you're ready — the first is included with your $20 unlock, then <b style="color:#8B3A7F;">$10 each</b>. One QR = your business profile + this modular.</p>
                 <div id="catalogProductsWrap"></div>
-                <button type="button" onclick="addCatalogProduct()" style="width:100%;border:1.5px dashed #c5b5ad;background:transparent;color:#8B3A7F;font-weight:600;border-radius:10px;padding:14px;font-size:16px;cursor:pointer;font-family:'Outfit',sans-serif;">+ Add a product</button>
+                <div style="display:flex;gap:10px;">
+                    <button type="button" onclick="addCatalogProduct()" style="flex:1;border:1.5px dashed #c5b5ad;background:transparent;color:#8B3A7F;font-weight:600;border-radius:10px;padding:14px;font-size:15px;cursor:pointer;font-family:'Outfit',sans-serif;">+ Add a product</button>
+                    <button type="button" onclick="addCatalogMenu()" style="flex:1;border:1.5px dashed #c5b5ad;background:transparent;color:#8B3A7F;font-weight:600;border-radius:10px;padding:14px;font-size:15px;cursor:pointer;font-family:'Outfit',sans-serif;">+ Add a menu</button>
+                </div>
             </div>
 
             <div style="display:flex;gap:12px;">
@@ -4727,14 +4720,19 @@
             } catch (e) { console.error('catalog asset upload exception:', e); return null; }
         }
 
-        function newCatalogProduct() {
-            return { id: 'prod_' + Date.now() + '_' + Math.floor(Math.random() * 1e4), name: '', details: '', photos: [], video: null, file: null, expanded: true };
+        function newCatalogModular(type) {
+            return { id: 'mod_' + Date.now() + '_' + Math.floor(Math.random() * 1e4), type: (type === 'menu' ? 'menu' : 'product'), name: '', details: '', photos: [], video: null, file: null, expanded: true };
         }
-        function addCatalogProduct() {
+        function newCatalogProduct() { return newCatalogModular('product'); } // back-compat
+        function addCatalogModular(type) {
             catalogProducts.forEach(function(p){ p.expanded = false; });
-            catalogProducts.push(newCatalogProduct());
+            catalogProducts.push(newCatalogModular(type));
             renderCatalogProducts();
         }
+        function addCatalogProduct() { addCatalogModular('product'); }
+        function addCatalogMenu()    { addCatalogModular('menu'); }
+        // Photos allowed per modular type: a menu can carry up to 10 pages.
+        function catalogPhotoMax(p) { return (p && p.type === 'menu') ? 10 : CATALOG_PHOTO_MAX; }
         function removeCatalogProduct(i) {
             if (!confirm('Remove this product draft?')) return;
             catalogProducts.splice(i, 1);
@@ -4753,7 +4751,7 @@
             var user = await catalogUser(); if (!user) return;
             var p = catalogProducts[i]; if (!p) return;
             for (var k = 0; k < files.length; k++) {
-                if (p.photos.length >= CATALOG_PHOTO_MAX) break;
+                if (p.photos.length >= catalogPhotoMax(p)) break;
                 var f = files[k];
                 if (f.type.indexOf('image/') !== 0) { alert('Photos only.'); continue; }
                 var item = { uploading: true }; p.photos.push(item); renderCatalogProducts();
@@ -4815,16 +4813,21 @@
         // Spend a modular credit, create the code (profile + this product), and
         // drop straight into the design & print studio.
         async function createModularAndOpenStudio(product) {
+            var isMenu = product.type === 'menu';
             var photoUrls = (product.photos || []).map(function(x){ return x.url; }).filter(Boolean);
             var media = photoUrls.slice(1);
             if (product.video && product.video.url) media.push(product.video.url);
+            // A menu carries its pages in business_data.menuPhotos (what duyen.io's
+            // menu viewer reads), while still stamping photo/media so it renders.
+            var bizData = bizProfileData || {};
+            if (isMenu) { bizData = Object.assign({}, bizData, { menuPhotos: photoUrls }); }
             var res = await db.rpc('create_modular_qr', {
-                p_label: (product.name || '').trim() || 'Product QR',
-                p_details: (product.details || '').trim(),
+                p_label: (product.name || '').trim() || (isMenu ? 'Menu' : 'Product QR'),
+                p_details: isMenu ? '' : (product.details || '').trim(),
                 p_photo: photoUrls[0] || null,
                 p_media: media,
-                p_business_data: bizProfileData || {},
-                p_source: 'product'
+                p_business_data: bizData,
+                p_source: isMenu ? 'menu' : 'product'
             });
             if (res.error) {
                 console.error('create_modular_qr error:', res.error);
@@ -4836,11 +4839,11 @@
             var d = res.data || {};
             var item = {
                 dbId: d.id, id: d.id, url: d.url,
-                label: (product.name || '').trim() || 'Product QR', color: '#8B3A7F',
-                details: (product.details || '').trim(),
+                label: (product.name || '').trim() || (isMenu ? 'Menu' : 'Product QR'), color: '#8B3A7F',
+                details: isMenu ? '' : (product.details || '').trim(),
                 createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
                 status: 'active', includeLogo: true, include_logo: true,
-                source: 'product', businessData: bizProfileData || null,
+                source: isMenu ? 'menu' : 'product', businessData: bizData,
                 memoryEnabled: false, link_meta: null,
                 media: media, files: [], photo: photoUrls[0] || null,
                 scan_count: 0, save_count: 0, last_scanned_at: null
@@ -4953,7 +4956,7 @@
                     '<img src="' + catEsc(ph.url) + '" style="width:100%;height:100%;object-fit:cover;">' +
                     catRemoveX('removeCatalogPhoto(' + i + ',' + j + ')') + '</div>';
             }).join('');
-            if (p.photos.length < CATALOG_PHOTO_MAX) out += catAddTile('📷', 'Add', "document.getElementById('catPhotoInput_" + i + "').click()");
+            if (p.photos.length < catalogPhotoMax(p)) out += catAddTile('📷', 'Add', "document.getElementById('catPhotoInput_" + i + "').click()");
             return out;
         }
         function catVideoTile(p, i) {
@@ -4978,14 +4981,21 @@
             return '<div style="font-size:12px;font-weight:600;color:#9A8478;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">' + t + '</div>';
         }
         function catalogCardHTML(p, i) {
-            var title = (p.name || '').trim() || ('Product ' + (i + 1));
+            var isMenu = p.type === 'menu';
+            var title = (p.name || '').trim() || (isMenu ? 'Menu' : 'Product ' + (i + 1));
+            var pill = p.generated
+                ? '<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:#E8F4EF;color:#3A8F6E;">✓ LIVE</span>'
+                : '<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:#F3E9F3;color:#8B3A7F;">DRAFT · FREE</span>';
+            var genLabel = p.generated ? 'Design &amp; Print' : 'Generate QR — $10';
             if (!p.expanded) {
                 var firstPhoto = p.photos.find(function(x){ return x.url; });
                 var thumb = firstPhoto
                     ? '<div style="width:36px;height:36px;border-radius:8px;overflow:hidden;border:1px solid #E8DDD6;flex-shrink:0;"><img src="' + catEsc(firstPhoto.url) + '" style="width:100%;height:100%;object-fit:cover;"></div>'
-                    : '<div style="width:36px;height:36px;border-radius:8px;background:#F3E9F3;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">📦</div>';
+                    : '<div style="width:36px;height:36px;border-radius:8px;background:#F3E9F3;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">' + (isMenu ? '🍽️' : '📦') + '</div>';
                 var sub = p.generated ? 'Live · tap to design &amp; print'
-                    : ((p.details || '').trim() ? catEsc((p.details || '').trim()).slice(0, 40) : 'Tap to edit');
+                    : (isMenu
+                        ? (p.photos.length ? (p.photos.length + ' menu photo' + (p.photos.length > 1 ? 's' : '')) : 'Tap to add menu photos')
+                        : ((p.details || '').trim() ? catEsc((p.details || '').trim()).slice(0, 40) : 'Tap to edit'));
                 var rightGlyph = p.generated
                     ? '<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:#E8F4EF;color:#3A8F6E;flex-shrink:0;margin-left:8px;">✓ LIVE</span>'
                     : '<span style="font-size:16px;color:#C9A0C4;flex-shrink:0;margin-left:8px;">▸</span>';
@@ -4997,36 +5007,41 @@
                         rightGlyph +
                     '</div></div>';
             }
-            return '<div style="border:1.5px solid #E8DDD6;border-radius:12px;background:#fff;margin-bottom:12px;overflow:hidden;">' +
-                '<div onclick="toggleCatalogProduct(' + i + ')" style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-bottom:1px solid #F0E5F0;cursor:pointer;">' +
-                    '<div style="font-family:\'Outfit\',sans-serif;font-weight:700;font-size:16px;color:#2E2A28;">' + catEsc(title) + '</div>' +
-                    '<div style="display:flex;align-items:center;gap:10px;">' +
-                        (p.generated
-                            ? '<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:#E8F4EF;color:#3A8F6E;">✓ LIVE</span>'
-                            : '<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:#F3E9F3;color:#8B3A7F;">DRAFT · FREE</span>') +
-                        '<span style="font-size:16px;color:#C9A0C4;">▾</span>' +
-                    '</div></div>' +
-                '<input value="' + catEsc(p.name) + '" oninput="catalogSetName(' + i + ', this.value)" placeholder="Product name — e.g. Rainbow Twirl Dress" style="width:100%;border:none;outline:none;border-bottom:1px solid #F0E5F0;padding:13px 14px;font-family:\'Outfit\',sans-serif;font-size:16.5px;font-weight:600;color:#2E2A28;box-sizing:border-box;background:transparent;">' +
-                '<textarea oninput="catalogSetDetails(' + i + ', this.value)" placeholder="Describe this product — materials, size, care, story…" style="width:100%;min-height:66px;resize:vertical;border:none;outline:none;padding:14px;font-family:\'Outfit\',sans-serif;font-size:17.5px;color:#2E2A28;box-sizing:border-box;background:transparent;">' + catEsc(p.details) + '</textarea>' +
-                '<div style="border-top:1px solid #F0E5F0;padding:12px;">' +
-                    catSubLabel('Photos (up to 3)') +
-                    '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;">' + catPhotoTiles(p, i) + '</div>' +
-                    catSubLabel('Video &amp; file (optional)') +
-                    '<div style="display:flex;flex-wrap:wrap;gap:8px;">' + catVideoTile(p, i) + catFileTile(p, i) + '</div>' +
-                    '<input type="file" id="catPhotoInput_' + i + '" accept="image/*" multiple style="display:none;" onchange="handleCatalogPhoto(' + i + ', this)">' +
-                    '<input type="file" id="catVideoInput_' + i + '" accept="video/*" style="display:none;" onchange="handleCatalogVideo(' + i + ', this)">' +
-                    '<input type="file" id="catFileInput_' + i + '" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.zip,.rar,image/*" style="display:none;" onchange="handleCatalogFile(' + i + ', this)">' +
-                '</div>' +
-                '<div style="border-top:1px solid #F0E5F0;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;">' +
+            var header = '<div onclick="toggleCatalogProduct(' + i + ')" style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-bottom:1px solid #F0E5F0;cursor:pointer;">' +
+                    '<div style="font-family:\'Outfit\',sans-serif;font-weight:700;font-size:16px;color:#2E2A28;">' + (isMenu ? '🍽️ ' : '') + catEsc(title) + '</div>' +
+                    '<div style="display:flex;align-items:center;gap:10px;">' + pill + '<span style="font-size:16px;color:#C9A0C4;">▾</span></div></div>';
+            var nameRow = '<input value="' + catEsc(p.name) + '" oninput="catalogSetName(' + i + ', this.value)" placeholder="' + (isMenu ? 'Menu name — e.g. Dinner Menu' : 'Product name — e.g. Rainbow Twirl Dress') + '" style="width:100%;border:none;outline:none;border-bottom:1px solid #F0E5F0;padding:13px 14px;font-family:\'Outfit\',sans-serif;font-size:16.5px;font-weight:600;color:#2E2A28;box-sizing:border-box;background:transparent;">';
+            var footer = '<div style="border-top:1px solid #F0E5F0;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;">' +
                     '<button type="button" onclick="removeCatalogProduct(' + i + ')" style="background:none;border:none;color:#B0857D;font-size:13px;cursor:pointer;font-family:\'Outfit\',sans-serif;">Delete</button>' +
-                    '<button type="button" onclick="generateCatalogQR(' + i + ')" style="background:#8B3A7F;color:#fff;border:none;border-radius:10px;padding:11px 18px;font-family:\'Outfit\',sans-serif;font-weight:700;font-size:15px;cursor:pointer;">' + (p.generated ? 'Design &amp; Print' : 'Generate QR — $10') + '</button>' +
-                '</div></div>';
+                    '<button type="button" onclick="generateCatalogQR(' + i + ')" style="background:#8B3A7F;color:#fff;border:none;border-radius:10px;padding:11px 18px;font-family:\'Outfit\',sans-serif;font-weight:700;font-size:15px;cursor:pointer;">' + genLabel + '</button>' +
+                '</div>';
+            var media;
+            if (isMenu) {
+                media = '<div style="border-top:1px solid #F0E5F0;padding:12px;">' +
+                    catSubLabel('Menu photos (up to 10 pages)') +
+                    '<div style="display:flex;flex-wrap:wrap;gap:8px;">' + catPhotoTiles(p, i) + '</div>' +
+                    '<input type="file" id="catPhotoInput_' + i + '" accept="image/*" multiple style="display:none;" onchange="handleCatalogPhoto(' + i + ', this)">' +
+                '</div>';
+            } else {
+                media = '<textarea oninput="catalogSetDetails(' + i + ', this.value)" placeholder="Describe this product — materials, size, care, story…" style="width:100%;min-height:66px;resize:vertical;border:none;outline:none;padding:14px;font-family:\'Outfit\',sans-serif;font-size:17.5px;color:#2E2A28;box-sizing:border-box;background:transparent;">' + catEsc(p.details) + '</textarea>' +
+                    '<div style="border-top:1px solid #F0E5F0;padding:12px;">' +
+                        catSubLabel('Photos (up to 3)') +
+                        '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;">' + catPhotoTiles(p, i) + '</div>' +
+                        catSubLabel('Video &amp; file (optional)') +
+                        '<div style="display:flex;flex-wrap:wrap;gap:8px;">' + catVideoTile(p, i) + catFileTile(p, i) + '</div>' +
+                        '<input type="file" id="catPhotoInput_' + i + '" accept="image/*" multiple style="display:none;" onchange="handleCatalogPhoto(' + i + ', this)">' +
+                        '<input type="file" id="catVideoInput_' + i + '" accept="video/*" style="display:none;" onchange="handleCatalogVideo(' + i + ', this)">' +
+                        '<input type="file" id="catFileInput_' + i + '" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.zip,.rar,image/*" style="display:none;" onchange="handleCatalogFile(' + i + ', this)">' +
+                    '</div>';
+            }
+            return '<div style="border:1.5px solid #E8DDD6;border-radius:12px;background:#fff;margin-bottom:12px;overflow:hidden;">' +
+                header + nameRow + media + footer + '</div>';
         }
         function renderCatalogProducts() {
             var wrap = document.getElementById('catalogProductsWrap');
             if (!wrap) return;
             if (!catalogProducts.length) {
-                wrap.innerHTML = '<div style="font-size:13.5px;color:#9A8478;padding:2px 2px 12px;font-family:\'Outfit\',sans-serif;">No products yet — add one to draft it for free.</div>';
+                wrap.innerHTML = '<div style="font-size:13.5px;color:#9A8478;padding:2px 2px 12px;font-family:\'Outfit\',sans-serif;">No modulars yet — add a product or a menu to draft it for free.</div>';
                 return;
             }
             wrap.innerHTML = catalogProducts.map(function(p, i){ return catalogCardHTML(p, i); }).join('');
@@ -5035,6 +5050,7 @@
             return catalogProducts.map(function(p) {
                 return {
                     id: p.id,
+                    type: p.type === 'menu' ? 'menu' : 'product',
                     name: (p.name || '').trim(),
                     details: (p.details || '').trim(),
                     photos: (p.photos || []).map(function(x){ return x.url; }).filter(Boolean),
@@ -5051,7 +5067,8 @@
             return arr.map(function(p, idx) {
                 p = p || {};
                 return {
-                    id: p.id || ('prod_' + Date.now() + '_' + idx),
+                    id: p.id || ('mod_' + Date.now() + '_' + idx),
+                    type: p.type === 'menu' ? 'menu' : 'product',
                     name: p.name || '',
                     details: p.details || '',
                     photos: (Array.isArray(p.photos) ? p.photos : []).map(function(u){ return { url: u }; }),
@@ -7336,7 +7353,7 @@
             // Business-profile codes gate on the $20 profile unlock. Product
             // modular codes are already paid (a credit was spent to create
             // them), so they go straight in.
-            if (item.source !== 'business' && item.source !== 'product') return;
+            if (item.source !== 'business' && item.source !== 'product' && item.source !== 'menu') return;
             if (item.source === 'business') {
                 var _pid = item.businessData && item.businessData.profileId;
                 if (!profileUnlocked(_pid)) { startUpgrade('generator', _pid); return; }
