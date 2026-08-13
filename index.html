@@ -5074,9 +5074,12 @@
                     '<div style="font-family:\'Outfit\',sans-serif;font-weight:700;font-size:16px;color:#2E2A28;">' + (isMenu ? '🍽️ ' : '') + catEsc(title) + '</div>' +
                     '<div style="display:flex;align-items:center;gap:10px;">' + pill + '<span style="font-size:16px;color:#C9A0C4;">▾</span></div></div>';
             var nameRow = '<input value="' + catEsc(p.name) + '" oninput="catalogSetName(' + i + ', this.value)" placeholder="' + (isMenu ? 'Menu name — e.g. Dinner Menu' : 'Product name — e.g. Rainbow Twirl Dress') + '" style="width:100%;border:none;outline:none;border-bottom:1px solid #F0E5F0;padding:13px 14px;font-family:\'Outfit\',sans-serif;font-size:16.5px;font-weight:600;color:#2E2A28;box-sizing:border-box;background:transparent;">';
-            var footer = '<div style="border-top:1px solid #F0E5F0;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;">' +
+            var footer = '<div style="border-top:1px solid #F0E5F0;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px;">' +
                     '<button type="button" onclick="removeCatalogProduct(' + i + ')" style="background:none;border:none;color:#B0857D;font-size:13px;cursor:pointer;font-family:\'Outfit\',sans-serif;">Delete</button>' +
-                    '<button type="button" onclick="generateCatalogQR(' + i + ')" style="background:#8B3A7F;color:#fff;border:none;border-radius:10px;padding:11px 18px;font-family:\'Outfit\',sans-serif;font-weight:700;font-size:15px;cursor:pointer;">' + genLabel + '</button>' +
+                    '<div style="display:flex;gap:8px;">' +
+                        '<button type="button" onclick="previewModular(' + i + ')" style="background:#fff;color:#8B3A7F;border:1.5px solid #8B3A7F;border-radius:10px;padding:10px 14px;font-family:\'Outfit\',sans-serif;font-weight:700;font-size:14px;cursor:pointer;">Preview</button>' +
+                        '<button type="button" onclick="generateCatalogQR(' + i + ')" style="background:#8B3A7F;color:#fff;border:none;border-radius:10px;padding:11px 18px;font-family:\'Outfit\',sans-serif;font-weight:700;font-size:15px;cursor:pointer;">' + genLabel + '</button>' +
+                    '</div>' +
                 '</div>';
             var media;
             if (isMenu) {
@@ -5167,6 +5170,38 @@
             } catch(e) { console.error('Logo upload failed:', e); }
         }
 
+        // When set, showBizProfilePreview() injects this modular's item into the
+        // profile customer view — so previewing a product/menu shows the brand
+        // (logo, About, social) AND the item, which is what a customer scanning
+        // that modular's QR actually sees.
+        var _previewModularObj = null;
+        function modularItemBlockHTML(m) {
+            if (!m) return '';
+            var isMenu = m.type === 'menu';
+            var urls = (m.photos || []).map(function(x){ return typeof x === 'string' ? x : (x && x.url); }).filter(Boolean);
+            var pics = urls.slice(0, 3);
+            var nm = sanitize((m.name || '').trim());
+            var details = sanitize((m.details || '').trim());
+            if (!pics.length && !nm && !details) return '';
+            var grid = pics.length
+                ? '<div style="display:grid;grid-template-columns:repeat(' + Math.min(pics.length, 3) + ',1fr);gap:8px;margin-bottom:' + ((nm || details) ? '12px' : '0') + ';">' +
+                    pics.map(function(u){ return '<div style="aspect-ratio:3/4;border-radius:10px;overflow:hidden;background:#f5f0eb;"><img src="' + u + '" style="width:100%;height:100%;object-fit:cover;display:block;"></div>'; }).join('') +
+                  '</div>'
+                : '';
+            return '<div style="padding:20px 16px 0;background:#F0EFED;">' +
+                '<div style="background:#fff;border:1.5px solid #E8DDD6;border-radius:14px;padding:14px;">' +
+                    (nm ? '<div style="font-family:\'Crimson Pro\',serif;font-size:20px;font-weight:700;color:#8B3A7F;margin-bottom:' + ((pics.length || details) ? '10px' : '0') + ';">' + (isMenu ? '🍽️ ' : '') + nm + '</div>' : '') +
+                    grid +
+                    (details ? '<div style="font-size:15px;color:#3D2E24;line-height:1.55;white-space:pre-wrap;">' + details + '</div>' : '') +
+                '</div>' +
+            '</div>';
+        }
+        // Preview a modular the way a customer sees it: business profile + item.
+        function previewModular(i) {
+            _previewModularObj = catalogProducts[i] || null;
+            try { showBizProfilePreview(); } finally { _previewModularObj = null; }
+        }
+
         function showBizProfilePreview() {
             // --- Read form values ---
             var name    = (document.getElementById('bizName')    || {}).value || '';
@@ -5244,6 +5279,8 @@
                         '<div style="flex:1;min-width:0;">' + _pvHeadText + '</div>' +
                     '</div>'
                 ) +
+                // When previewing a modular, the item leads — brand above, item here.
+                modularItemBlockHTML(_previewModularObj) +
                 // About - the same white card the customer sees, open by default
                 ((safeDesc || aboutUrls.length) ?
                     '<div style="padding:22px 16px 4px;background:#F0EFED;">' +
