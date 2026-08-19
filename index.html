@@ -2110,15 +2110,15 @@
             </div>
             <p style="color:#9A8478;font-size:16px;margin-bottom:24px;font-family:'Outfit',sans-serif;">Choose how you'd like to activate your QR codes</p>
 
-            <div onclick="showView('bizBatchScan')" style="border:1.5px solid #E8DDD6;border-radius:16px;padding:20px;margin-bottom:14px;cursor:pointer;">
-                <div style="font-size:28px;margin-bottom:8px;">📱</div>
+            <div onclick="showView('bizBatchScan')" style="border:1.5px solid #4A9EC4;border-radius:16px;padding:20px;margin-bottom:14px;cursor:pointer;">
+                <div style="margin-bottom:10px;"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#4A9EC4" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3M20 14v.01M14 20h.01M20 20h.01M17 20v3"/></svg></div>
                 <div style="font-weight:700;font-size:18px;color:#2E2A28;margin-bottom:5px;font-family:'Outfit',sans-serif;">Scan One QR Code</div>
                 <div style="font-size:15px;color:#9A8478;line-height:1.5;font-family:'Outfit',sans-serif;">Open camera, scan a single QR code, and activate it with your business profile.</div>
             </div>
 
             <div onclick="showView('bizBatchScan')" style="border:2px solid #8B3A7F;border-radius:16px;padding:20px;cursor:pointer;background:linear-gradient(135deg,#faf4fa,#f0e5f0);">
                 <div style="display:inline-block;font-size:13px;font-weight:600;background:#8B3A7F;color:#fff;padding:3px 11px;border-radius:20px;margin-bottom:10px;font-family:'Outfit',sans-serif;">Best for QR code packs</div>
-                <div style="font-size:28px;margin-bottom:8px;">📦</div>
+                <div style="margin-bottom:10px;"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#8B3A7F" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8v8a2 2 0 0 1-1 1.73l-7 4a2 2 0 0 1-2 0l-7-4A2 2 0 0 1 3 16V8a2 2 0 0 1 1-1.73l7-4a2 2 0 0 1 2 0l7 4A2 2 0 0 1 21 8z"/><path d="M3.3 7 12 12l8.7-5"/><path d="M12 22V12"/></svg></div>
                 <div style="font-weight:700;font-size:18px;color:#2E2A28;margin-bottom:5px;font-family:'Outfit',sans-serif;">Batch Scan — Multiple QR Codes</div>
                 <div style="font-size:15px;color:#9A8478;line-height:1.5;font-family:'Outfit',sans-serif;">Scan all your QR codes at once, then your business profile applies to all of them in one tap.</div>
             </div>
@@ -2289,7 +2289,7 @@
             </div>
             <div id="studioLabel" style="font-size:15px;color:#9A8478;margin-bottom:16px;"></div>
 
-            <div style="background:#fff;border:1.5px solid #E8DDD6;border-radius:14px;padding:16px;margin-bottom:16px;">
+            <div style="background:#fff;border:1.5px solid #8B3A7F;border-radius:14px;padding:16px;margin-bottom:16px;">
                 <div style="font-size:14.5px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin:0 0 8px;text-align:center;">Design</div>
                 <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:12px;">
                     <button type="button" id="designBtnbare" onclick="setStudioDesign('bare')" class="studio-chip sel">Code only</button>
@@ -2332,13 +2332,13 @@
                      without scrolling down to the Print Center. -->
                 <div style="display:flex;gap:10px;margin-top:16px;">
                     <button id="studioSaveBtn" onclick="saveStudio()" style="flex:1;background:#fff;color:#8B3A7F;border:1.5px solid #8B3A7F;border-radius:11px;padding:12px;font-family:'Outfit',sans-serif;font-weight:600;font-size:15.5px;cursor:pointer;">Save style</button>
-                    <button id="studioDownloadBtn" onclick="downloadStudioPNG()" style="flex:1.5;background:#8B3A7F;color:#fff;border:none;border-radius:11px;padding:12px;font-family:'Outfit',sans-serif;font-weight:700;font-size:15.5px;cursor:pointer;">⬇️ <span id="studioDownloadLabel">Download</span></button>
+                    <button id="studioDownloadBtn" onclick="downloadStudioPNG()" style="flex:1.5;background:#8B3A7F;color:#fff;border:none;border-radius:11px;padding:12px;font-family:'Outfit',sans-serif;font-weight:700;font-size:15.5px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg><span id="studioDownloadLabel">Download</span></button>
                 </div>
             </div>
 
-            <div style="background:#fff;border:1.5px solid #E8DDD6;border-radius:14px;padding:16px;margin-bottom:16px;">
-                <div style="font-size:14.5px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;">Print Center — Free</div>
-                <button type="button" onclick="printStudioPoster()" style="width:100%;text-align:left;background:#FBF7FB;border:1.5px solid #E8DDD6;border-radius:11px;padding:12px 14px;margin-bottom:14px;font-family:'Outfit',sans-serif;font-size:15.5px;color:#2E2A28;cursor:pointer;">📄 Flyer poster (PDF)<br><span style="font-size:13px;color:#9A8478;">Your QR + business name on one page</span></button>
+            <div style="background:#fff;border:1.5px solid #E8B84A;border-radius:14px;padding:16px;margin-bottom:16px;">
+                <div style="font-size:14.5px;font-weight:600;color:#C77E1E;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;">Print Center — Free</div>
+                <button type="button" onclick="printStudioPoster()" style="width:100%;text-align:left;background:#F1F8FB;border:1.5px solid #4A9EC4;border-radius:11px;padding:12px 14px;margin-bottom:14px;font-family:'Outfit',sans-serif;font-size:15.5px;color:#2E2A28;cursor:pointer;display:flex;align-items:center;gap:10px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4A9EC4" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg><span>Flyer poster (PDF)<br><span style="font-size:13px;color:#9A8478;">Your QR + business name on one page</span></span></button>
 
                 <div style="font-size:15px;font-weight:700;color:#2E2A28;margin-bottom:4px;">Sticker sheet (PDF)</div>
                 <div style="font-size:13.5px;color:#5D4E44;line-height:1.55;background:#FBF7FB;border-radius:10px;padding:10px 12px;margin-bottom:10px;">
@@ -2358,7 +2358,7 @@
                         <option value="a4">A4 (8.27 × 11.69 in)</option>
                     </select>
                 </label>
-                <button type="button" onclick="printStudioSheet()" style="width:100%;background:#fff;color:#8B3A7F;border:2px solid #8B3A7F;border-radius:11px;padding:11px;font-family:'Outfit',sans-serif;font-weight:600;font-size:15.5px;cursor:pointer;">🖨 Make my sticker sheet PDF</button>
+                <button type="button" onclick="printStudioSheet()" style="width:100%;background:#2AA8A0;color:#fff;border:none;border-radius:11px;padding:12px;font-family:'Outfit',sans-serif;font-weight:600;font-size:15.5px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>Make my sticker sheet PDF</button>
 
                 <div style="font-size:13.5px;color:#5D4E44;line-height:1.6;background:#FBF7FB;border-radius:10px;padding:10px 12px;margin-top:12px;">
                     <strong>Printing settings that matter:</strong><br>
