@@ -2297,9 +2297,16 @@
                         <div style="font-size:13px;color:#9A8478;line-height:1.4;">Tap the square to pick any colour.</div>
                     </div>
                 </div>
-                <div style="font-size:14.5px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin:14px 0 8px;text-align:center;">Background</div>
-                <div id="studioBgRow" style="display:flex;gap:9px;justify-content:center;flex-wrap:wrap;"></div>
-                <div id="studioContrast" style="font-size:13px;color:#9A8478;text-align:center;margin-top:12px;line-height:1.4;"></div>
+                <!-- Same [swatch | label + hint] row as QR Colour above, so the
+                     two colour controls read as a matched pair instead of one
+                     left-aligned and one centered. -->
+                <div style="display:flex;align-items:center;gap:14px;margin:14px 0 4px;">
+                    <div id="studioBgRow" style="display:flex;flex-wrap:wrap;gap:8px;width:106px;flex-shrink:0;"></div>
+                    <div style="flex:1;min-width:0;">
+                        <div style="font-size:13.5px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;">Background</div>
+                        <div id="studioContrast" style="font-size:13px;color:#9A8478;line-height:1.4;margin-top:6px;"></div>
+                    </div>
+                </div>
                 <div style="font-size:14.5px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin:14px 0 8px;text-align:center;">Center Logo</div>
                 <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
                     <button type="button" id="logoBtnDuyen" onclick="setStudioLogo('duyen')" class="studio-chip">緣 Duyên</button>
