@@ -2304,7 +2304,8 @@
                     <div id="studioBgRow" style="display:flex;flex-wrap:wrap;gap:8px;width:106px;flex-shrink:0;"></div>
                     <div style="flex:1;min-width:0;">
                         <div style="font-size:13.5px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;">Background</div>
-                        <div id="studioContrast" style="font-size:13px;color:#9A8478;line-height:1.4;margin-top:6px;"></div>
+                        <input type="text" id="studioBgHex" maxlength="7" value="#FFFFFF" autocapitalize="none" spellcheck="false" placeholder="#FFFFFF" oninput="studioBgHexTyped(this.value)" style="width:100%;max-width:150px;border:1.5px solid #E8DDD6;border-radius:9px;padding:7px 10px;font-family:ui-monospace,Menlo,monospace;font-size:15px;font-weight:700;color:#2E2A28;box-sizing:border-box;margin:5px 0 6px;">
+                        <div id="studioContrast" style="font-size:13px;color:#9A8478;line-height:1.4;margin-top:2px;"></div>
                     </div>
                 </div>
                 <div style="font-size:14.5px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin:14px 0 8px;text-align:center;">Center Logo</div>
@@ -7670,6 +7671,18 @@
             if (hint && hint !== hex) hint.textContent = 'Type a hex colour, e.g. #8B3A7F.';
         }
 
+        // Editable hex "number box" for the background — the reliable way to set
+        // an exact colour on browsers where the native picker is hard to find.
+        // Waits for a full 6-digit hex before applying so mid-typing isn't fought.
+        function studioBgHexTyped(v) {
+            v = String(v == null ? '' : v).trim();
+            if (v && v[0] !== '#') v = '#' + v;
+            if (!/^#[0-9a-f]{6}$/i.test(v)) return;
+            studioState.bg = v.toUpperCase();
+            buildStudioSwatches();
+            renderStudio();
+        }
+
         function studioSyncColorUI() {
             var box = document.getElementById('studioColorBox');
             var hex = document.getElementById('studioHex');
@@ -7728,12 +7741,21 @@
                     d.onclick = function() { studioState[key] = c; buildStudioSwatches(); renderStudio(); };
                     el.appendChild(d);
                 });
-                // free-pick color input
+                // Free-pick "custom colour" tile. The bare native input rendered
+                // as an unlabeled little square nobody recognized as a picker, so
+                // give it a visible rainbow swatch (selected when the current
+                // colour isn't one of the presets) with the native picker overlaid.
+                var isPreset = colors.some(function(c){ return studioState[key].toUpperCase() === c.toUpperCase(); });
+                var wrap = document.createElement('label');
+                wrap.className = 'studio-sw' + (isPreset ? '' : ' sel');
+                wrap.title = 'Pick any colour';
+                wrap.style.cssText = 'position:relative;overflow:hidden;background:conic-gradient(from 0deg,#ff3b30,#ff9500,#ffcc00,#34c759,#00c7be,#007aff,#5856d6,#ff2d55,#ff3b30);';
                 var pick = document.createElement('input');
                 pick.type = 'color'; pick.value = studioState[key];
-                pick.style.cssText = 'width:30px;height:30px;border:none;border-radius:50%;padding:0;background:none;cursor:pointer;';
-                pick.oninput = function() { studioState[key] = pick.value; renderStudio(); };
-                el.appendChild(pick);
+                pick.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;opacity:0;border:none;padding:0;margin:0;cursor:pointer;';
+                pick.oninput = function() { studioState[key] = pick.value; buildStudioSwatches(); renderStudio(); };
+                wrap.appendChild(pick);
+                el.appendChild(wrap);
             }
             // QR colour is a slider now — only the background keeps swatches.
             row(bgRow, STUDIO_BG, 'bg');
@@ -7812,6 +7834,10 @@
                 if (studioState.design === 'tent') renderStudioTent(canvas, 460);
                 else renderStudioBareWithText(canvas, 460);
             }
+            // Keep the background hex box showing the current colour (preset tap
+            // or custom pick), but never fight the user while they're typing in it.
+            var bgHex = document.getElementById('studioBgHex');
+            if (bgHex && document.activeElement !== bgHex) bgHex.value = String(studioState.bg).toUpperCase();
             var ratio = studioContrast();
             var el = document.getElementById('studioContrast');
             var save = document.getElementById('studioSaveBtn');
