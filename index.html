@@ -10019,10 +10019,8 @@
             setTimeout(function(){el.remove();},duration*1000);
         }
 
-        setTimeout(function() {
-            for (var i = 0; i < 20; i++) spawnLantern(true);
-            setInterval(spawnLantern, 900);
-        }, 4500);
+        // Floating hero lanterns removed per request — spawn loop disabled.
+        // (spawnLantern / makeLanternSVG remain defined but are no longer called.)
     })();
 </script>
 <script>
