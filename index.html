@@ -7750,9 +7750,23 @@
                     d.onclick = function() { studioState[key] = c; buildStudioSwatches(); renderStudio(); };
                     el.appendChild(d);
                 });
-                // Custom colours come from the in-page hue slider + hex box below,
-                // not a native <input type=color> — its full-screen OS sheet
-                // covered the QR preview, so you couldn't watch the colour change.
+                // Circular "radiant" custom-colour swatch: a rainbow circle that
+                // opens the colour picker, selected when the current colour isn't
+                // one of the presets. oninput only repaints the canvas so the
+                // picker (and preview) never glitch mid-drag; the swatch rebuild
+                // that refreshes the ring waits for change, once the picker closes.
+                var isPreset = colors.some(function(c){ return studioState[key].toUpperCase() === c.toUpperCase(); });
+                var wrap = document.createElement('label');
+                wrap.className = 'studio-sw' + (isPreset ? '' : ' sel');
+                wrap.title = 'Pick any colour';
+                wrap.style.cssText = 'position:relative;overflow:hidden;background:conic-gradient(from 0deg,#ff3b30,#ff9500,#ffcc00,#34c759,#00c7be,#007aff,#5856d6,#ff2d55,#ff3b30);';
+                var pick = document.createElement('input');
+                pick.type = 'color'; pick.value = studioState[key];
+                pick.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;opacity:0;border:none;padding:0;margin:0;cursor:pointer;';
+                pick.oninput = function() { studioState[key] = pick.value; renderStudio(); };
+                pick.onchange = function() { studioState[key] = pick.value; buildStudioSwatches(); renderStudio(); };
+                wrap.appendChild(pick);
+                el.appendChild(wrap);
             }
             // QR colour is a slider now — only the background keeps swatches.
             row(bgRow, STUDIO_BG, 'bg');
