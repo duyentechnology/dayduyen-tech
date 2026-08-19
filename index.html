@@ -417,7 +417,7 @@
         .studio-chip {
             padding:9px 14px; border-radius:20px; border:2px solid #8B3A7F;
             background:#fff; color:#8B3A7F; font-family:'Outfit',sans-serif;
-            font-weight:600; font-size:14px; cursor:pointer;
+            font-weight:600; font-size:15.5px; cursor:pointer;
         }
         .studio-chip.sel { background:#8B3A7F; color:#fff; }
         .studio-sw {
@@ -1447,7 +1447,7 @@
 
             <!-- Admin only: choose what these printed QRs are for -->
             <div id="adminPrintKind" style="display:none;background:#fff;border:1.5px solid #C9A0C4;border-radius:14px;padding:14px 16px;margin-bottom:18px;">
-                <div style="font-size:14.5px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;">What are you printing?</div>
+                <div style="font-size:15.5px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;">What are you printing?</div>
                 <div style="display:flex;gap:8px;">
                     <button type="button" id="printKindNote" onclick="setPrintKind('note')" style="flex:1;padding:11px 6px;border-radius:11px;border:2px solid #8B3A7F;font-family:'Outfit',sans-serif;font-weight:600;font-size:14px;line-height:1.2;cursor:pointer;background:#8B3A7F;color:#fff;">Duyên notes</button>
                     <button type="button" id="printKindBusiness" onclick="setPrintKind('business')" style="flex:1;padding:11px 6px;border-radius:11px;border:2px solid #8B3A7F;font-family:'Outfit',sans-serif;font-weight:600;font-size:14px;line-height:1.2;cursor:pointer;background:#fff;color:#8B3A7F;">Business profile</button>
@@ -1797,21 +1797,21 @@
                 <input type="file" id="bizLogoInput" accept="image/*" style="display:none;" onchange="previewBizLogo(this)">
                 <div id="bizLogoPreview" style="font-size:32px;margin-bottom:6px;">🏢</div>
                 <div style="font-size:15px;font-weight:600;color:#8B3A7F;font-family:'Outfit',sans-serif;">Upload logo or photo</div>
-                <div style="font-size:13px;color:#9A8478;margin-top:3px;">Shows on every QR code you send</div>
+                <div style="font-size:14px;color:#9A8478;margin-top:3px;">Shows on every QR code you send</div>
             </div>
 
-            <label style="display:block;font-size:14.5px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;">Profile Nickname</label>
+            <label style="display:block;font-size:15.5px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;">Profile Nickname</label>
             <input type="text" id="bizProfileLabel" placeholder='e.g. "Main Store" or "Holiday Campaign"' class="input-field" style="margin-bottom:4px;">
-            <p style="font-size:13px;color:#9A8478;margin:0 0 16px;font-family:'Outfit',sans-serif;">Only you see this — helps you tell profiles apart</p>
+            <p style="font-size:14px;color:#9A8478;margin:0 0 16px;font-family:'Outfit',sans-serif;">Only you see this — helps you tell profiles apart</p>
 
-            <label style="display:block;font-size:14.5px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;">Business Name *</label>
+            <label style="display:block;font-size:15.5px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;">Business Name *</label>
             <input type="text" id="bizName" placeholder="e.g. Saigon Blossoms" class="input-field" style="margin-bottom:14px;">
 
-            <label style="display:block;font-size:14.5px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;">About Your Business</label>
+            <label style="display:block;font-size:15.5px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;">About Your Business</label>
             <div style="border:1.5px solid #E8DDD6;border-radius:12px;background:#fff;margin-bottom:14px;overflow:hidden;">
                 <textarea id="bizDesc" placeholder="e.g. Hand-crafted bouquets in Little Saigon..." style="width:100%;min-height:90px;resize:vertical;border:none;outline:none;padding:14px;font-family:'Outfit',sans-serif;font-size:17.5px;color:#2E2A28;box-sizing:border-box;background:transparent;"></textarea>
                 <div style="border-top:1px solid #F0E5F0;padding:10px 12px;">
-                    <div style="font-size:12px;font-weight:600;color:#9A8478;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Photos (up to 3 — your shop or work)</div>
+                    <div style="font-size:13px;font-weight:600;color:#9A8478;text-transform:uppercase;letter-spacing:.5px;margin-bottom:9px;">Photos (up to 3 — your shop or work)</div>
                     <div id="aboutPhotosWrap" style="display:flex;flex-wrap:wrap;gap:8px;">
                         <div id="aboutPhotosAdd" onclick="document.getElementById('aboutPhotosInput').click()" style="width:64px;height:64px;border:1.5px dashed #C9A0C4;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;background:#FBF7FB;">
                             <div style="font-size:20px;line-height:1;">📷</div>
@@ -1822,13 +1822,13 @@
                 </div>
             </div>
 
-            <label style="display:block;font-size:14.5px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;">Contact Email</label>
+            <label style="display:block;font-size:15.5px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;">Contact Email</label>
             <input type="email" id="bizEmail" placeholder="hello@yourbusiness.com" class="input-field" style="margin-bottom:14px;">
 
-            <label style="display:block;font-size:14.5px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;">Phone</label>
+            <label style="display:block;font-size:15.5px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;">Phone</label>
             <input type="tel" id="bizPhone" placeholder="(555) 123-4567" class="input-field" style="margin-bottom:14px;">
 
-            <label style="display:block;font-size:14.5px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;">Website</label>
+            <label style="display:block;font-size:15.5px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;">Website</label>
             <input type="url" id="bizWebsite" placeholder="https://yourwebsite.com" class="input-field" style="margin-bottom:20px;">
 
             <!-- Address -->
@@ -2064,7 +2064,7 @@
                     </div>
 
                     <!-- Who to send to -->
-                    <div style="font-size:14.5px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;">Send to</div>
+                    <div style="font-size:15.5px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;">Send to</div>
                     <div style="display:flex;gap:8px;margin-bottom:9px;">
                         <button type="button" id="promoSeg-all" onclick="selectPromoTarget('all')" style="flex:1;padding:9px 6px;border-radius:9px;border:1.5px solid #8B3A7F;background:#8B3A7F;color:#fff;font-family:'Outfit',sans-serif;font-weight:600;font-size:15px;cursor:pointer;">Everyone</button>
                         <button type="button" id="promoSeg-savers" onclick="selectPromoTarget('savers')" style="flex:1;padding:9px 6px;border-radius:9px;border:1.5px solid #E8DDD6;background:#fff;color:#6B5751;font-family:'Outfit',sans-serif;font-weight:600;font-size:15px;cursor:pointer;">Savers</button>
@@ -2155,7 +2155,7 @@
                         <div style="font-size:13.5px;color:#9A8478;line-height:1.5;margin-top:3px;font-family:'Outfit',sans-serif;">Photos and details of the product these tags go on. Saved to every tag you scan — your menu and profile stay as they are.</div>
                     </div>
                     <div style="padding:13px 14px;">
-                        <div style="font-size:12px;font-weight:600;color:#9A8478;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Photos (up to 3)</div>
+                        <div style="font-size:13px;font-weight:600;color:#9A8478;text-transform:uppercase;letter-spacing:.5px;margin-bottom:9px;">Photos (up to 3)</div>
                         <div id="productPhotosWrap" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
                             <div id="productPhotosAdd" onclick="document.getElementById('productPhotosInput').click()" style="width:64px;height:64px;border:1.5px dashed #C9A0C4;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;background:#fff;">
                                 <div style="font-size:20px;line-height:1;">📷</div>
@@ -2290,12 +2290,12 @@
             <div id="studioLabel" style="font-size:15px;color:#9A8478;margin-bottom:16px;"></div>
 
             <div style="background:#fff;border:1.5px solid #8B3A7F;border-radius:14px;padding:16px;margin-bottom:16px;">
-                <div style="font-size:14.5px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin:0 0 8px;text-align:center;">Design</div>
+                <div style="font-size:15.5px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin:0 0 8px;text-align:center;">Design</div>
                 <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:12px;">
                     <button type="button" id="designBtnbare" onclick="setStudioDesign('bare')" class="studio-chip sel">Code only</button>
                     <button type="button" id="designBtntent" onclick="setStudioDesign('tent')" class="studio-chip">Printable sign</button>
                 </div>
-                <label style="display:block;font-size:13.5px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin:12px 0 6px;">Your own line <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#9A8478;">(optional — prints under the code)</span></label>
+                <label style="display:block;font-size:14.5px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin:12px 0 6px;">Your own line <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#9A8478;">(optional — prints under the code)</span></label>
                 <input type="text" id="studioText" maxlength="48" placeholder="e.g. Scan for 10% off your first order" oninput="studioTextChanged(this.value)" class="input-field" style="margin-bottom:6px;">
                 <div style="display:flex;justify-content:center;padding:6px 0 10px;"><canvas id="studioCanvas" style="max-width:230px;width:100%;height:auto;border-radius:8px;"></canvas></div>
                 <div style="display:flex;align-items:center;gap:14px;margin:8px 0 4px;">
@@ -2304,9 +2304,9 @@
                         <input type="color" id="studioColorInput" value="#8B3A7F" oninput="studioColorPicked(this.value)" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;border:none;padding:0;margin:0;cursor:pointer;">
                     </label>
                     <div style="flex:1;min-width:0;">
-                        <div style="font-size:13.5px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;">QR Colour</div>
+                        <div style="font-size:14.5px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;">QR Colour</div>
                         <div id="studioHex" style="font-family:ui-monospace,Menlo,monospace;font-size:20px;font-weight:700;color:#2E2A28;margin:4px 0 6px;">#8B3A7F</div>
-                        <div style="font-size:13px;color:#9A8478;line-height:1.4;">Tap the square to pick any colour.</div>
+                        <div style="font-size:14px;color:#9A8478;line-height:1.45;">Tap the square to pick any colour.</div>
                     </div>
                 </div>
                 <!-- Same [swatch | label + hint] row as QR Colour above, so the
@@ -2315,12 +2315,12 @@
                 <div style="display:flex;align-items:center;gap:14px;margin:14px 0 4px;">
                     <div id="studioBgRow" style="display:flex;flex-wrap:wrap;gap:8px;width:106px;flex-shrink:0;"></div>
                     <div style="flex:1;min-width:0;">
-                        <div style="font-size:13.5px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;">Background</div>
+                        <div style="font-size:14.5px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;">Background</div>
                         <input type="text" id="studioBgHex" maxlength="7" value="#FFFFFF" autocapitalize="none" spellcheck="false" placeholder="#FFFFFF" oninput="studioBgHexTyped(this.value)" style="width:100%;max-width:150px;border:1.5px solid #E8DDD6;border-radius:9px;padding:7px 10px;font-family:ui-monospace,Menlo,monospace;font-size:15px;font-weight:700;color:#2E2A28;box-sizing:border-box;margin:5px 0 6px;">
-                        <div id="studioContrast" style="font-size:13px;color:#9A8478;line-height:1.4;margin-top:2px;"></div>
+                        <div id="studioContrast" style="font-size:14px;color:#9A8478;line-height:1.45;margin-top:2px;"></div>
                     </div>
                 </div>
-                <div style="font-size:14.5px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin:14px 0 8px;text-align:center;">Center Logo</div>
+                <div style="font-size:15.5px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin:14px 0 8px;text-align:center;">Center Logo</div>
                 <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
                     <button type="button" id="logoBtnDuyen" onclick="setStudioLogo('duyen')" class="studio-chip">緣 Duyên</button>
                     <button type="button" id="logoBtnCustom" onclick="document.getElementById('studioLogoInput').click()" class="studio-chip">Upload logo…</button>
@@ -5186,7 +5186,7 @@
             return catAddTile('file', 'File', "document.getElementById('catFileInput_" + i + "').click()");
         }
         function catSubLabel(t) {
-            return '<div style="font-size:12px;font-weight:600;color:#9A8478;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">' + t + '</div>';
+            return '<div style="font-size:13px;font-weight:600;color:#9A8478;text-transform:uppercase;letter-spacing:.5px;margin-bottom:9px;">' + t + '</div>';
         }
         function catalogCardHTML(p, i) {
             var isMenu = p.type === 'menu';
