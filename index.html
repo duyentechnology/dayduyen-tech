@@ -425,6 +425,21 @@
             border:2px solid #fff; box-shadow:0 0 0 1.5px #E8DDD6;
         }
         .studio-sw.sel { box-shadow:0 0 0 3px #8B3A7F; }
+        /* In-page hue slider — a real range input so its rainbow track and thumb
+           stay on the page (no OS colour sheet covering the preview). */
+        .hue-slider {
+            -webkit-appearance:none; appearance:none; height:18px; border-radius:9px;
+            outline:none; cursor:pointer; border:1px solid #E8DDD6;
+            background:linear-gradient(to right,#ff0000 0%,#ff7f00 12%,#ffff00 25%,#00ff00 37%,#00ffff 50%,#007fff 62%,#0000ff 75%,#7f00ff 87%,#ff00ff 100%);
+        }
+        .hue-slider::-webkit-slider-thumb {
+            -webkit-appearance:none; appearance:none; width:26px; height:26px; border-radius:50%;
+            background:#fff; border:2px solid #E8DDD6; box-shadow:0 1px 5px rgba(0,0,0,0.28); cursor:pointer;
+        }
+        .hue-slider::-moz-range-thumb {
+            width:26px; height:26px; border-radius:50%;
+            background:#fff; border:2px solid #E8DDD6; box-shadow:0 1px 5px rgba(0,0,0,0.28); cursor:pointer;
+        }
 
         .btn-social {
             display: flex;
@@ -2308,6 +2323,11 @@
                         <div id="studioContrast" style="font-size:13px;color:#9A8478;line-height:1.4;margin-top:2px;"></div>
                     </div>
                 </div>
+                <!-- In-page colour slider. Drag it and the preview above updates
+                     live — unlike the native colour input, whose full-screen OS
+                     sheet covered the QR so you couldn't see the colour change. -->
+                <input type="range" min="0" max="360" step="1" id="studioBgHue" oninput="studioHueInput(this.value)" class="hue-slider" aria-label="Background colour" style="width:100%;margin:2px 0 2px;">
+                <div style="font-size:12px;color:#9A8478;text-align:center;margin-top:2px;">Slide for a background colour · tap a swatch or type a hex above for an exact one</div>
                 <div style="font-size:14.5px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin:14px 0 8px;text-align:center;">Center Logo</div>
                 <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
                     <button type="button" id="logoBtnDuyen" onclick="setStudioLogo('duyen')" class="studio-chip">緣 Duyên</button>
@@ -7671,6 +7691,31 @@
             if (hint && hint !== hex) hint.textContent = 'Type a hex colour, e.g. #8B3A7F.';
         }
 
+        // HSL→hex and hex→hue for the in-page background hue slider.
+        function studioHslToHex(h, s, l) {
+            s /= 100; l /= 100;
+            var c = (1 - Math.abs(2 * l - 1)) * s, x = c * (1 - Math.abs((h / 60) % 2 - 1)), m = l - c / 2, r = 0, g = 0, b = 0;
+            if (h < 60) { r = c; g = x; } else if (h < 120) { r = x; g = c; } else if (h < 180) { g = c; b = x; }
+            else if (h < 240) { g = x; b = c; } else if (h < 300) { r = x; b = c; } else { r = c; b = x; }
+            function h2(v) { return ('0' + Math.round((v + m) * 255).toString(16)).slice(-2); }
+            return ('#' + h2(r) + h2(g) + h2(b)).toUpperCase();
+        }
+        function studioHexToHue(hex) {
+            var mm = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex || '');
+            if (!mm) return 0;
+            var r = parseInt(mm[1], 16) / 255, g = parseInt(mm[2], 16) / 255, b = parseInt(mm[3], 16) / 255;
+            var mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn, h = 0;
+            if (d === 0) h = 0; else if (mx === r) h = ((g - b) / d) % 6; else if (mx === g) h = (b - r) / d + 2; else h = (r - g) / d + 4;
+            h = Math.round(h * 60); if (h < 0) h += 360; return h;
+        }
+        // Slider drag → a soft, scannable pastel background at that hue. Live
+        // preview: only repaint the canvas (renderStudio also syncs the hex box);
+        // no swatch rebuild, so the slider the finger is on is never recreated.
+        function studioHueInput(h) {
+            studioState.bg = studioHslToHex(parseInt(h, 10) || 0, 60, 90);
+            renderStudio();
+        }
+
         // Editable hex "number box" for the background — the reliable way to set
         // an exact colour on browsers where the native picker is hard to find.
         // Waits for a full 6-digit hex before applying so mid-typing isn't fought.
@@ -7741,28 +7786,9 @@
                     d.onclick = function() { studioState[key] = c; buildStudioSwatches(); renderStudio(); };
                     el.appendChild(d);
                 });
-                // Free-pick "custom colour" tile. The bare native input rendered
-                // as an unlabeled little square nobody recognized as a picker, so
-                // give it a visible rainbow swatch (selected when the current
-                // colour isn't one of the presets) with the native picker overlaid.
-                var isPreset = colors.some(function(c){ return studioState[key].toUpperCase() === c.toUpperCase(); });
-                var wrap = document.createElement('label');
-                wrap.className = 'studio-sw' + (isPreset ? '' : ' sel');
-                wrap.title = 'Pick any colour';
-                wrap.style.cssText = 'position:relative;overflow:hidden;background:conic-gradient(from 0deg,#ff3b30,#ff9500,#ffcc00,#34c759,#00c7be,#007aff,#5856d6,#ff2d55,#ff3b30);';
-                var pick = document.createElement('input');
-                pick.type = 'color'; pick.value = studioState[key];
-                pick.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;opacity:0;border:none;padding:0;margin:0;cursor:pointer;';
-                // Live preview WITHOUT rebuilding the swatch row. Rebuilding here
-                // would destroy this very <input> mid-drag — which closed the OS
-                // colour picker and blanked the preview ("the QR disappears"). So
-                // oninput (fires as the slider moves) only repaints the canvas; the
-                // swatch rebuild that refreshes the selected ring waits for change,
-                // when the picker has closed.
-                pick.oninput = function() { studioState[key] = pick.value; renderStudio(); };
-                pick.onchange = function() { studioState[key] = pick.value; buildStudioSwatches(); renderStudio(); };
-                wrap.appendChild(pick);
-                el.appendChild(wrap);
+                // Custom colours come from the in-page hue slider + hex box below,
+                // not a native <input type=color> — its full-screen OS sheet
+                // covered the QR preview, so you couldn't watch the colour change.
             }
             // QR colour is a slider now — only the background keeps swatches.
             row(bgRow, STUDIO_BG, 'bg');
@@ -7841,10 +7867,13 @@
                 if (studioState.design === 'tent') renderStudioTent(canvas, 460);
                 else renderStudioBareWithText(canvas, 460);
             }
-            // Keep the background hex box showing the current colour (preset tap
-            // or custom pick), but never fight the user while they're typing in it.
+            // Keep the background hex box + hue slider showing the current colour
+            // (preset tap, slider, or typed hex), but never fight the control the
+            // user is actively touching.
             var bgHex = document.getElementById('studioBgHex');
             if (bgHex && document.activeElement !== bgHex) bgHex.value = String(studioState.bg).toUpperCase();
+            var bgHue = document.getElementById('studioBgHue');
+            if (bgHue && document.activeElement !== bgHue) bgHue.value = studioHexToHue(studioState.bg);
             var ratio = studioContrast();
             var el = document.getElementById('studioContrast');
             var save = document.getElementById('studioSaveBtn');
