@@ -5188,6 +5188,8 @@
         function catSubLabel(t) {
             return '<div style="font-size:13px;font-weight:600;color:#9A8478;text-transform:uppercase;letter-spacing:.5px;margin-bottom:9px;">' + t + '</div>';
         }
+        // Grow a textarea to fit its content so long descriptions are fully visible.
+        function catAutoGrow(el) { if (!el) return; el.style.height = "auto"; el.style.height = (el.scrollHeight) + "px"; }
         function catalogCardHTML(p, i) {
             var isMenu = p.type === 'menu';
             var title = (p.name || '').trim() || (isMenu ? 'Menu' : 'Product ' + (i + 1));
@@ -5235,7 +5237,7 @@
                     '<input type="file" id="catPhotoInput_' + i + '" accept="image/*" multiple style="display:none;" onchange="handleCatalogPhoto(' + i + ', this)">' +
                 '</div>';
             } else {
-                media = '<textarea oninput="catalogSetDetails(' + i + ', this.value)" placeholder="Describe this product — materials, size, care, story…" style="width:100%;min-height:66px;resize:vertical;border:none;outline:none;padding:14px;font-family:\'Outfit\',sans-serif;font-size:17.5px;color:#2E2A28;box-sizing:border-box;background:transparent;">' + catEsc(p.details) + '</textarea>' +
+                media = '<textarea oninput="catalogSetDetails(' + i + ', this.value); catAutoGrow(this);" placeholder="Describe this product — materials, size, care, story…" style="width:100%;min-height:66px;resize:none;overflow:hidden;border:none;outline:none;padding:14px;font-family:\'Outfit\',sans-serif;font-size:17.5px;color:#2E2A28;box-sizing:border-box;background:transparent;">' + catEsc(p.details) + '</textarea>' +
                     '<div style="border-top:1px solid #F0E5F0;padding:12px;">' +
                         catSubLabel('Photos (up to 3)') +
                         '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;">' + catPhotoTiles(p, i) + '</div>' +
@@ -5291,6 +5293,9 @@
             }
             catalogProducts[_editingModularIndex].expanded = true; // always open in the editor
             wrap.innerHTML = catalogCardHTML(catalogProducts[_editingModularIndex], _editingModularIndex);
+            // Size the description box to its full text so nothing is clipped.
+            var _ta = wrap.querySelector('textarea');
+            if (_ta) requestAnimationFrame(function(){ catAutoGrow(_ta); });
         }
         function serializeCatalogProducts() {
             return catalogProducts.map(function(p) {
