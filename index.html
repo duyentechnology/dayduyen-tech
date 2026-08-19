@@ -1870,14 +1870,14 @@
 
 
             <div style="display:flex;gap:12px;">
-                <button type="button" onclick="showBizProfilePreview()" style="flex:1;background:#fff;color:#8B3A7F;border:2px solid #8B3A7F;border-radius:12px;padding:14px;font-family:'Outfit',sans-serif;font-weight:600;font-size:17px;cursor:pointer;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;"><path d="M1.5 12S5 5.5 12 5.5 22.5 12 22.5 12 19 18.5 12 18.5 1.5 12 1.5 12Z"/><circle cx="12" cy="12" r="3.2"/></svg>Preview</button>
+                <button type="button" onclick="showBizProfilePreview()" style="flex:1;background:#fff;color:#4A9EC4;border:2px solid #4A9EC4;border-radius:12px;padding:14px;font-family:'Outfit',sans-serif;font-weight:600;font-size:17px;cursor:pointer;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px;"><path d="M1.5 12S5 5.5 12 5.5 22.5 12 22.5 12 19 18.5 12 18.5 1.5 12 1.5 12Z"/><circle cx="12" cy="12" r="3.2"/></svg>Preview</button>
                 <button class="btn-primary" id="bizProfileSaveBtn" onclick="saveBizProfile()" style="flex:2;font-size:17px;padding:14px;">Save Profile →</button>
             </div>
 
             <!-- Generate the profile's own QR — the payment lives here in profile
                  setup now, not as a $10 CTA on the dashboard box. -->
             <div style="border-top:1px solid #F0E5F0;margin-top:20px;padding-top:18px;">
-                <button type="button" id="bizProfileGenBtn" onclick="generateProfileQrFromEditor()" style="width:100%;background:#fff;color:#8B3A7F;border:1.5px solid #8B3A7F;border-radius:12px;padding:14px;font-family:'Outfit',sans-serif;font-weight:700;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:9px;">
+                <button type="button" id="bizProfileGenBtn" onclick="generateProfileQrFromEditor()" style="width:100%;background:linear-gradient(135deg,#E8B84A,#D4823E);color:#fff;border:none;border-radius:12px;padding:14px;font-family:'Outfit',sans-serif;font-weight:700;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:9px;">
                     <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3"/><path d="M21 14v.01"/><path d="M14 21h7"/><path d="M21 17v4"/></svg>
                     <span id="bizProfileGenLabel">Generate this profile’s QR — $10</span>
                 </button>
@@ -5223,8 +5223,8 @@
             var footer = '<div style="border-top:1px solid #F0E5F0;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px;">' +
                     '<button type="button" onclick="removeCatalogProduct(' + i + ')" style="background:none;border:none;color:#B0857D;font-size:13px;cursor:pointer;font-family:\'Outfit\',sans-serif;">Delete</button>' +
                     '<div style="display:flex;gap:8px;">' +
-                        '<button type="button" onclick="previewModular(' + i + ')" style="background:#fff;color:#8B3A7F;border:1.5px solid #8B3A7F;border-radius:10px;padding:10px 14px;font-family:\'Outfit\',sans-serif;font-weight:700;font-size:14px;cursor:pointer;">Preview</button>' +
-                        '<button type="button" onclick="generateCatalogQR(' + i + ')" style="background:#8B3A7F;color:#fff;border:none;border-radius:10px;padding:11px 18px;font-family:\'Outfit\',sans-serif;font-weight:700;font-size:15px;cursor:pointer;">' + genLabel + '</button>' +
+                        '<button type="button" onclick="previewModular(' + i + ')" style="background:#fff;color:#4A9EC4;border:1.5px solid #4A9EC4;border-radius:10px;padding:10px 14px;font-family:\'Outfit\',sans-serif;font-weight:700;font-size:14px;cursor:pointer;">Preview</button>' +
+                        '<button type="button" onclick="generateCatalogQR(' + i + ')" style="background:' + (p.generated ? '#2AA8A0' : 'linear-gradient(135deg,#E8B84A,#D4823E)') + ';color:#fff;border:none;border-radius:10px;padding:11px 18px;font-family:\'Outfit\',sans-serif;font-weight:700;font-size:15px;cursor:pointer;">' + genLabel + '</button>' +
                     '</div>' +
                 '</div>';
             var media;
