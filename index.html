@@ -2393,7 +2393,7 @@
                 </div>
                 <div style="padding:13px 16px;">
                     <div style="font-size:14px;color:#9A8478;margin-bottom:4px;font-family:'Outfit',sans-serif;">Signed in with</div>
-                    <div id="profileProviderBadge" style="font-size:17px;color:#2E2A28;font-family:'Outfit',sans-serif;">Email</div>
+                    <div id="profileProviderBadge" style="font-size:17px;color:#2E2A28;font-family:'Outfit',sans-serif;display:flex;align-items:center;gap:8px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8B3A7F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg><span>Email</span></div>
                 </div>
             </div>
 
@@ -2407,7 +2407,7 @@
             <div style="font-size:15px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;font-family:'Outfit',sans-serif;">Security</div>
             <div style="background:#fff;border:1.5px solid #E8DDD6;border-radius:12px;overflow:hidden;margin-bottom:20px;">
                 <div style="padding:13px 16px;">
-                    <button onclick="sendDayDuyenPasswordReset()" style="width:100%;background:#f9f4f9;color:#2E2A28;border:1.5px solid #E8DDD6;border-radius:10px;padding:10px;font-family:'Outfit',sans-serif;font-weight:600;font-size:17px;cursor:pointer;">Send Password Reset Email</button>
+                    <button onclick="sendDayDuyenPasswordReset()" style="width:100%;background:#f9f4f9;color:#2E2A28;border:1.5px solid #E8DDD6;border-radius:10px;padding:10px;font-family:'Outfit',sans-serif;font-weight:600;font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:9px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z"/><circle cx="16.5" cy="7.5" r=".5" fill="currentColor"/></svg><span>Send Password Reset Email</span></button>
                     <p style="font-size:14px;color:#9A8478;margin-top:8px;text-align:center;font-family:'Outfit',sans-serif;">A reset link will be sent to your email address</p>
                 </div>
             </div>
@@ -3990,9 +3990,9 @@
             var badge = document.getElementById('profileProviderBadge');
             if (badge) {
                 var provider = currentUser.provider || 'email';
-                if (provider === 'google') badge.textContent = 'Google';
-                else if (provider === 'apple') badge.textContent = 'Apple';
-                else badge.textContent = 'Email';
+                if (provider === 'google') badge.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8B3A7F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg><span>Google</span>';
+                else if (provider === 'apple') badge.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="#8B3A7F" style="flex-shrink:0;"><path d="M16.365 1.43c0 1.14-.417 2.2-1.11 2.985-.75.848-1.98 1.5-3.02 1.42-.13-1.12.44-2.28 1.09-3.01.73-.83 2.02-1.45 3.04-1.4zM19.5 17.02c-.55 1.27-.81 1.83-1.52 2.95-.99 1.56-2.39 3.5-4.12 3.51-1.54.02-1.94-.99-4.03-.98-2.09.01-2.53 1-4.07.98-1.73-.01-3.06-1.76-4.05-3.31C-1.05 15.9-1.33 10.09 1.06 7.01c1.13-1.5 2.91-2.44 4.58-2.44 1.7 0 2.77 1 4.18 1 1.36 0 2.19-1 4.16-1 1.49 0 3.07.81 4.2 2.21-3.69 2.02-3.09 7.28.32 8.24z"/></svg><span>Apple</span>';
+                else badge.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8B3A7F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg><span>Email</span>';
             }
         }
 
