@@ -2393,21 +2393,21 @@
                 </div>
                 <div style="padding:13px 16px;">
                     <div style="font-size:14px;color:#9A8478;margin-bottom:4px;font-family:'Outfit',sans-serif;">Signed in with</div>
-                    <div id="profileProviderBadge" style="font-size:16px;color:#2E2A28;font-family:'Outfit',sans-serif;">📧 Email</div>
+                    <div id="profileProviderBadge" style="font-size:17px;color:#2E2A28;font-family:'Outfit',sans-serif;">Email</div>
                 </div>
             </div>
 
             <!-- Payment (placeholder) -->
             <div style="font-size:15px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;font-family:'Outfit',sans-serif;">Payment</div>
             <div style="background:#fff;border:1.5px solid #E8DDD6;border-radius:12px;padding:14px 16px;margin-bottom:20px;">
-                <div style="font-size:16px;color:#9A8478;font-family:'Outfit',sans-serif;text-align:center;padding:8px 0;">Payments and subscriptions are handled securely through Stripe checkout</div>
+                <div style="font-size:17px;color:#9A8478;font-family:'Outfit',sans-serif;text-align:center;padding:8px 0;">Payments and subscriptions are handled securely through Stripe checkout</div>
             </div>
 
             <!-- Security -->
             <div style="font-size:15px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;font-family:'Outfit',sans-serif;">Security</div>
             <div style="background:#fff;border:1.5px solid #E8DDD6;border-radius:12px;overflow:hidden;margin-bottom:20px;">
                 <div style="padding:13px 16px;">
-                    <button onclick="sendDayDuyenPasswordReset()" style="width:100%;background:#f9f4f9;color:#2E2A28;border:1.5px solid #E8DDD6;border-radius:10px;padding:10px;font-family:'Outfit',sans-serif;font-weight:600;font-size:16px;cursor:pointer;">🔑 Send Password Reset Email</button>
+                    <button onclick="sendDayDuyenPasswordReset()" style="width:100%;background:#f9f4f9;color:#2E2A28;border:1.5px solid #E8DDD6;border-radius:10px;padding:10px;font-family:'Outfit',sans-serif;font-weight:600;font-size:17px;cursor:pointer;">Send Password Reset Email</button>
                     <p style="font-size:14px;color:#9A8478;margin-top:8px;text-align:center;font-family:'Outfit',sans-serif;">A reset link will be sent to your email address</p>
                 </div>
             </div>
@@ -3990,9 +3990,9 @@
             var badge = document.getElementById('profileProviderBadge');
             if (badge) {
                 var provider = currentUser.provider || 'email';
-                if (provider === 'google') badge.textContent = '🔵 Google';
-                else if (provider === 'apple') badge.textContent = '⚫ Apple';
-                else badge.textContent = '📧 Email';
+                if (provider === 'google') badge.textContent = 'Google';
+                else if (provider === 'apple') badge.textContent = 'Apple';
+                else badge.textContent = 'Email';
             }
         }
 
