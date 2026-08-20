@@ -1231,7 +1231,7 @@
         </section>
         
         <!-- Use Cases -->
-        <section class="who-section-lp" style="padding: 80px 24px; background: white;">
+        <section id="duyenUses" class="who-section-lp" style="padding: 80px 24px; background: white;">
             <div style="text-align: center; margin-bottom: 48px;">
                 <h2 style="font-family: 'Cormorant Garamond', serif; font-size: 2.6rem; font-weight: 700; margin-bottom: 10px;">Who Uses <span style="color: #DA251D; letter-spacing: 3px;">DUYÊN</span>?</h2>
                 <p style="font-size: 1.15rem; font-weight: 300; color: #908882;">Ways businesses and individuals preserve what matters</p>
@@ -1374,15 +1374,14 @@
                 <div>
                     <h3 style="color: white; margin-bottom: 20px; font-size: 18px;">For Businesses</h3>
                     <p style="margin-bottom: 10px; cursor: pointer;" onclick="handleHeaderCTA()">QR Generator</p>
-                    <p style="margin-bottom: 10px;">Use Cases</p>
-                    <p style="margin-bottom: 10px;">Our Products</p>
+                    <p style="margin-bottom: 10px; cursor: pointer;" onclick="document.getElementById('duyenUses').scrollIntoView({behavior:'smooth'})">Use Cases</p>
+                    <p style="margin-bottom: 10px; cursor: pointer;" onclick="document.getElementById('duyenProducts').scrollIntoView({behavior:'smooth'})">Our Products</p>
                 </div>
                 
                 <div>
                     <h3 style="color: white; margin-bottom: 20px; font-size: 18px;">For Individuals</h3>
                     <p style="margin-bottom: 10px; cursor: pointer;" onclick="handleHeaderCTA()">Create Account</p>
                     <p style="margin-bottom: 10px; cursor: pointer;" onclick="window.open('https://duyen.io', '_blank')">My Tapestry</p>
-                    <p style="margin-bottom: 10px; cursor: pointer;" onclick="handleHeaderCTA()">Generate QR Code</p>
                 </div>
                 
                 <div>
