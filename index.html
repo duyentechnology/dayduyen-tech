@@ -4948,6 +4948,24 @@
             } catch (e) { console.warn('persistCatalogDrafts failed:', e); }
         }
 
+        // Explicit Save on the product/menu editor — persists the current draft
+        // to the DB without leaving the screen, with brief on-button feedback.
+        async function saveModularDraft(i, btn) {
+            var orig = btn ? btn.textContent : '';
+            if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+            try {
+                await persistCatalogDrafts();
+                if (btn) {
+                    btn.textContent = 'Saved ✓';
+                    setTimeout(function(){ if (btn) { btn.textContent = orig || 'Save'; btn.disabled = false; } }, 1500);
+                }
+            } catch (e) {
+                console.warn('saveModularDraft failed:', e);
+                if (btn) { btn.textContent = orig || 'Save'; btn.disabled = false; }
+                alert('Could not save. Please try again.');
+            }
+        }
+
         // Spend a modular credit, create the code (profile + this product), and
         // drop straight into the design & print studio.
         async function createModularAndOpenStudio(product) {
@@ -5207,8 +5225,11 @@
                     '<div style="font-family:\'Outfit\',sans-serif;font-weight:700;font-size:16px;color:#2E2A28;">' + (isMenu ? '🍽️ ' : '') + catEsc(title) + '</div>' +
                     '<div style="display:flex;align-items:center;gap:10px;">' + pill + '<span style="font-size:16px;color:#C9A0C4;">▾</span></div></div>';
             var nameRow = '<input value="' + catEsc(p.name) + '" oninput="catalogSetName(' + i + ', this.value)" placeholder="' + (isMenu ? 'Menu name — e.g. Dinner Menu' : 'Product name — e.g. Rainbow Twirl Dress') + '" style="width:100%;border:none;outline:none;border-bottom:1px solid #F0E5F0;padding:13px 14px;font-family:\'Outfit\',sans-serif;font-size:16.5px;font-weight:600;color:#2E2A28;box-sizing:border-box;background:transparent;">';
-            var footer = '<div style="border-top:1px solid #F0E5F0;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px;">' +
-                    '<button type="button" onclick="removeCatalogProduct(' + i + ')" style="background:none;border:none;color:#B0857D;font-size:13px;cursor:pointer;font-family:\'Outfit\',sans-serif;">Delete</button>' +
+            var footer = '<div style="border-top:1px solid #F0E5F0;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">' +
+                    '<div style="display:flex;align-items:center;gap:12px;">' +
+                        '<button type="button" onclick="removeCatalogProduct(' + i + ')" style="background:none;border:none;color:#B0857D;font-size:13px;cursor:pointer;font-family:\'Outfit\',sans-serif;">Delete</button>' +
+                        '<button type="button" onclick="saveModularDraft(' + i + ', this)" style="background:#fff;color:#8B3A7F;border:1.5px solid #8B3A7F;border-radius:10px;padding:10px 16px;font-family:\'Outfit\',sans-serif;font-weight:700;font-size:14px;cursor:pointer;">Save</button>' +
+                    '</div>' +
                     '<div style="display:flex;gap:8px;">' +
                         '<button type="button" onclick="previewModular(' + i + ')" style="background:#fff;color:#4A9EC4;border:1.5px solid #4A9EC4;border-radius:10px;padding:10px 14px;font-family:\'Outfit\',sans-serif;font-weight:700;font-size:14px;cursor:pointer;">Preview</button>' +
                         '<button type="button" onclick="generateCatalogQR(' + i + ')" style="background:' + (p.generated ? '#2AA8A0' : 'linear-gradient(135deg,#E8B84A,#D4823E)') + ';color:#fff;border:none;border-radius:10px;padding:11px 18px;font-family:\'Outfit\',sans-serif;font-weight:700;font-size:15px;cursor:pointer;">' + genLabel + '</button>' +
