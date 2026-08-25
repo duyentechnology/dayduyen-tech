@@ -3250,8 +3250,25 @@
         async function storeCheckout() {
             var items = Object.keys(storeCart).map(function(sku){ return { sku: sku, qty: storeCart[sku] }; });
             if (!items.length) return;
-            // Wiring to create-store-checkout (Stripe) comes in the next increment.
-            alert('Checkout wiring (Stripe) is the next step — cart: ' + JSON.stringify(items));
+            var btn = document.getElementById('storeCheckoutBtn');
+            try {
+                var sess = await db.auth.getSession();
+                var token = sess && sess.data && sess.data.session && sess.data.session.access_token;
+                if (!token) { alert('Please log in to place an order.'); if (typeof handleHeaderCTA === 'function') handleHeaderCTA(); return; }
+                if (btn) { btn.disabled = true; btn.textContent = 'Starting checkout…'; }
+                var res = await db.functions.invoke('create-store-checkout', { body: { items: items } });
+                if (res.error || !res.data || !res.data.url) {
+                    console.error('store checkout error:', res.error);
+                    alert('Could not start checkout. Please try again.');
+                    if (btn) { btn.disabled = false; btn.textContent = 'Checkout'; }
+                    return;
+                }
+                window.location.href = res.data.url;
+            } catch (e) {
+                console.error('store checkout error', e);
+                alert('Could not start checkout. Please try again.');
+                if (btn) { btn.disabled = false; btn.textContent = 'Checkout'; }
+            }
         }
 
         function showView(view) {
