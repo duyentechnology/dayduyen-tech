@@ -3207,10 +3207,9 @@
         // set; amounts here are display-only. The server (create-store-checkout)
         // will be the source of truth for what Stripe charges.
         var STORE_PRODUCTS = [
-            { sku: 'note1',     name: 'Duyên Note Card',     unit: 'each',        price_cents: 0, color: '#C2185B', emoji: '✉️' },
-            { sku: 'note3',     name: 'Note Cards · 3-pack', unit: '3 cards',     price_cents: 0, color: '#D4487A', emoji: '🎴' },
-            { sku: 'retail',    name: 'Retail Pack',         unit: 'bulk',        price_cents: 0, color: '#C77A1E', emoji: '📦' },
-            { sku: 'sticker30', name: 'QR Sticker Sheet',    unit: '30 stickers', price_cents: 0, color: '#7B1FA2', emoji: '🏷️' }
+            { sku: 'note3',     name: 'Note Cards · 3-pack', unit: '3 cards',      price_cents: 999,  color: '#C2185B', emoji: '🎴' },
+            { sku: 'wholesale', name: 'Wholesale Pack',      unit: '100 cards',    price_cents: 7500, color: '#C77A1E', emoji: '📦' },
+            { sku: 'sticker30', name: 'QR Sticker Sheet',    unit: 'sheet of 30',  price_cents: 450,  color: '#7B1FA2', emoji: '🏷️' }
         ];
         var storeCart = {}; // sku -> qty
         function storePriceLabel(cents) { return cents > 0 ? ('$' + (cents / 100).toFixed(2)) : '$—'; }
