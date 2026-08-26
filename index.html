@@ -1977,7 +1977,8 @@
             <!-- Header row -->
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px;">
                 <h2 style="font-family:'Outfit',sans-serif;font-size:1.7rem;font-weight:700;color:#1D1B1E;letter-spacing:-0.3px;margin:0;">My Dashboard</h2>
-                <div style="display:flex;gap:10px;">
+                <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                    <button type="button" onclick="showView('store')" style="background:linear-gradient(135deg,#E8B84A,#D4823E);color:#fff;border:none;padding:11px 16px;border-radius:9px;font-family:'Outfit',sans-serif;font-weight:600;font-size:15px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>Order cards &amp; stickers</button>
                     <button type="button" onclick="showView('bizScanChoice')" style="background:#8B3A7F;color:#fff;border:none;padding:11px 16px;border-radius:9px;font-family:'Outfit',sans-serif;font-weight:600;font-size:15px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3l2-3h8l2 3h3a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Activate a QR code</button>
                 </div>
             </div>
@@ -3256,7 +3257,7 @@
                 var token = sess && sess.data && sess.data.session && sess.data.session.access_token;
                 if (!token) { alert('Please log in to place an order.'); if (typeof handleHeaderCTA === 'function') handleHeaderCTA(); return; }
                 if (btn) { btn.disabled = true; btn.textContent = 'Starting checkout…'; }
-                var res = await db.functions.invoke('create-store-checkout', { body: { items: items } });
+                var res = await db.functions.invoke('create-store-checkout', { body: { items: items, origin: window.location.origin } });
                 if (res.error || !res.data || !res.data.url) {
                     console.error('store checkout error:', res.error);
                     alert('Could not start checkout. Please try again.');
@@ -3270,6 +3271,19 @@
                 if (btn) { btn.disabled = false; btn.textContent = 'Checkout'; }
             }
         }
+
+        // After returning from Stripe Checkout, confirm the order once.
+        (function(){
+            try {
+                var sp = new URLSearchParams(location.search);
+                if (sp.get('store') === 'success') {
+                    setTimeout(function(){ alert('Order placed — thank you! Your Duyen supplies are on the way.'); }, 500);
+                    history.replaceState({}, '', location.pathname);
+                } else if (sp.get('store') === 'cancel') {
+                    history.replaceState({}, '', location.pathname);
+                }
+            } catch(e){}
+        })();
 
         function showView(view) {
             // Generator views need a generation entitlement (single or multi);
