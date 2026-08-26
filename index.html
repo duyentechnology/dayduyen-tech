@@ -1952,13 +1952,33 @@
     <!-- ==========================================
          BUSINESS DASHBOARD VIEW
     ========================================== -->
+    <div id="storeView" class="view">
+        <div class="generator" style="max-width:600px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+                <h2 style="font-family:'Cormorant Garamond',serif;font-size:1.8rem;font-weight:700;color:#8B3A7F;margin:0;">Duyên Store</h2>
+                <button type="button" onclick="showView('bizDashboard')" style="background:#fff;color:#8B3A7F;border:2px solid #8B3A7F;padding:8px 18px;border-radius:10px;font-family:'Outfit',sans-serif;font-weight:600;font-size:15px;cursor:pointer;">← Dashboard</button>
+            </div>
+            <p style="color:#9A8478;font-size:15px;margin:0 0 20px;font-family:'Outfit',sans-serif;">Pre-printed QR cards &amp; stickers — order supplies for your shop. Each carries a unique code your customers scan.</p>
+            <div id="storeGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;"></div>
+            <div id="storeCartBar" style="position:sticky;bottom:0;margin-top:20px;background:#fff;border-top:1px solid #E8DDD6;padding:14px 2px 8px;display:none;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                    <span id="storeCartSummary" style="font-size:14px;color:#7D6E64;font-family:'Outfit',sans-serif;"></span>
+                    <button type="button" onclick="storeClearCart()" style="background:none;border:none;color:#9A8478;font-size:13px;cursor:pointer;font-family:'Outfit',sans-serif;">Clear</button>
+                </div>
+                <button type="button" id="storeCheckoutBtn" onclick="storeCheckout()" style="width:100%;background:#8B3A7F;color:#fff;border:none;border-radius:12px;padding:15px;font-family:'Outfit',sans-serif;font-weight:700;font-size:16px;cursor:pointer;">Checkout</button>
+                <p style="text-align:center;color:#9A8478;font-size:12px;margin:8px 0 0;font-family:'Outfit',sans-serif;">Secure payment &amp; shipping via Stripe</p>
+            </div>
+        </div>
+    </div>
+
     <div id="bizDashboardView" class="view">
         <div class="generator" style="max-width: 700px; background: #F5F5F7;">
 
             <!-- Header row -->
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px;">
                 <h2 style="font-family:'Outfit',sans-serif;font-size:1.7rem;font-weight:700;color:#1D1B1E;letter-spacing:-0.3px;margin:0;">My Dashboard</h2>
-                <div style="display:flex;gap:10px;">
+                <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                    <button type="button" onclick="showView('store')" style="background:linear-gradient(135deg,#E8B84A,#D4823E);color:#fff;border:none;padding:11px 16px;border-radius:9px;font-family:'Outfit',sans-serif;font-weight:600;font-size:15px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>Order cards &amp; stickers</button>
                     <button type="button" onclick="showView('bizScanChoice')" style="background:#8B3A7F;color:#fff;border:none;padding:11px 16px;border-radius:9px;font-family:'Outfit',sans-serif;font-weight:600;font-size:15px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3l2-3h8l2 3h3a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Activate a QR code</button>
                 </div>
             </div>
@@ -3183,6 +3203,88 @@
             if (myCodes) myCodes.style.display = showMyCodes ? 'inline-block' : 'none';
         }
 
+        // ---- Store (pre-printed cards & stickers) -------------------------
+        // Prices are placeholders ($0 renders as "$—") until real pricing is
+        // set; amounts here are display-only. The server (create-store-checkout)
+        // will be the source of truth for what Stripe charges.
+        var STORE_PRODUCTS = [
+            { sku: 'note3',     name: 'Note Cards · 3-pack', unit: '3 cards',      price_cents: 999,  color: '#C2185B', emoji: '🎴' },
+            { sku: 'wholesale', name: 'Wholesale Pack',      unit: '100 cards',    price_cents: 7500, color: '#C77A1E', emoji: '📦' },
+            { sku: 'sticker2',  name: 'Sticker Sheets · 2-pack', unit: '2 sheets · 60 stickers', price_cents: 900, color: '#7B1FA2', emoji: '🏷️' }
+        ];
+        var storeCart = {}; // sku -> qty
+        function storePriceLabel(cents) { return cents > 0 ? ('$' + (cents / 100).toFixed(2)) : '$—'; }
+        function storeProduct(sku) { for (var i = 0; i < STORE_PRODUCTS.length; i++) if (STORE_PRODUCTS[i].sku === sku) return STORE_PRODUCTS[i]; return null; }
+        function renderStore() {
+            var grid = document.getElementById('storeGrid');
+            if (!grid) return;
+            grid.innerHTML = STORE_PRODUCTS.map(function(p) {
+                var qty = storeCart[p.sku] || 0;
+                var stepper = qty > 0
+                    ? '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">'
+                        + '<button type="button" onclick="storeChangeQty(\'' + p.sku + '\',-1)" style="width:34px;height:34px;border-radius:9px;border:1.5px solid ' + p.color + ';background:#fff;color:' + p.color + ';font-size:18px;font-weight:700;cursor:pointer;">−</button>'
+                        + '<span style="font-weight:700;font-size:15px;color:#2E2A28;font-family:\'Outfit\',sans-serif;">' + qty + '</span>'
+                        + '<button type="button" onclick="storeChangeQty(\'' + p.sku + '\',1)" style="width:34px;height:34px;border-radius:9px;border:none;background:' + p.color + ';color:#fff;font-size:18px;font-weight:700;cursor:pointer;">+</button>'
+                        + '</div>'
+                    : '<button type="button" onclick="storeChangeQty(\'' + p.sku + '\',1)" style="width:100%;border:none;border-radius:9px;padding:9px;background:' + p.color + ';color:#fff;font-family:\'Outfit\',sans-serif;font-weight:700;font-size:13.5px;cursor:pointer;">Add</button>';
+                return '<div style="border:2px solid #E8DDD6;border-radius:15px;overflow:hidden;background:#fff;">'
+                    + '<div style="height:84px;display:flex;align-items:center;justify-content:center;font-size:2rem;background:' + p.color + ';">' + p.emoji + '</div>'
+                    + '<div style="padding:11px 12px 13px;">'
+                    + '<div style="font-weight:700;font-size:14px;color:#2E2A28;margin-bottom:2px;font-family:\'Outfit\',sans-serif;">' + p.name + '</div>'
+                    + '<div style="font-size:12.5px;color:#9A8478;margin-bottom:10px;font-family:\'Outfit\',sans-serif;">' + p.unit + ' · ' + storePriceLabel(p.price_cents) + '</div>'
+                    + stepper
+                    + '</div></div>';
+            }).join('');
+            var count = 0, cents = 0;
+            Object.keys(storeCart).forEach(function(sku){ var p = storeProduct(sku); if (p) { count += storeCart[sku]; cents += p.price_cents * storeCart[sku]; } });
+            var bar = document.getElementById('storeCartBar');
+            var sum = document.getElementById('storeCartSummary');
+            if (bar) bar.style.display = count > 0 ? 'block' : 'none';
+            if (sum) sum.textContent = count + (count === 1 ? ' item' : ' items') + (cents > 0 ? ' · ' + storePriceLabel(cents) : '');
+        }
+        function storeChangeQty(sku, delta) {
+            var q = (storeCart[sku] || 0) + delta;
+            if (q <= 0) delete storeCart[sku]; else storeCart[sku] = Math.min(q, 99);
+            renderStore();
+        }
+        function storeClearCart() { storeCart = {}; renderStore(); }
+        async function storeCheckout() {
+            var items = Object.keys(storeCart).map(function(sku){ return { sku: sku, qty: storeCart[sku] }; });
+            if (!items.length) return;
+            var btn = document.getElementById('storeCheckoutBtn');
+            try {
+                var sess = await db.auth.getSession();
+                var token = sess && sess.data && sess.data.session && sess.data.session.access_token;
+                if (!token) { alert('Please log in to place an order.'); if (typeof handleHeaderCTA === 'function') handleHeaderCTA(); return; }
+                if (btn) { btn.disabled = true; btn.textContent = 'Starting checkout…'; }
+                var res = await db.functions.invoke('create-store-checkout', { body: { items: items, origin: window.location.origin } });
+                if (res.error || !res.data || !res.data.url) {
+                    console.error('store checkout error:', res.error);
+                    alert('Could not start checkout. Please try again.');
+                    if (btn) { btn.disabled = false; btn.textContent = 'Checkout'; }
+                    return;
+                }
+                window.location.href = res.data.url;
+            } catch (e) {
+                console.error('store checkout error', e);
+                alert('Could not start checkout. Please try again.');
+                if (btn) { btn.disabled = false; btn.textContent = 'Checkout'; }
+            }
+        }
+
+        // After returning from Stripe Checkout, confirm the order once.
+        (function(){
+            try {
+                var sp = new URLSearchParams(location.search);
+                if (sp.get('store') === 'success') {
+                    setTimeout(function(){ alert('Order placed — thank you! Your Duyen supplies are on the way.'); }, 500);
+                    history.replaceState({}, '', location.pathname);
+                } else if (sp.get('store') === 'cancel') {
+                    history.replaceState({}, '', location.pathname);
+                }
+            } catch(e){}
+        })();
+
         function showView(view) {
             // Generator views need a generation entitlement (single or multi);
             // isAdmin() bypasses. Multi is additionally enforced in selectMode/
@@ -3197,6 +3299,7 @@
             var el = document.getElementById(view + 'View');
             if (!el) { console.warn('View not found:', view); return; }
             el.classList.add('active');
+            if (view === 'store') { if (typeof renderStore === 'function') renderStore(); }
             if (view === 'mode') {
                 var batchLock = document.getElementById('modeBatchLock');
                 if (batchLock) batchLock.style.display = canMint() ? 'none' : 'block';
