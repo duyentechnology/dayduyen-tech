@@ -7,7 +7,7 @@
 // cache (now long-lived via the upload cacheControl). Any cache error falls
 // back to a normal network fetch, so this can never break a request.
 
-const APP_CACHE = 'dayduyen-app-v46';
+const APP_CACHE = 'dayduyen-app-v47';
 const MEDIA_CACHE = 'dayduyen-media-v1';
 const MEDIA_MAX_ENTRIES = 150; // rough cap; browser also evicts under pressure
 
