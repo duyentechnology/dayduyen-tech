@@ -2135,6 +2135,11 @@
     ========================================== -->
     <div id="bizBatchScanView" class="view">
         <div class="generator" style="max-width: 500px;padding:0;">
+            <!-- Which profile these cards will point to -->
+            <div style="padding:14px 16px;background:#fff;border-bottom:1px solid #E8DDD6;">
+                <label style="font-size:12.5px;font-weight:600;color:#9A8478;text-transform:uppercase;letter-spacing:.5px;font-family:'Outfit',sans-serif;">Attaching to</label>
+                <select id="batchProfileSelect" style="width:100%;margin-top:6px;border:1.5px solid #8B3A7F;border-radius:10px;padding:11px;font-family:'Outfit',sans-serif;font-size:16px;font-weight:600;color:#8B3A7F;background:#fff;"></select>
+            </div>
             <!-- Camera area -->
             <div style="background:#1a1a1a;padding:28px;display:flex;flex-direction:column;align-items:center;">
                 <div id="batchCounter" style="background:rgba(139,58,127,0.9);color:#fff;border-radius:20px;padding:7px 20px;font-size:16px;font-weight:700;margin-bottom:18px;font-family:'Outfit',sans-serif;">0 QR codes scanned</div>
@@ -5995,9 +6000,37 @@
             } catch(e) { console.warn('loadLastPromotion error:', e); }
         }
 
+        // Fill the "Attaching to" selector with the business's profiles and
+        // default it to the current one, so a batch always lands on a profile
+        // the user explicitly sees (and can change when they have several).
+        function populateBatchProfiles() {
+            var sel = document.getElementById('batchProfileSelect');
+            if (!sel) return;
+            sel.innerHTML = '';
+            var list = Array.isArray(bizProfiles) ? bizProfiles : [];
+            if (!list.length && bizProfileData) list = [bizProfileData];
+            list.forEach(function(p, i) {
+                var o = document.createElement('option');
+                o.value = p.profileId || String(i);
+                o.textContent = p.name || ('Profile ' + (i + 1));
+                sel.appendChild(o);
+            });
+            if (bizProfileData && bizProfileData.profileId) sel.value = bizProfileData.profileId;
+        }
+        function selectedBatchProfile() {
+            var sel = document.getElementById('batchProfileSelect');
+            var list = Array.isArray(bizProfiles) ? bizProfiles : [];
+            if (sel && sel.value) {
+                for (var i = 0; i < list.length; i++) {
+                    if ((list[i].profileId || String(i)) === sel.value) return list[i];
+                }
+            }
+            return bizProfileData;
+        }
         function initBatchScan() {
             batchScannedIds = [];
             resetProductModule();
+            populateBatchProfiles();
             var chips = document.getElementById('batchChips');
             if (chips) chips.innerHTML = '';
             var counter = document.getElementById('batchCounter');
@@ -6060,7 +6093,7 @@
                     reader.innerHTML = '<div style="color:#fff;font-size:15px;text-align:center;padding:20px;">Camera not supported on this browser.</div>';
                     return;
                 }
-                navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } } })
+                navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } } })
                     .then(function(stream) {
                         scannerState.stream = stream;
                         video.srcObject = stream;
@@ -6130,7 +6163,8 @@
                 batchHtml5Scanner = null;
             }
 
-            if (!bizProfileData) {
+            var targetProfile = selectedBatchProfile();
+            if (!targetProfile) {
                 alert('Please set up your business profile first.');
                 showView('bizProfile');
                 return;
@@ -6145,9 +6179,9 @@
                 if (!user) { alert('Please sign in.'); return; }
 
                 var updateData = {
-                    business_data: bizProfileData,
+                    business_data: targetProfile,
                     business_user_id: user.id,
-                    label: bizProfileData.name,
+                    label: targetProfile.name,
                     source: 'business',
                     updated_at: new Date().toISOString()
                 };
@@ -6161,7 +6195,7 @@
                 var failed = 0;
                 var { data: activated, error } = await db.rpc('activate_business_cards', {
                     p_urls: batchScannedIds,
-                    p_profile: bizProfileData
+                    p_profile: targetProfile
                 });
                 if (error) {
                     console.warn('activate_business_cards failed:', error);
