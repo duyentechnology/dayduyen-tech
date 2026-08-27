@@ -6118,8 +6118,25 @@
                 if (sw < 80 || sh < 80) return;
                 var img;
                 try { img = ctx.getImageData(sx, sy, sw, sh); } catch (e) { return; }
-                var code = jsQR(img.data, sw, sh, { inversionAttempts: 'dontInvert' });
-                if (code && code.data) seen[code.data] = 1;
+                // Read every code in this zone: decode one, white out its box in
+                // the zone's own pixels, decode again, until none remain.
+                for (var pass = 0; pass < 5; pass++) {
+                    var code = jsQR(img.data, sw, sh, { inversionAttempts: 'dontInvert' });
+                    if (!code || !code.data) break;
+                    seen[code.data] = 1;
+                    var loc = code.location; if (!loc) break;
+                    var xs = [loc.topLeftCorner.x, loc.topRightCorner.x, loc.bottomLeftCorner.x, loc.bottomRightCorner.x];
+                    var ys = [loc.topLeftCorner.y, loc.topRightCorner.y, loc.bottomLeftCorner.y, loc.bottomRightCorner.y];
+                    var bnx = Math.max(0, Math.floor(Math.min.apply(null, xs)) - 8);
+                    var bxx = Math.min(sw, Math.ceil(Math.max.apply(null, xs)) + 8);
+                    var bny = Math.max(0, Math.floor(Math.min.apply(null, ys)) - 8);
+                    var bxy = Math.min(sh, Math.ceil(Math.max.apply(null, ys)) + 8);
+                    var dd = img.data;
+                    for (var yy = bny; yy < bxy; yy++) {
+                        var ro = yy * sw * 4;
+                        for (var xx = bnx; xx < bxx; xx++) { var oo = ro + xx * 4; dd[oo] = 255; dd[oo + 1] = 255; dd[oo + 2] = 255; }
+                    }
+                }
             }
             // Whole frame first.
             tryDecode(0, 0, W, H);
