@@ -2139,6 +2139,8 @@
             <div style="padding:14px 16px;background:#fff;border-bottom:1px solid #E8DDD6;">
                 <label style="font-size:12.5px;font-weight:600;color:#9A8478;text-transform:uppercase;letter-spacing:.5px;font-family:'Outfit',sans-serif;">Attaching to</label>
                 <select id="batchProfileSelect" style="width:100%;margin-top:6px;border:1.5px solid #8B3A7F;border-radius:10px;padding:11px;font-family:'Outfit',sans-serif;font-size:16px;font-weight:600;color:#8B3A7F;background:#fff;"></select>
+                <label style="display:block;margin-top:12px;font-size:12.5px;font-weight:600;color:#9A8478;text-transform:uppercase;letter-spacing:.5px;font-family:'Outfit',sans-serif;">How many are you scanning? <span style="text-transform:none;letter-spacing:0;font-weight:400;">(optional)</span></label>
+                <input id="batchTargetCount" type="number" inputmode="numeric" min="1" max="200" placeholder="e.g. 30 for a full sheet" oninput="updateBatchCounter()" style="width:100%;margin-top:6px;box-sizing:border-box;border:1.5px solid #E8DDD6;border-radius:10px;padding:11px;font-family:'Outfit',sans-serif;font-size:16px;font-weight:600;color:#2E2A28;background:#fff;">
             </div>
             <!-- Camera area -->
             <div style="background:#1a1a1a;padding:28px;display:flex;flex-direction:column;align-items:center;">
@@ -6040,8 +6042,10 @@
             } catch (e) {}
             var chips = document.getElementById('batchChips');
             if (chips) chips.innerHTML = '';
-            var counter = document.getElementById('batchCounter');
-            if (counter) counter.textContent = '0 QR codes scanned';
+            var tgt = document.getElementById('batchTargetCount');
+            if (tgt) tgt.value = '';
+            _batchCompleteAnnounced = false;
+            updateBatchCounter();
 
             var reader = document.getElementById('batchQrReader');
             if (!reader) return;
@@ -6204,8 +6208,40 @@
                 chip.textContent = 'QR #' + (match ? match[1].substring(0,6) : url.substring(0,8));
                 chips.appendChild(chip);
             }
+            updateBatchCounter();
+        }
+
+        // Read the optional "how many on this sheet" target (0 = none set).
+        function batchTarget() {
+            var el = document.getElementById('batchTargetCount');
+            var n = el ? parseInt(el.value, 10) : 0;
+            return (n && n > 0) ? n : 0;
+        }
+        // Render the counter. With a target it reads "12 of 30", turns green and
+        // buzzes once at completion, so a whole-sheet sweep has a clear finish
+        // line instead of a number that just climbs.
+        var _batchCompleteAnnounced = false;
+        function updateBatchCounter() {
             var counter = document.getElementById('batchCounter');
-            if (counter) counter.textContent = batchScannedIds.length + ' QR code' + (batchScannedIds.length !== 1 ? 's' : '') + ' scanned';
+            if (!counter) return;
+            var n = batchScannedIds.length;
+            var target = batchTarget();
+            if (target > 0 && n >= target) {
+                counter.textContent = '✓ All ' + target + ' scanned';
+                counter.style.background = 'rgba(52,199,89,0.95)';
+                if (!_batchCompleteAnnounced) {
+                    _batchCompleteAnnounced = true;
+                    try { if (navigator.vibrate) navigator.vibrate([60, 40, 60]); } catch (e) {}
+                }
+            } else if (target > 0) {
+                counter.textContent = n + ' of ' + target + ' scanned';
+                counter.style.background = 'rgba(139,58,127,0.9)';
+                _batchCompleteAnnounced = false;
+            } else {
+                counter.textContent = n + ' QR code' + (n !== 1 ? 's' : '') + ' scanned';
+                counter.style.background = 'rgba(139,58,127,0.9)';
+                _batchCompleteAnnounced = false;
+            }
         }
 
         async function finishBatchScan() {
