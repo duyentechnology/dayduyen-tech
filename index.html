@@ -6025,8 +6025,9 @@
                 if (scannerState.stopped) return;
                 if (video.readyState === video.HAVE_ENOUGH_DATA) {
                     var now = Date.now();
-                    // Throttle to ~15fps
-                    if (now - scannerState.lastScan > 66) {
+                    // Throttle to ~8fps — enough for a printed sheet, and the
+                    // multi-pass decode below is heavier than a single scan.
+                    if (now - scannerState.lastScan > 120) {
                         scannerState.lastScan = now;
                         canvas.width  = video.videoWidth;
                         canvas.height = video.videoHeight;
@@ -6034,8 +6035,11 @@
                         ctx.drawImage(video, 0, 0);
                         var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                         if (window.jsQR) {
-                            var code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'dontInvert' });
-                            if (code && code.data) onBatchQRDetected(code.data);
+                            // jsQR finds ONE code per pass. For a printed sheet of
+                            // many codes, decode one, white out its box, and scan
+                            // again — so a single frame can pick up all of them.
+                            var found = decodeAllQR(imageData);
+                            for (var _fi = 0; _fi < found.length; _fi++) onBatchQRDetected(found[_fi]);
                         }
                     }
                 }
@@ -6069,6 +6073,35 @@
             }, 150);
         }
 
+        // Find EVERY QR code in one frame: jsQR returns a single code, so we
+        // read it, paint its bounding box white in the pixel buffer, and run
+        // jsQR again until no more are found (capped so a busy frame can't spin).
+        function decodeAllQR(imageData) {
+            var results = [];
+            var seen = {};
+            for (var pass = 0; pass < 8; pass++) {
+                var code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'dontInvert' });
+                if (!code || !code.data) break;
+                if (!seen[code.data]) { seen[code.data] = 1; results.push(code.data); }
+                var loc = code.location;
+                if (!loc) break;
+                var xs = [loc.topLeftCorner.x, loc.topRightCorner.x, loc.bottomLeftCorner.x, loc.bottomRightCorner.x];
+                var ys = [loc.topLeftCorner.y, loc.topRightCorner.y, loc.bottomLeftCorner.y, loc.bottomRightCorner.y];
+                var minX = Math.max(0, Math.floor(Math.min.apply(null, xs)) - 8);
+                var maxX = Math.min(imageData.width,  Math.ceil(Math.max.apply(null, xs)) + 8);
+                var minY = Math.max(0, Math.floor(Math.min.apply(null, ys)) - 8);
+                var maxY = Math.min(imageData.height, Math.ceil(Math.max.apply(null, ys)) + 8);
+                var d = imageData.data, w = imageData.width;
+                for (var y = minY; y < maxY; y++) {
+                    var rowOff = y * w * 4;
+                    for (var x = minX; x < maxX; x++) {
+                        var o = rowOff + x * 4;
+                        d[o] = 255; d[o + 1] = 255; d[o + 2] = 255;
+                    }
+                }
+            }
+            return results;
+        }
         function onBatchQRDetected(url) {
             // Deduplicate by full URL
             if (batchScannedIds.indexOf(url) > -1) return;
