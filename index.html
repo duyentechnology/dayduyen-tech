@@ -4342,17 +4342,19 @@
                 }
 
                 console.log('✅ Profiles saved and verified:', verify.business_profiles.length);
-                // Push About photos to all this business's cards (live everywhere, no re-activation)
+                // Refresh this profile's live data (business_data + About photos)
+                // on ONLY the codes attached to THIS profile, matched by
+                // profileId. Editing one profile must never touch another
+                // profile's codes — the old account-wide filter overwrote every
+                // code the business owned, which rewrote tapestry moments already
+                // saved from a different profile. Codes are attached to a profile
+                // with its profileId at claim/scan time, so this refresh keeps
+                // address/phone/social/About edits live without cross-contaminating.
                 try {
-                    await db.from('qr_codes').update({ about_photos: aboutUrls }).eq('user_id', user.id);
-                    await db.from('qr_codes').update({ about_photos: aboutUrls }).eq('business_user_id', user.id);
-                } catch (e) { console.error('About photos push:', e); }
-                // Attach/refresh the profile on every code this business has
-                // claimed — bootstraps codes claimed before a profile existed
-                // and keeps address/phone/social edits live everywhere.
-                try {
-                    await db.from('qr_codes').update({ business_data: newProfile })
-                        .eq('business_user_id', user.id);
+                    await db.from('qr_codes')
+                        .update({ business_data: newProfile, about_photos: aboutUrls })
+                        .eq('business_user_id', user.id)
+                        .eq('business_data->>profileId', profileId);
                 } catch (e) { console.error('Business data sync:', e); }
 
                 // Arrived via a scanned code without a profile: profile is now
