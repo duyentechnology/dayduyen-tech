@@ -2151,8 +2151,9 @@
                     <div style="position:absolute;bottom:0;right:0;width:28px;height:28px;border-bottom:3px solid #fff;border-right:3px solid #fff;"></div>
                     <div id="batchScanLine" style="position:absolute;left:4px;right:4px;height:2px;background:rgba(139,58,127,0.85);animation:scanLine 2s ease-in-out infinite;"></div>
                     <div id="batchQrReader" style="width:100%;height:100%;"></div>
+                    <div id="batchFlash" style="position:absolute;inset:0;border-radius:4px;background:rgba(52,199,89,0.55);opacity:0;pointer-events:none;transition:opacity .12s ease;"></div>
                 </div>
-                <div style="color:rgba(255,255,255,0.7);font-size:14px;text-align:center;margin-bottom:14px;font-family:'Outfit',sans-serif;">Point at each QR code — it scans automatically</div>
+                <div style="color:rgba(255,255,255,0.7);font-size:14px;text-align:center;margin-bottom:14px;font-family:'Outfit',sans-serif;">Scan one card at a time — hold steady until it flashes green</div>
                 <div id="batchChips" style="display:flex;gap:7px;flex-wrap:wrap;justify-content:center;min-height:30px;margin-bottom:4px;"></div>
             </div>
             <!-- Product module: the item these tags go on. Photos + details are
@@ -6031,6 +6032,12 @@
             batchScannedIds = [];
             resetProductModule();
             populateBatchProfiles();
+            // Unlock audio now, while we're still inside the tap that opened this
+            // view — iOS won't let us start a beep later from a timer/decode.
+            try {
+                var AC = window.AudioContext || window.webkitAudioContext;
+                if (AC) { if (!_batchAudioCtx) _batchAudioCtx = new AC(); if (_batchAudioCtx.state === 'suspended') _batchAudioCtx.resume(); }
+            } catch (e) {}
             var chips = document.getElementById('batchChips');
             if (chips) chips.innerHTML = '';
             var counter = document.getElementById('batchCounter');
@@ -6153,10 +6160,41 @@
             }
             return Object.keys(seen);
         }
+        // Per-capture confirmation: a quick green flash, a short beep, and a
+        // haptic buzz. Each is independently guarded so a browser that blocks
+        // audio or vibration still shows the flash.
+        var _batchAudioCtx = null;
+        function batchScanFeedback() {
+            try {
+                var f = document.getElementById('batchFlash');
+                if (f) { f.style.opacity = '1'; setTimeout(function() { f.style.opacity = '0'; }, 150); }
+            } catch (e) {}
+            try {
+                var AC = window.AudioContext || window.webkitAudioContext;
+                if (AC) {
+                    if (!_batchAudioCtx) _batchAudioCtx = new AC();
+                    if (_batchAudioCtx.state === 'suspended') _batchAudioCtx.resume();
+                    var osc = _batchAudioCtx.createOscillator();
+                    var gain = _batchAudioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.value = 880;
+                    gain.gain.setValueAtTime(0.0001, _batchAudioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.25, _batchAudioCtx.currentTime + 0.01);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, _batchAudioCtx.currentTime + 0.16);
+                    osc.connect(gain); gain.connect(_batchAudioCtx.destination);
+                    osc.start(); osc.stop(_batchAudioCtx.currentTime + 0.17);
+                }
+            } catch (e) {}
+            try { if (navigator.vibrate) navigator.vibrate(40); } catch (e) {}
+        }
         function onBatchQRDetected(url) {
             // Deduplicate by full URL
             if (batchScannedIds.indexOf(url) > -1) return;
             batchScannedIds.push(url);
+            // Confirm the capture so the user knows THIS card registered and can
+            // move to the next: green flash + beep + a phone buzz. Individual
+            // one-at-a-time scanning lives or dies on this feedback.
+            batchScanFeedback();
             var chips = document.getElementById('batchChips');
             if (chips) {
                 var chip = document.createElement('div');
