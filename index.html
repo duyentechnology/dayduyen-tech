@@ -6058,20 +6058,17 @@
                 if (scannerState.stopped) return;
                 if (video.readyState === video.HAVE_ENOUGH_DATA) {
                     var now = Date.now();
-                    // Throttle to ~8fps — enough for a printed sheet, and the
-                    // multi-pass decode below is heavier than a single scan.
-                    if (now - scannerState.lastScan > 120) {
+                    // Throttle: the tiled decode below runs jsQR several times
+                    // per frame, so ~4fps keeps a printed sheet responsive
+                    // without pinning the CPU.
+                    if (now - scannerState.lastScan > 220) {
                         scannerState.lastScan = now;
                         canvas.width  = video.videoWidth;
                         canvas.height = video.videoHeight;
                         var ctx = canvas.getContext('2d');
                         ctx.drawImage(video, 0, 0);
-                        var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                         if (window.jsQR) {
-                            // jsQR finds ONE code per pass. For a printed sheet of
-                            // many codes, decode one, white out its box, and scan
-                            // again — so a single frame can pick up all of them.
-                            var found = decodeAllQR(imageData);
+                            var found = decodeSheet(ctx, canvas.width, canvas.height);
                             for (var _fi = 0; _fi < found.length; _fi++) onBatchQRDetected(found[_fi]);
                         }
                     }
@@ -6106,34 +6103,38 @@
             }, 150);
         }
 
-        // Find EVERY QR code in one frame: jsQR returns a single code, so we
-        // read it, paint its bounding box white in the pixel buffer, and run
-        // jsQR again until no more are found (capped so a busy frame can't spin).
-        function decodeAllQR(imageData) {
-            var results = [];
+        // Read every QR in a frame that holds a whole SHEET of small codes.
+        // jsQR only decodes a code that's large/sharp enough, so on a full sheet
+        // only the clearest qualifies. We fix that by tiling: scan the full
+        // frame once (catches the big/near ones), then scan overlapping zones —
+        // in each zone a small code is relatively larger, so it decodes. Results
+        // are de-duped by content; overlap makes sure codes on a seam still land
+        // whole inside at least one zone.
+        function decodeSheet(ctx, W, H) {
             var seen = {};
-            for (var pass = 0; pass < 8; pass++) {
-                var code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'dontInvert' });
-                if (!code || !code.data) break;
-                if (!seen[code.data]) { seen[code.data] = 1; results.push(code.data); }
-                var loc = code.location;
-                if (!loc) break;
-                var xs = [loc.topLeftCorner.x, loc.topRightCorner.x, loc.bottomLeftCorner.x, loc.bottomRightCorner.x];
-                var ys = [loc.topLeftCorner.y, loc.topRightCorner.y, loc.bottomLeftCorner.y, loc.bottomRightCorner.y];
-                var minX = Math.max(0, Math.floor(Math.min.apply(null, xs)) - 8);
-                var maxX = Math.min(imageData.width,  Math.ceil(Math.max.apply(null, xs)) + 8);
-                var minY = Math.max(0, Math.floor(Math.min.apply(null, ys)) - 8);
-                var maxY = Math.min(imageData.height, Math.ceil(Math.max.apply(null, ys)) + 8);
-                var d = imageData.data, w = imageData.width;
-                for (var y = minY; y < maxY; y++) {
-                    var rowOff = y * w * 4;
-                    for (var x = minX; x < maxX; x++) {
-                        var o = rowOff + x * 4;
-                        d[o] = 255; d[o + 1] = 255; d[o + 2] = 255;
-                    }
+            function tryDecode(sx, sy, sw, sh) {
+                sx = Math.max(0, Math.floor(sx)); sy = Math.max(0, Math.floor(sy));
+                sw = Math.min(W - sx, Math.floor(sw)); sh = Math.min(H - sy, Math.floor(sh));
+                if (sw < 80 || sh < 80) return;
+                var img;
+                try { img = ctx.getImageData(sx, sy, sw, sh); } catch (e) { return; }
+                var code = jsQR(img.data, sw, sh, { inversionAttempts: 'dontInvert' });
+                if (code && code.data) seen[code.data] = 1;
+            }
+            // Whole frame first.
+            tryDecode(0, 0, W, H);
+            // Then a 3×2 grid of zones, each ~55% of the frame so neighbours
+            // overlap and no code is permanently split across a boundary.
+            var cols = 3, rows = 2;
+            var zw = Math.floor(W * 0.55), zh = Math.floor(H * 0.55);
+            var stepX = cols > 1 ? (W - zw) / (cols - 1) : 0;
+            var stepY = rows > 1 ? (H - zh) / (rows - 1) : 0;
+            for (var r = 0; r < rows; r++) {
+                for (var c = 0; c < cols; c++) {
+                    tryDecode(c * stepX, r * stepY, zw, zh);
                 }
             }
-            return results;
+            return Object.keys(seen);
         }
         function onBatchQRDetected(url) {
             // Deduplicate by full URL
