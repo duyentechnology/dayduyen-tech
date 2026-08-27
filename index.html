@@ -6554,40 +6554,45 @@
         
         // Create high-res QR code canvas for downloads
         function createHighResQR(url, size, includeLogoPref) {
-            // 'M' (medium) error correction = chunkier pixels, easier to scan than 'H'
-            // We still allow ~15% damage tolerance, plenty for a small center logo
-            const qr = qrcode(0, 'M');
+            // 'H' (high, ~30% damage tolerance) so a print smear, a light crease,
+            // or the optional center logo can't stop a scan. Plus a 4-module white
+            // QUIET ZONE on every side — QR detection genuinely needs that border,
+            // and drawing edge-to-edge made tightly printed/cut cards fail to read.
+            const qr = qrcode(0, 'H');
             qr.addData(url);
             qr.make();
-            
+
             const moduleCount = qr.getModuleCount();
-            const cellSize = Math.floor(size / moduleCount);
-            const actualSize = cellSize * moduleCount;
-            
+            const QUIET = 4; // modules of white border on every side
+            const totalModules = moduleCount + QUIET * 2;
+            const cellSize = Math.max(1, Math.floor(size / totalModules));
+            const actualSize = cellSize * totalModules;
+            const offset = QUIET * cellSize;
+
             const canvas = document.createElement('canvas');
             canvas.width = actualSize;
             canvas.height = actualSize;
             const ctx = canvas.getContext('2d');
-            
-            // White background
+
+            // White background (includes the quiet zone)
             ctx.fillStyle = '#FFFFFF';
             ctx.fillRect(0, 0, actualSize, actualSize);
-            
-            // Draw QR modules
+
+            // Draw QR modules, inset by the quiet zone
             ctx.fillStyle = selectedColor;
             for (let row = 0; row < moduleCount; row++) {
                 for (let col = 0; col < moduleCount; col++) {
                     if (qr.isDark(row, col)) {
-                        ctx.fillRect(col * cellSize, row * cellSize, cellSize, cellSize);
+                        ctx.fillRect(offset + col * cellSize, offset + row * cellSize, cellSize, cellSize);
                     }
                 }
             }
-            
+
             // Add logo if enabled
             if (includeLogoPref) {
                 drawLogoOnCanvas(canvas, selectedColor);
             }
-            
+
             return canvas;
         }
         
@@ -6862,20 +6867,22 @@
                 const canvas = document.createElement('canvas');
                 const moduleCount = qr.getModuleCount();
                 const cellSize = 4;
-                canvas.width = moduleCount * cellSize;
-                canvas.height = moduleCount * cellSize;
+                const QUIET = 4; // white quiet-zone border (modules)
+                const offset = QUIET * cellSize;
+                canvas.width = (moduleCount + QUIET * 2) * cellSize;
+                canvas.height = canvas.width;
                 const ctx = canvas.getContext('2d');
-                
-                // White background
+
+                // White background (includes the quiet zone)
                 ctx.fillStyle = '#FFFFFF';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
-                
-                // Draw QR code in selected color
+
+                // Draw QR code in selected color, inset by the quiet zone
                 ctx.fillStyle = selectedColor;
                 for (let row = 0; row < moduleCount; row++) {
                     for (let col = 0; col < moduleCount; col++) {
                         if (qr.isDark(row, col)) {
-                            ctx.fillRect(col * cellSize, row * cellSize, cellSize, cellSize);
+                            ctx.fillRect(offset + col * cellSize, offset + row * cellSize, cellSize, cellSize);
                         }
                     }
                 }
