@@ -5452,6 +5452,126 @@
             try { showBizProfilePreview(); } finally { _previewModularObj = null; }
         }
 
+        // ── ONE preview-card renderer for both business-app previews ──────────
+        // The creator/editor preview (showBizProfilePreview) and the "as a
+        // customer sees it" scan preview (showPromoPreview) used to hand-build
+        // the same brand header, contact-icon row, and About / What's-new
+        // accordions from their own copy-pasted markup. This is the single copy.
+        // Each caller gathers its own data (live form vs saved profile), passes
+        // it in, and layers on its own chrome (the creator preview's collapse
+        // arrow + product; the scan preview's role CTA + footer).
+        //   d : { name, desc, aboutUrls[], logo, website, phone, email, address,
+        //         socialHrefs{key:url}, promoText, promoPhotos[],
+        //         product:{name,details,photos[],isMenu}|null }
+        //   o : { iconMode:'link'|'static', showShare, namePlaceholder, originPad,
+        //         aboutOpen, promoOpen, escText, escUrl }
+        // Returns { header, sectionsInner }. escText/escUrl are per-surface so
+        // each preview keeps its exact escaping (sanitize vs esc; raw vs esc URLs).
+        function bizPreviewCard(d, o) {
+            d = d || {}; o = o || {};
+            var escText = o.escText || function(s){ return s == null ? '' : String(s); };
+            var escUrl  = o.escUrl  || function(s){ return s == null ? '' : String(s); };
+            var SOCIALS = [
+                { key:'facebook',  path:'M24 12.073C24 5.404 18.627 0 12 0S0 5.404 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.41c0-3.025 1.792-4.697 4.533-4.697 1.312 0 2.686.236 2.686.236v2.97h-1.513c-1.491 0-1.956.93-1.956 1.886v2.267h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073z' },
+                { key:'pinterest', path:'M12 0C5.373 0 0 5.372 0 12c0 5.084 3.163 9.426 7.627 11.174-.105-.949-.2-2.405.042-3.441.218-.937 1.407-5.965 1.407-5.965s-.359-.719-.359-1.782c0-1.668.967-2.914 2.171-2.914 1.023 0 1.518.769 1.518 1.69 0 1.029-.655 2.568-.994 3.995-.283 1.194.599 2.169 1.777 2.169 2.133 0 3.772-2.249 3.772-5.495 0-2.873-2.064-4.882-5.012-4.882-3.414 0-5.418 2.561-5.418 5.207 0 1.031.397 2.138.893 2.738a.36.36 0 0 1 .083.345l-.333 1.36c-.053.22-.174.267-.402.161-1.499-.698-2.436-2.889-2.436-4.649 0-3.785 2.75-7.262 7.929-7.262 4.163 0 7.398 2.967 7.398 6.931 0 4.136-2.607 7.464-6.227 7.464-1.216 0-2.359-.632-2.75-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146C9.57 23.812 10.763 24 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0z' },
+                { key:'youtube',   path:'M23.495 6.205a3.007 3.007 0 0 0-2.088-2.088c-1.87-.501-9.396-.501-9.396-.501s-7.507-.01-9.396.501A3.007 3.007 0 0 0 .527 6.205a31.247 31.247 0 0 0-.522 5.805 31.247 31.247 0 0 0 .522 5.783 3.007 3.007 0 0 0 2.088 2.088c1.868.502 9.396.502 9.396.502s7.506 0 9.396-.502a3.007 3.007 0 0 0 2.088-2.088 31.247 31.247 0 0 0 .5-5.783 31.247 31.247 0 0 0-.5-5.805zM9.609 15.601V8.408l6.264 3.602z' },
+                { key:'yelp',      path:'M20.16 12.594l-4.995 1.433c-.96.275-1.775-.8-1.172-1.633l2.915-4.1a1.084 1.084 0 0 1 1.671-.102c1.021 1.112 1.985 2.928 1.591 4.328l-.01.074zm-9.967 3.08l-4.342 2.882c-.84.557-1.874-.278-1.51-1.225.752-1.96 2.268-4.03 3.76-4.566a1.085 1.085 0 0 1 1.423.765l.424 1.69c.145.59-.146 1.195-.755 1.454zm-2.88-6.956L3.07 7.56c-.96-.212-1.167-1.49-.31-1.973 1.8-.998 4.17-1.42 5.559-.858.727.295 1.018 1.147.636 1.81l-.864 1.487c-.293.504-.93.722-1.47.536-.1-.034-.198-.063-.298-.09zm4.215-3.483l.037-5.176C11.586-.016 12.748.03 13.02.987c.57 1.985.57 4.575-.175 5.865a1.085 1.085 0 0 1-1.593.39l-.944-.697c-.49-.36-.677-1.003-.44-1.554.1-.23.15-.473.112-.706zm5.792 11.52c.648.802.195 1.93-.806 2.007-2.07.156-4.61-.404-5.61-1.618a1.085 1.085 0 0 1 .167-1.63l1.428-1.023c.482-.345 1.145-.267 1.538.183.09.103.188.198.29.286 1.075.929 2.19 1.14 3.013.967l-.02-.172z' },
+                { key:'linkedin',  path:'M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z' },
+                { key:'x',         path:'M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.746l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z' },
+                { key:'instagram', path:'M12 0C8.74 0 8.333.015 7.053.072 5.775.132 4.905.333 4.14.63c-.789.306-1.459.717-2.126 1.384S.935 3.35.63 4.14C.333 4.905.131 5.775.072 7.053.012 8.333 0 8.74 0 12s.015 3.667.072 4.947c.06 1.277.261 2.148.558 2.913.306.788.717 1.459 1.384 2.126.667.666 1.336 1.079 2.126 1.384.766.296 1.636.499 2.913.558C8.333 23.988 8.74 24 12 24s3.667-.015 4.947-.072c1.277-.06 2.148-.262 2.913-.558.788-.306 1.459-.718 2.126-1.384.666-.667 1.079-1.335 1.384-2.126.296-.765.499-1.636.558-2.913.06-1.28.072-1.687.072-4.947s-.015-3.667-.072-4.947c-.06-1.277-.262-2.149-.558-2.913-.306-.789-.718-1.459-1.384-2.126C21.319 1.347 20.651.935 19.86.63c-.765-.297-1.636-.499-2.913-.558C15.667.012 15.26 0 12 0zm0 2.16c3.203 0 3.585.016 4.85.071 1.17.055 1.805.249 2.227.415.562.217.96.477 1.382.896.419.42.679.819.896 1.381.164.422.36 1.057.413 2.227.057 1.266.07 1.646.07 4.85s-.015 3.585-.074 4.85c-.061 1.17-.256 1.805-.421 2.227-.224.562-.479.96-.899 1.382-.419.419-.824.679-1.38.896-.42.164-1.065.36-2.235.413-1.274.057-1.649.07-4.859.07-3.211 0-3.586-.015-4.859-.074-1.171-.061-1.816-.256-2.236-.421-.569-.224-.96-.479-1.379-.899-.421-.419-.69-.824-.9-1.38-.165-.42-.359-1.065-.42-2.235-.045-1.26-.061-1.649-.061-4.844 0-3.196.016-3.586.061-4.861.061-1.17.255-1.814.42-2.234.21-.57.479-.96.9-1.381.419-.419.81-.689 1.379-.898.42-.166 1.051-.361 2.221-.421 1.275-.045 1.65-.06 4.859-.06l.045.03zm0 3.678a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm7.846-10.405a1.441 1.441 0 01-2.88 0 1.44 1.44 0 012.88 0z' },
+                { key:'tiktok',    path:'M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z' },
+            ];
+            var LINKBOX = 'width:38px;height:38px;border-radius:10px;background:transparent;border:2px solid #8B3A7F;display:flex;align-items:center;justify-content:center;text-decoration:none;flex-shrink:0;';
+            var SPANBOX = 'width:38px;height:38px;border-radius:10px;background:transparent;border:2px solid #8B3A7F;display:flex;align-items:center;justify-content:center;flex-shrink:0;';
+            var iconEl = function(hrefAttrs, svg) {
+                return o.iconMode === 'link'
+                    ? '<a ' + hrefAttrs + ' style="' + LINKBOX + '">' + svg + '</a>'
+                    : '<span style="' + SPANBOX + '">' + svg + '</span>';
+            };
+            var socialHrefs = d.socialHrefs || {};
+            var icons = '';
+            if (d.website) icons += iconEl('href="' + d.website + '" target="_blank" rel="noopener"', '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8B3A7F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>');
+            SOCIALS.forEach(function(s) { var url = socialHrefs[s.key]; if (!url) return; icons += iconEl('href="' + url + '" target="_blank" rel="noopener"', '<svg width="17" height="17" viewBox="0 0 24 24" fill="#8B3A7F"><path d="' + s.path + '"/></svg>'); });
+            if (d.phone) icons += iconEl('href="tel:' + d.phone + '"', '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8B3A7F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>');
+            if (d.email) icons += iconEl('href="mailto:' + d.email + '"', '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8B3A7F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 7l-10 6L2 7"/></svg>');
+            if (d.address) icons += iconEl('href="https://maps.google.com/?q=' + encodeURIComponent(d.address) + '" target="_blank" rel="noopener"', '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8B3A7F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>');
+            if (o.showShare) icons += iconEl('href="#" onclick="return false;" aria-label="Share"', '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8B3A7F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="M8.2 10.8l7.6-4.6"/><path d="M8.2 13.2l7.6 4.6"/></svg>');
+            var iconRow = icons ? '<div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:14px;">' + icons + '</div>' : '';
+
+            var nm = escText(d.name || o.namePlaceholder || '');
+            var headText =
+                '<div style="font-family:\'Crimson Pro\',serif;font-size:22px;font-weight:600;color:#3D2E24;line-height:1.15;text-align:center;' + (o.originPad ? 'padding:0 34px;' : '') + '">Every thing has an origin</div>' +
+                '<div style="font-size:13.5px;color:#6B5751;line-height:1.45;margin-top:6px;font-weight:300;text-align:center;">Behind this moment is a maker, a craft, and a reason it found its way to you.</div>' +
+                (nm ? '<div style="font-family:\'Crimson Pro\',serif;font-size:20px;font-weight:700;color:#8B3A7F;text-align:center;margin-top:8px;">' + nm + '</div>' : '') +
+                iconRow;
+
+            var logo = (typeof d.logo === 'string' && /^https?:\/\//.test(d.logo)) ? d.logo.replace(/"/g, '&quot;') : '';
+            var altName = escText(d.name || '');
+            var header = logo
+                ? '<div style="background:#EFE5EF;padding:16px 14px 13px;border-bottom:1px solid #E0CFE0;">' +
+                      '<img src="' + logo + '" alt="' + altName + '" style="display:block;margin:0 auto 10px;max-width:78%;max-height:185px;object-fit:contain;border-radius:14px;">' +
+                      headText +
+                  '</div>'
+                : '<div style="background:#EFE5EF;padding:13px 14px;display:flex;align-items:center;gap:13px;border-bottom:1px solid #E0CFE0;">' +
+                      '<div style="flex-shrink:0;text-align:center;width:92px;">' +
+                          '<span style="font-family:\'Crimson Pro\',serif;font-size:66px;font-weight:400;color:#DA251D;line-height:1;display:block;">緣</span>' +
+                          '<span style="font-family:\'DM Sans\',sans-serif;font-size:13px;font-weight:400;letter-spacing:.3em;color:#DA251D;display:block;margin-top:3px;">DUYÊN</span>' +
+                      '</div>' +
+                      '<div style="flex:1;min-width:0;">' + headText + '</div>' +
+                  '</div>';
+
+            var aboutUrls = (d.aboutUrls || []).filter(Boolean);
+            var aboutSection = (d.desc || aboutUrls.length) ?
+                '<div style="background:#fff;border:1.5px solid #E8DDD6;border-radius:12px;overflow:hidden;margin-bottom:12px;">' +
+                    '<div onclick="togglePreviewSection(\'about\')" style="display:flex;align-items:center;gap:10px;padding:15px 16px;cursor:pointer;">' +
+                        '<span style="flex:1;font-family:\'Crimson Pro\',serif;font-size:22px;font-weight:600;color:#2E2A28;">About</span>' +
+                        '<svg id="pvChev-about" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8B3A7F" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition:transform .2s;transform:' + (o.aboutOpen ? 'rotate(180deg)' : 'rotate(0deg)') + ';"><path d="M6 9l6 6 6-6"/></svg>' +
+                    '</div>' +
+                    '<div id="pvBody-about" style="' + (o.aboutOpen ? '' : 'display:none;') + 'padding:0 16px 16px;">' +
+                        (d.desc ? '<div style="font-family:\'Crimson Pro\',serif;font-size:21px;font-style:italic;color:#5D4E44;line-height:1.7;margin-bottom:14px;">“' + escText(d.desc) + '”</div>' : '') +
+                        (aboutUrls.length ? '<div style="display:grid;grid-template-columns:repeat(' + Math.min(aboutUrls.length,3) + ',1fr);gap:8px;">' + aboutUrls.slice(0,3).map(function(u){ return '<div style="aspect-ratio:3/4;border-radius:10px;overflow:hidden;"><img src="' + escUrl(u) + '" style="width:100%;height:100%;object-fit:cover;"></div>'; }).join('') + '</div>' : '') +
+                    '</div>' +
+                '</div>' : '';
+
+            var promoText = d.promoText || '';
+            var promoPhotos = (d.promoPhotos || []).filter(Boolean);
+            var promoSection = (promoText || promoPhotos.length) ?
+                '<div style="background:#fff;border:1.5px solid #E8DDD6;border-radius:12px;overflow:hidden;margin-bottom:12px;">' +
+                    '<div onclick="togglePreviewSection(\'promo\')" style="display:flex;align-items:center;gap:10px;padding:15px 16px;cursor:pointer;">' +
+                        '<span style="flex:1;font-family:\'Crimson Pro\',serif;font-size:22px;font-weight:600;color:#2E2A28;">What\'s new</span>' +
+                        '<span style="background:#8B3A7F;color:#fff;font-size:12px;font-weight:600;padding:2px 8px;border-radius:10px;">1</span>' +
+                        '<svg id="pvChev-promo" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8B3A7F" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition:transform .2s;transform:' + (o.promoOpen ? 'rotate(180deg)' : 'rotate(0deg)') + ';"><path d="M6 9l6 6 6-6"/></svg>' +
+                    '</div>' +
+                    '<div id="pvBody-promo" style="' + (o.promoOpen ? '' : 'display:none;') + 'padding:0 16px 16px;">' +
+                        (promoText ? '<div style="font-family:\'Crimson Pro\',serif;font-size:21px;color:#3a2a2e;line-height:1.7;font-style:italic;">“' + escText(promoText) + '”</div>' : '') +
+                        (promoPhotos.length ? '<div style="display:flex;flex-direction:column;gap:8px;margin-top:10px;">' + promoPhotos.map(function(u){ return '<div style="width:100%;border-radius:8px;overflow:hidden;background:#f5f0eb;"><img src="' + escUrl(u) + '" style="width:100%;height:auto;display:block;"></div>'; }).join('') + '</div>' : '') +
+                    '</div>' +
+                '</div>' : '';
+
+            var productSection = '';
+            if (d.product) {
+                var m = d.product;
+                var isMenu = !!m.isMenu;
+                var purls = (m.photos || []).map(function(x){ return typeof x === 'string' ? x : (x && x.url); }).filter(Boolean).slice(0, 3);
+                var pnm = escText((m.name || '').trim());
+                var pdet = escText((m.details || '').trim());
+                if (purls.length || pnm || pdet) {
+                    var pHead = (isMenu ? '🍽️ ' : '') + (pnm || (isMenu ? 'Menu' : 'Product'));
+                    var pGrid = purls.length ? '<div style="display:grid;grid-template-columns:repeat(' + Math.min(purls.length,3) + ',1fr);gap:8px;margin-bottom:' + (pdet ? '12px' : '0') + ';">' + purls.map(function(u){ return '<div style="aspect-ratio:3/4;border-radius:10px;overflow:hidden;background:#f5f0eb;"><img src="' + escUrl(u) + '" style="width:100%;height:100%;object-fit:cover;display:block;"></div>'; }).join('') + '</div>' : '';
+                    productSection =
+                        '<div style="background:#fff;border:1.5px solid #E8DDD6;border-radius:12px;overflow:hidden;margin-bottom:12px;">' +
+                            '<div onclick="togglePreviewSection(\'product\')" style="display:flex;align-items:center;gap:10px;padding:15px 16px;cursor:pointer;">' +
+                                '<span style="flex:1;font-family:\'Crimson Pro\',serif;font-size:20px;font-weight:700;color:#8B3A7F;">' + pHead + '</span>' +
+                                '<svg id="pvChev-product" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8B3A7F" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition:transform .2s;transform:rotate(180deg);"><path d="M6 9l6 6 6-6"/></svg>' +
+                            '</div>' +
+                            '<div id="pvBody-product" style="padding:0 16px 16px;">' + pGrid + (pdet ? '<div style="font-size:15px;color:#3D2E24;line-height:1.55;white-space:pre-wrap;">' + pdet + '</div>' : '') + '</div>' +
+                        '</div>';
+                }
+            }
+
+            return { header: header, sectionsInner: aboutSection + promoSection + productSection };
+        }
+
         function showBizProfilePreview() {
             // --- Read form values, falling back to the loaded profile ---
             // The profile FORM is only populated when you open the profile editor.
@@ -5474,144 +5594,47 @@
             var zip     = _v('bizZip')     || _bpa.zip    || '';
             var address = [street, apt, city && state ? city + ', ' + state : city || state, zip].filter(Boolean).join(' ');
 
-            var socials = [
-                { id: 'socFacebook',  label: 'Facebook',  color: '#1877F2', path: 'M24 12.073C24 5.404 18.627 0 12 0S0 5.404 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.41c0-3.025 1.792-4.697 4.533-4.697 1.312 0 2.686.236 2.686.236v2.97h-1.513c-1.491 0-1.956.93-1.956 1.886v2.267h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073z' },
-                { id: 'socPinterest', label: 'Pinterest', color: '#E60023', path: 'M12 0C5.373 0 0 5.372 0 12c0 5.084 3.163 9.426 7.627 11.174-.105-.949-.2-2.405.042-3.441.218-.937 1.407-5.965 1.407-5.965s-.359-.719-.359-1.782c0-1.668.967-2.914 2.171-2.914 1.023 0 1.518.769 1.518 1.69 0 1.029-.655 2.568-.994 3.995-.283 1.194.599 2.169 1.777 2.169 2.133 0 3.772-2.249 3.772-5.495 0-2.873-2.064-4.882-5.012-4.882-3.414 0-5.418 2.561-5.418 5.207 0 1.031.397 2.138.893 2.738a.36.36 0 0 1 .083.345l-.333 1.36c-.053.22-.174.267-.402.161-1.499-.698-2.436-2.889-2.436-4.649 0-3.785 2.75-7.262 7.929-7.262 4.163 0 7.398 2.967 7.398 6.931 0 4.136-2.607 7.464-6.227 7.464-1.216 0-2.359-.632-2.75-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146C9.57 23.812 10.763 24 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0z' },
-                { id: 'socYoutube',   label: 'YouTube',   color: '#FF0000', path: 'M23.495 6.205a3.007 3.007 0 0 0-2.088-2.088c-1.87-.501-9.396-.501-9.396-.501s-7.507-.01-9.396.501A3.007 3.007 0 0 0 .527 6.205a31.247 31.247 0 0 0-.522 5.805 31.247 31.247 0 0 0 .522 5.783 3.007 3.007 0 0 0 2.088 2.088c1.868.502 9.396.502 9.396.502s7.506 0 9.396-.502a3.007 3.007 0 0 0 2.088-2.088 31.247 31.247 0 0 0 .5-5.783 31.247 31.247 0 0 0-.5-5.805zM9.609 15.601V8.408l6.264 3.602z' },
-                { id: 'socYelp',      label: 'Yelp',      color: '#D32323', path: 'M20.16 12.594l-4.995 1.433c-.96.275-1.775-.8-1.172-1.633l2.915-4.1a1.084 1.084 0 0 1 1.671-.102c1.021 1.112 1.985 2.928 1.591 4.328l-.01.074zm-9.967 3.08l-4.342 2.882c-.84.557-1.874-.278-1.51-1.225.752-1.96 2.268-4.03 3.76-4.566a1.085 1.085 0 0 1 1.423.765l.424 1.69c.145.59-.146 1.195-.755 1.454zm-2.88-6.956L3.07 7.56c-.96-.212-1.167-1.49-.31-1.973 1.8-.998 4.17-1.42 5.559-.858.727.295 1.018 1.147.636 1.81l-.864 1.487c-.293.504-.93.722-1.47.536-.1-.034-.198-.063-.298-.09zm4.215-3.483l.037-5.176C11.586-.016 12.748.03 13.02.987c.57 1.985.57 4.575-.175 5.865a1.085 1.085 0 0 1-1.593.39l-.944-.697c-.49-.36-.677-1.003-.44-1.554.1-.23.15-.473.112-.706zm5.792 11.52c.648.802.195 1.93-.806 2.007-2.07.156-4.61-.404-5.61-1.618a1.085 1.085 0 0 1 .167-1.63l1.428-1.023c.482-.345 1.145-.267 1.538.183.09.103.188.198.29.286 1.075.929 2.19 1.14 3.013.967l-.02-.172z' },
-                { id: 'socLinkedin',  label: 'LinkedIn',  color: '#0A66C2', path: 'M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z' },
-                { id: 'socX',         label: 'X',         color: '#000',    path: 'M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.746l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z' },
-                { id: 'socInstagram', label: 'Instagram', color: '#E4405F', path: 'M12 0C8.74 0 8.333.015 7.053.072 5.775.132 4.905.333 4.14.63c-.789.306-1.459.717-2.126 1.384S.935 3.35.63 4.14C.333 4.905.131 5.775.072 7.053.012 8.333 0 8.74 0 12s.015 3.667.072 4.947c.06 1.277.261 2.148.558 2.913.306.788.717 1.459 1.384 2.126.667.666 1.336 1.079 2.126 1.384.766.296 1.636.499 2.913.558C8.333 23.988 8.74 24 12 24s3.667-.015 4.947-.072c1.277-.06 2.148-.262 2.913-.558.788-.306 1.459-.718 2.126-1.384.666-.667 1.079-1.335 1.384-2.126.296-.765.499-1.636.558-2.913.06-1.28.072-1.687.072-4.947s-.015-3.667-.072-4.947c-.06-1.277-.262-2.149-.558-2.913-.306-.789-.718-1.459-1.384-2.126C21.319 1.347 20.651.935 19.86.63c-.765-.297-1.636-.499-2.913-.558C15.667.012 15.26 0 12 0zm0 2.16c3.203 0 3.585.016 4.85.071 1.17.055 1.805.249 2.227.415.562.217.96.477 1.382.896.419.42.679.819.896 1.381.164.422.36 1.057.413 2.227.057 1.266.07 1.646.07 4.85s-.015 3.585-.074 4.85c-.061 1.17-.256 1.805-.421 2.227-.224.562-.479.96-.899 1.382-.419.419-.824.679-1.38.896-.42.164-1.065.36-2.235.413-1.274.057-1.649.07-4.859.07-3.211 0-3.586-.015-4.859-.074-1.171-.061-1.816-.256-2.236-.421-.569-.224-.96-.479-1.379-.899-.421-.419-.69-.824-.9-1.38-.165-.42-.359-1.065-.42-2.235-.045-1.26-.061-1.649-.061-4.844 0-3.196.016-3.586.061-4.861.061-1.17.255-1.814.42-2.234.21-.57.479-.96.9-1.381.419-.419.81-.689 1.379-.898.42-.166 1.051-.361 2.221-.421 1.275-.045 1.65-.06 4.859-.06l.045.03zm0 3.678a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm7.846-10.405a1.441 1.441 0 01-2.88 0 1.44 1.44 0 012.88 0z' },
-                { id: 'socTiktok',    label: 'TikTok',    color: '#010101', path: 'M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z' },
-            ];
-
-            // --- Build icon row (outlined plum, mirrors duyen.io customer view) ---
-            var iconStyle = 'width:38px;height:38px;border-radius:10px;background:transparent;border:2px solid #8B3A7F;display:flex;align-items:center;justify-content:center;text-decoration:none;flex-shrink:0;';
-            var iconsHtml = '';
-            if (website) {
-                iconsHtml += '<a href="' + website + '" target="_blank" rel="noopener" style="' + iconStyle + '"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8B3A7F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></a>';
-            }
-            socials.forEach(function(s) {
-                var val = (document.getElementById(s.id) || {}).value
-                    || ((_bp.social || {})[s.id.replace('soc', '').toLowerCase()])
-                    || '';
-                if (!val) return;
-                iconsHtml += '<a href="' + val + '" target="_blank" rel="noopener" style="' + iconStyle + '"><svg width="17" height="17" viewBox="0 0 24 24" fill="#8B3A7F"><path d="' + s.path + '"/></svg></a>';
+            // Resolve social links: live form field wins, else the saved
+            // profile. Keyed by network for the shared renderer.
+            var socialHrefs = {};
+            ['facebook','pinterest','youtube','yelp','linkedin','x','instagram','tiktok'].forEach(function(k){
+                var formId = 'soc' + k.charAt(0).toUpperCase() + k.slice(1);
+                var val = (document.getElementById(formId) || {}).value || ((_bp.social || {})[k]) || '';
+                if (val) socialHrefs[k] = val;
             });
-            if (phone) {
-                iconsHtml += '<a href="tel:' + phone + '" style="' + iconStyle + '"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8B3A7F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg></a>';
-            }
-            if (email) {
-                iconsHtml += '<a href="mailto:' + email + '" style="' + iconStyle + '"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8B3A7F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 7l-10 6L2 7"/></svg></a>';
-            }
-            if (address) {
-                iconsHtml += '<a href="https://maps.google.com/?q=' + encodeURIComponent(address) + '" target="_blank" rel="noopener" style="' + iconStyle + '"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8B3A7F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></a>';
-            }
-            // Share — always shown, mirroring the live customer scan (which shares
-            // the code's QR URL). Inert here since a preview has no live URL yet.
-            iconsHtml += '<a href="#" onclick="return false;" aria-label="Share" style="' + iconStyle + '"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8B3A7F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="M8.2 10.8l7.6-4.6"/><path d="M8.2 13.2l7.6 4.6"/></svg></a>';
-            var iconRowHtml = iconsHtml ? '<div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:14px;">' + iconsHtml + '</div>' : '';
-
-            // --- Assemble card body (matches duyen.io showBusinessProfile) ---
-            // No placeholder: when there's no business name yet, the header just
-            // omits the name line (mirrors duyen.io), never prints stand-in text.
-            var safeName = sanitize(name);
-            var safeDesc = sanitize(desc);
             var aboutUrls = (aboutPhotos.length ? aboutPhotos.map(function(p){ return p.url; })
-                                                : (Array.isArray(_bp.aboutPhotos) ? _bp.aboutPhotos : [])).filter(Boolean);
-            // Logo takes the header slot when uploaded, exactly as on duyen.io.
-            var pvLogo = bizLogoUrl || (bizProfileData && bizProfileData.logo) || '';
-            pvLogo = (typeof pvLogo === 'string' && /^https?:\/\//.test(pvLogo)) ? pvLogo.replace(/"/g, '&quot;') : '';
-
-            var _pvHeadText =
-                '<div style="font-family:\'Crimson Pro\',serif;font-size:22px;font-weight:600;color:#3D2E24;line-height:1.15;text-align:center;padding:0 34px;">Every thing has an origin</div>' +
-                '<div style="font-size:13.5px;color:#6B5751;line-height:1.45;margin-top:6px;font-weight:300;text-align:center;">Behind this moment is a maker, a craft, and a reason it found its way to you.</div>' +
-                (safeName ? '<div style="font-family:\'Crimson Pro\',serif;font-size:20px;font-weight:700;color:#8B3A7F;text-align:center;margin-top:8px;">' + safeName + '</div>' : '') +
-                iconRowHtml;
-
-            // Collapsible sections — About, What's new, Product — each toggled by
-            // its own chevron (togglePreviewSection), the same accordion the
-            // customer scan and the promo preview use.
-            var _pvAbout = (safeDesc || aboutUrls.length) ?
-                '<div style="background:#fff;border:1.5px solid #E8DDD6;border-radius:12px;overflow:hidden;margin-bottom:12px;">' +
-                    '<div onclick="togglePreviewSection(\'about\')" style="display:flex;align-items:center;gap:10px;padding:15px 16px;cursor:pointer;">' +
-                        '<span style="flex:1;font-family:\'Crimson Pro\',serif;font-size:22px;font-weight:600;color:#2E2A28;">About</span>' +
-                        '<svg id="pvChev-about" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8B3A7F" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition:transform .2s;transform:rotate(0deg);"><path d="M6 9l6 6 6-6"/></svg>' +
-                    '</div>' +
-                    '<div id="pvBody-about" style="display:none;padding:0 16px 16px;">' +
-                        (safeDesc ? '<div style="font-family:\'Crimson Pro\',serif;font-size:21px;font-style:italic;color:#5D4E44;line-height:1.7;margin-bottom:14px;">“' + safeDesc + '”</div>' : '') +
-                        (aboutUrls.length ? '<div style="display:grid;grid-template-columns:repeat(' + Math.min(aboutUrls.length,3) + ',1fr);gap:8px;">' + aboutUrls.slice(0,3).map(function(u){ return '<div style="aspect-ratio:3/4;border-radius:10px;overflow:hidden;"><img src="' + u + '" style="width:100%;height:100%;object-fit:cover;"></div>'; }).join('') + '</div>' : '') +
-                    '</div>' +
-                '</div>' : '';
-
-            // What's new — the business's current promotion (loaded into the dash
-            // form by loadLastPromotion), so a scan and this preview show the same.
+                                                : (Array.isArray(_bp.aboutPhotos) ? _bp.aboutPhotos : []));
             var _pvPromoText = ((document.getElementById('dashPromoText') || {}).value || '').trim();
             var _pvPromoPhotos = (typeof dashPromoPhotos !== 'undefined' && Array.isArray(dashPromoPhotos))
                 ? dashPromoPhotos.map(function(p){ return p.url; }).filter(Boolean) : [];
-            var _pvPromo = (_pvPromoText || _pvPromoPhotos.length) ?
-                '<div style="background:#fff;border:1.5px solid #E8DDD6;border-radius:12px;overflow:hidden;margin-bottom:12px;">' +
-                    '<div onclick="togglePreviewSection(\'promo\')" style="display:flex;align-items:center;gap:10px;padding:15px 16px;cursor:pointer;">' +
-                        '<span style="flex:1;font-family:\'Crimson Pro\',serif;font-size:22px;font-weight:600;color:#2E2A28;">What\'s new</span>' +
-                        '<span style="background:#8B3A7F;color:#fff;font-size:12px;font-weight:600;padding:2px 8px;border-radius:10px;">1</span>' +
-                        '<svg id="pvChev-promo" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8B3A7F" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition:transform .2s;transform:rotate(0deg);"><path d="M6 9l6 6 6-6"/></svg>' +
-                    '</div>' +
-                    '<div id="pvBody-promo" style="display:none;padding:0 16px 16px;">' +
-                        (_pvPromoText ? '<div style="font-family:\'Crimson Pro\',serif;font-size:21px;color:#3a2a2e;line-height:1.7;font-style:italic;">“' + sanitize(_pvPromoText) + '”</div>' : '') +
-                        (_pvPromoPhotos.length ? '<div style="display:flex;flex-direction:column;gap:8px;margin-top:10px;">' + _pvPromoPhotos.map(function(u){ return '<div style="width:100%;border-radius:8px;overflow:hidden;background:#f5f0eb;"><img src="' + u + '" style="width:100%;height:auto;display:block;"></div>'; }).join('') + '</div>' : '') +
-                    '</div>' +
-                '</div>' : '';
 
-            // Product — the previewed item, collapsible like the other sections.
-            var _pvProduct = '';
-            (function(){
-                var m = _previewModularObj; if (!m) return;
-                var isMenu = m.type === 'menu';
-                var purls = (m.photos || []).map(function(x){ return typeof x === 'string' ? x : (x && x.url); }).filter(Boolean).slice(0, 3);
-                var pnm = sanitize((m.name || '').trim());
-                var pdet = sanitize((m.details || '').trim());
-                if (!purls.length && !pnm && !pdet) return;
-                var pHead = (isMenu ? '🍽️ ' : '') + (pnm || (isMenu ? 'Menu' : 'Product'));
-                var pGrid = purls.length ? '<div style="display:grid;grid-template-columns:repeat(' + Math.min(purls.length,3) + ',1fr);gap:8px;margin-bottom:' + (pdet ? '12px' : '0') + ';">' + purls.map(function(u){ return '<div style="aspect-ratio:3/4;border-radius:10px;overflow:hidden;background:#f5f0eb;"><img src="' + u + '" style="width:100%;height:100%;object-fit:cover;display:block;"></div>'; }).join('') + '</div>' : '';
-                _pvProduct =
-                    '<div style="background:#fff;border:1.5px solid #E8DDD6;border-radius:12px;overflow:hidden;margin-bottom:12px;">' +
-                        '<div onclick="togglePreviewSection(\'product\')" style="display:flex;align-items:center;gap:10px;padding:15px 16px;cursor:pointer;">' +
-                            '<span style="flex:1;font-family:\'Crimson Pro\',serif;font-size:20px;font-weight:700;color:#8B3A7F;">' + pHead + '</span>' +
-                            '<svg id="pvChev-product" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8B3A7F" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition:transform .2s;transform:rotate(180deg);"><path d="M6 9l6 6 6-6"/></svg>' +
-                        '</div>' +
-                        '<div id="pvBody-product" style="padding:0 16px 16px;">' + pGrid + (pdet ? '<div style="font-size:15px;color:#3D2E24;line-height:1.55;white-space:pre-wrap;">' + pdet + '</div>' : '') + '</div>' +
-                    '</div>';
-            })();
+            // The ONE shared preview card. The creator/editor chrome — the
+            // top-right collapse arrow and the product section — is layered on
+            // here. Escaping matches the original exactly (sanitize for text,
+            // raw for image URLs), so the rendered markup is unchanged.
+            var _parts = bizPreviewCard({
+                name: name, desc: desc, aboutUrls: aboutUrls,
+                logo: (bizLogoUrl || (bizProfileData && bizProfileData.logo) || ''),
+                website: website, phone: phone, email: email, address: address,
+                socialHrefs: socialHrefs,
+                promoText: _pvPromoText, promoPhotos: _pvPromoPhotos,
+                product: (_previewModularObj ? { name: _previewModularObj.name, details: _previewModularObj.details, photos: _previewModularObj.photos, isMenu: (_previewModularObj.type === 'menu') } : null)
+            }, {
+                iconMode: 'link', showShare: true, namePlaceholder: '', originPad: true,
+                aboutOpen: false, promoOpen: false,
+                escText: sanitize, escUrl: function(u){ return u; }
+            });
 
             var bodyHtml =
-                // Business-profile header, with a circular collapse arrow at the
-                // top-right that collapses About below it — mirrors duyen.io's
-                // scan view and the origin card on the tapestry.
+                // Header + a circular top-right arrow that collapses the sections.
                 '<div style="position:relative;">' +
-                (pvLogo ?
-                    '<div style="background:#EFE5EF;padding:16px 14px 13px;border-bottom:1px solid #E0CFE0;">' +
-                        '<img src="' + pvLogo + '" alt="' + safeName + '" style="display:block;margin:0 auto 10px;max-width:78%;max-height:185px;object-fit:contain;border-radius:14px;">' +
-                        _pvHeadText +
-                    '</div>'
-                :
-                    '<div style="background:#EFE5EF;padding:13px 14px;display:flex;align-items:center;gap:13px;border-bottom:1px solid #E0CFE0;">' +
-                        '<div style="flex-shrink:0;text-align:center;width:92px;">' +
-                            '<span style="font-family:\'Crimson Pro\',serif;font-size:66px;font-weight:400;color:#DA251D;line-height:1;display:block;">緣</span>' +
-                            '<span style="font-family:\'DM Sans\',sans-serif;font-size:13px;font-weight:400;letter-spacing:.3em;color:#DA251D;display:block;margin-top:3px;">DUYÊN</span>' +
-                        '</div>' +
-                        '<div style="flex:1;min-width:0;">' + _pvHeadText + '</div>' +
-                    '</div>'
-                ) +
+                    _parts.header +
                     '<span onclick="togglePreviewOrigin()" style="position:absolute;top:12px;right:12px;width:32px;height:32px;border-radius:50%;background:rgba(139,58,127,0.12);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;">' +
                         '<svg id="pvOriginChev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8B3A7F" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition:transform .2s;transform:rotate(180deg);"><polyline points="6 9 12 15 18 9"></polyline></svg>' +
                     '</span>' +
                 '</div>' +
-                // Sections — About, What's new, Product — each collapsible; the
-                // header arrow collapses the whole region. Open by default.
                 '<div id="pvOriginBody" style="display:block;">' +
-                    ((_pvAbout || _pvPromo || _pvProduct) ?
-                        '<div style="padding:22px 16px 4px;background:#F0EFED;">' + _pvAbout + _pvPromo + _pvProduct + '</div>'
-                    : '') +
+                    (_parts.sectionsInner ? '<div style="padding:22px 16px 4px;background:#F0EFED;">' + _parts.sectionsInner + '</div>' : '') +
                 '</div>';
 
             document.getElementById('previewCardBody').innerHTML = bodyHtml;
@@ -5845,19 +5868,6 @@
         // scanned card — DUYÊN header + contact/social icons, About, and the
         // What's new promo — using the saved profile + the current promo draft.
         var promoPreviewObjUrls = [];
-        var PROMO_PREVIEW_SOCIALS = [
-            { key:'facebook',  path:'M24 12.073C24 5.404 18.627 0 12 0S0 5.404 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.41c0-3.025 1.792-4.697 4.533-4.697 1.312 0 2.686.236 2.686.236v2.97h-1.513c-1.491 0-1.956.93-1.956 1.886v2.267h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073z' },
-            { key:'pinterest', path:'M12 0C5.373 0 0 5.372 0 12c0 5.084 3.163 9.426 7.627 11.174-.105-.949-.2-2.405.042-3.441.218-.937 1.407-5.965 1.407-5.965s-.359-.719-.359-1.782c0-1.668.967-2.914 2.171-2.914 1.023 0 1.518.769 1.518 1.69 0 1.029-.655 2.568-.994 3.995-.283 1.194.599 2.169 1.777 2.169 2.133 0 3.772-2.249 3.772-5.495 0-2.873-2.064-4.882-5.012-4.882-3.414 0-5.418 2.561-5.418 5.207 0 1.031.397 2.138.893 2.738a.36.36 0 0 1 .083.345l-.333 1.36c-.053.22-.174.267-.402.161-1.499-.698-2.436-2.889-2.436-4.649 0-3.785 2.75-7.262 7.929-7.262 4.163 0 7.398 2.967 7.398 6.931 0 4.136-2.607 7.464-6.227 7.464-1.216 0-2.359-.632-2.75-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146C9.57 23.812 10.763 24 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0z' },
-            { key:'youtube',   path:'M23.495 6.205a3.007 3.007 0 0 0-2.088-2.088c-1.87-.501-9.396-.501-9.396-.501s-7.507-.01-9.396.501A3.007 3.007 0 0 0 .527 6.205a31.247 31.247 0 0 0-.522 5.805 31.247 31.247 0 0 0 .522 5.783 3.007 3.007 0 0 0 2.088 2.088c1.868.502 9.396.502 9.396.502s7.506 0 9.396-.502a3.007 3.007 0 0 0 2.088-2.088 31.247 31.247 0 0 0 .5-5.783 31.247 31.247 0 0 0-.5-5.805zM9.609 15.601V8.408l6.264 3.602z' },
-            { key:'yelp',      path:'M20.16 12.594l-4.995 1.433c-.96.275-1.775-.8-1.172-1.633l2.915-4.1a1.084 1.084 0 0 1 1.671-.102c1.021 1.112 1.985 2.928 1.591 4.328l-.01.074zm-9.967 3.08l-4.342 2.882c-.84.557-1.874-.278-1.51-1.225.752-1.96 2.268-4.03 3.76-4.566a1.085 1.085 0 0 1 1.423.765l.424 1.69c.145.59-.146 1.195-.755 1.454zm-2.88-6.956L3.07 7.56c-.96-.212-1.167-1.49-.31-1.973 1.8-.998 4.17-1.42 5.559-.858.727.295 1.018 1.147.636 1.81l-.864 1.487c-.293.504-.93.722-1.47.536-.1-.034-.198-.063-.298-.09zm4.215-3.483l.037-5.176C11.586-.016 12.748.03 13.02.987c.57 1.985.57 4.575-.175 5.865a1.085 1.085 0 0 1-1.593.39l-.944-.697c-.49-.36-.677-1.003-.44-1.554.1-.23.15-.473.112-.706zm5.792 11.52c.648.802.195 1.93-.806 2.007-2.07.156-4.61-.404-5.61-1.618a1.085 1.085 0 0 1 .167-1.63l1.428-1.023c.482-.345 1.145-.267 1.538.183.09.103.188.198.29.286 1.075.929 2.19 1.14 3.013.967l-.02-.172z' },
-            { key:'linkedin',  path:'M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z' },
-            { key:'x',         path:'M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.746l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z' },
-            { key:'instagram', path:'M12 0C8.74 0 8.333.015 7.053.072 5.775.132 4.905.333 4.14.63c-.789.306-1.459.717-2.126 1.384S.935 3.35.63 4.14C.333 4.905.131 5.775.072 7.053.012 8.333 0 8.74 0 12s.015 3.667.072 4.947c.06 1.277.261 2.148.558 2.913.306.788.717 1.459 1.384 2.126.667.666 1.336 1.079 2.126 1.384.766.296 1.636.499 2.913.558C8.333 23.988 8.74 24 12 24s3.667-.015 4.947-.072c1.277-.06 2.148-.262 2.913-.558.788-.306 1.459-.718 2.126-1.384.666-.667 1.079-1.335 1.384-2.126.296-.765.499-1.636.558-2.913.06-1.28.072-1.687.072-4.947s-.015-3.667-.072-4.947c-.06-1.277-.262-2.149-.558-2.913-.306-.789-.718-1.459-1.384-2.126C21.319 1.347 20.651.935 19.86.63c-.765-.297-1.636-.499-2.913-.558C15.667.012 15.26 0 12 0zm0 2.16c3.203 0 3.585.016 4.85.071 1.17.055 1.805.249 2.227.415.562.217.96.477 1.382.896.419.42.679.819.896 1.381.164.422.36 1.057.413 2.227.057 1.266.07 1.646.07 4.85s-.015 3.585-.074 4.85c-.061 1.17-.256 1.805-.421 2.227-.224.562-.479.96-.899 1.382-.419.419-.824.679-1.38.896-.42.164-1.065.36-2.235.413-1.274.057-1.649.07-4.859.07-3.211 0-3.586-.015-4.859-.074-1.171-.061-1.816-.256-2.236-.421-.569-.224-.96-.479-1.379-.899-.421-.419-.69-.824-.9-1.38-.165-.42-.359-1.065-.42-2.235-.045-1.26-.061-1.649-.061-4.844 0-3.196.016-3.586.061-4.861.061-1.17.255-1.814.42-2.234.21-.57.479-.96.9-1.381.419-.419.81-.689 1.379-.898.42-.166 1.051-.361 2.221-.421 1.275-.045 1.65-.06 4.859-.06l.045.03zm0 3.678a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm7.846-10.405a1.441 1.441 0 01-2.88 0 1.44 1.44 0 012.88 0z' },
-            { key:'tiktok',    path:'M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z' },
-        ];
-        function _pvIcon(inner) {
-            return '<span style="width:38px;height:38px;border-radius:10px;background:transparent;border:2px solid #8B3A7F;display:flex;align-items:center;justify-content:center;flex-shrink:0;">' + inner + '</span>';
-        }
         function showPromoPreview() {
             var esc = function(s){ var d=document.createElement('div'); d.textContent=(s==null?'':s); return d.innerHTML; };
             var text = ((document.getElementById('dashPromoText') || {}).value || '').trim();
@@ -5874,7 +5884,6 @@
             var biz = (typeof bizProfileData === 'object' && bizProfileData) ? bizProfileData : {};
             var addr = (biz.address && biz.address.full) ? biz.address.full : (typeof biz.address === 'string' ? biz.address : '');
             var soc = biz.social || {};
-            var pvLogo = (typeof biz.logo === 'string' && /^https?:\/\//.test(biz.logo)) ? biz.logo.replace(/"/g, '&quot;') : '';
 
             var body = document.getElementById('promoPreviewBody');
             if (!body) return;
@@ -5885,67 +5894,23 @@
                 return;
             }
 
-            // Contact / social icon row (plum outline icons, matching the scan view)
-            var icons = '';
-            if (biz.website) icons += _pvIcon('<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8B3A7F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>');
-            PROMO_PREVIEW_SOCIALS.forEach(function(s){ if (soc[s.key]) icons += _pvIcon('<svg width="17" height="17" viewBox="0 0 24 24" fill="#8B3A7F"><path d="' + s.path + '"/></svg>'); });
-            if (biz.phone) icons += _pvIcon('<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8B3A7F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>');
-            if (biz.email) icons += _pvIcon('<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8B3A7F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 7l-10 6L2 7"/></svg>');
-            if (addr) icons += _pvIcon('<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8B3A7F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>');
-            var iconRow = icons ? '<div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:14px;">' + icons + '</div>' : '';
-
-            // About section (if any content)
-            var aboutPhotos = Array.isArray(biz.aboutPhotos) ? biz.aboutPhotos : [];
-            var aboutSection = (biz.description || aboutPhotos.length) ?
-                '<div style="background:#fff;border:1.5px solid #E8DDD6;border-radius:12px;overflow:hidden;margin-bottom:12px;">' +
-                    '<div onclick="togglePreviewSection(\'about\')" style="display:flex;align-items:center;gap:10px;padding:15px 16px;cursor:pointer;">' +
-                        '<span style="flex:1;font-family:\'Crimson Pro\',serif;font-size:22px;font-weight:600;color:#2E2A28;">About</span>' +
-                        '<svg id="pvChev-about" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8B3A7F" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition:transform .2s;transform:rotate(180deg);"><path d="M6 9l6 6 6-6"/></svg>' +
-                    '</div>' +
-                    '<div id="pvBody-about" style="padding:0 16px 16px;">' +
-                        (biz.description ? '<div style="font-family:\'Crimson Pro\',serif;font-size:21px;font-style:italic;color:#5D4E44;line-height:1.7;margin-bottom:14px;">“' + esc(biz.description) + '”</div>' : '') +
-                        (aboutPhotos.length ? '<div style="display:grid;grid-template-columns:repeat(' + Math.min(aboutPhotos.length,3) + ',1fr);gap:8px;">' + aboutPhotos.slice(0,3).map(function(u){ return '<div style="aspect-ratio:3/4;border-radius:10px;overflow:hidden;"><img src="' + esc(u) + '" style="width:100%;height:100%;object-fit:cover;"></div>'; }).join('') + '</div>' : '') +
-                    '</div>' +
-                '</div>' : '';
-
-            // What's new (promo) section
-            var promoPhotosHtml = photos.length ? '<div style="display:flex;flex-direction:column;gap:8px;margin-top:10px;">' + photos.map(function(u){ return '<div style="width:100%;border-radius:8px;overflow:hidden;background:#f5f0eb;"><img src="' + esc(u) + '" style="width:100%;height:auto;display:block;"></div>'; }).join('') + '</div>' : '';
-            var promoSection = (text || photos.length) ?
-                '<div style="background:#fff;border:1.5px solid #E8DDD6;border-radius:12px;overflow:hidden;margin-bottom:12px;">' +
-                    '<div onclick="togglePreviewSection(\'promo\')" style="display:flex;align-items:center;gap:10px;padding:15px 16px;cursor:pointer;">' +
-                        '<span style="flex:1;font-family:\'Crimson Pro\',serif;font-size:22px;font-weight:600;color:#2E2A28;">What\'s new</span>' +
-                        '<span style="background:#8B3A7F;color:#fff;font-size:12px;font-weight:600;padding:2px 8px;border-radius:10px;">1</span>' +
-                        '<svg id="pvChev-promo" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8B3A7F" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition:transform .2s;transform:rotate(180deg);"><path d="M6 9l6 6 6-6"/></svg>' +
-                    '</div>' +
-                    '<div id="pvBody-promo" style="padding:0 16px 16px;">' +
-                        (text ? '<div style="font-family:\'Crimson Pro\',serif;font-size:21px;color:#3a2a2e;line-height:1.7;font-style:italic;">“' + esc(text) + '”</div>' : '') +
-                        promoPhotosHtml +
-                    '</div>' +
-                '</div>' : '';
-
-            var _pvHead =
-                '<div style="font-family:\'Crimson Pro\',serif;font-size:22px;font-weight:600;color:#3D2E24;line-height:1.15;text-align:center;">Every thing has an origin</div>' +
-                '<div style="font-size:13.5px;color:#6B5751;line-height:1.45;margin-top:6px;font-weight:300;text-align:center;">Behind this moment is a maker, a craft, and a reason it found its way to you.</div>' +
-                '<div style="font-family:\'Crimson Pro\',serif;font-size:20px;font-weight:700;color:#8B3A7F;text-align:center;margin-top:8px;">' + esc(biz.name || 'Your business') + '</div>' +
-                iconRow;
+            // The ONE shared preview card — scan-preview surface: inert icons,
+            // "Your business" name placeholder, sections open by default. Escaping
+            // matches the original (esc for both text and image URLs).
+            var _parts = bizPreviewCard({
+                name: biz.name || '', desc: biz.description || '',
+                aboutUrls: (Array.isArray(biz.aboutPhotos) ? biz.aboutPhotos : []),
+                logo: (typeof biz.logo === 'string' ? biz.logo : ''),
+                website: biz.website || '', phone: biz.phone || '', email: biz.email || '', address: addr,
+                socialHrefs: soc, promoText: text, promoPhotos: photos, product: null
+            }, {
+                iconMode: 'static', showShare: false, namePlaceholder: 'Your business', originPad: false,
+                aboutOpen: true, promoOpen: true, escText: esc, escUrl: esc
+            });
             body.innerHTML =
-                // Header
-                (pvLogo ?
-                    '<div style="background:#EFE5EF;padding:16px 14px 13px;border-bottom:1px solid #E0CFE0;">' +
-                        '<img src="' + pvLogo + '" alt="' + esc(biz.name || '') + '" style="display:block;margin:0 auto 10px;max-width:78%;max-height:185px;object-fit:contain;border-radius:14px;">' +
-                        _pvHead +
-                    '</div>'
-                :
-                    '<div style="background:#EFE5EF;padding:13px 14px;display:flex;align-items:center;gap:13px;border-bottom:1px solid #E0CFE0;">' +
-                        '<div style="flex-shrink:0;text-align:center;width:92px;">' +
-                            '<span style="font-family:\'Crimson Pro\',serif;font-size:66px;font-weight:400;color:#DA251D;line-height:1;display:block;">緣</span>' +
-                            '<span style="font-family:\'DM Sans\',sans-serif;font-size:13px;font-weight:400;letter-spacing:.3em;color:#DA251D;display:block;margin-top:3px;">DUYÊN</span>' +
-                        '</div>' +
-                        '<div style="flex:1;min-width:0;">' + _pvHead + '</div>' +
-                    '</div>'
-                ) +
+                _parts.header +
                 // Sections
-                '<div style="padding:22px 16px 4px;background:#F0EFED;">' + aboutSection + promoSection + '</div>' +
+                '<div style="padding:22px 16px 4px;background:#F0EFED;">' + _parts.sectionsInner + '</div>' +
                 // Role CTA (static preview of the customer's next step)
                 '<div style="height:1px;background:#E8DDD6;margin:16px 28px 0;"></div>' +
                 '<div style="padding:20px 24px 22px;background:#F0EFED;pointer-events:none;">' +
