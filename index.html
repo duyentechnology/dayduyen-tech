@@ -2140,7 +2140,7 @@
                 <label style="font-size:12.5px;font-weight:600;color:#9A8478;text-transform:uppercase;letter-spacing:.5px;font-family:'Outfit',sans-serif;">Attaching to</label>
                 <select id="batchProfileSelect" style="width:100%;margin-top:6px;border:1.5px solid #8B3A7F;border-radius:10px;padding:11px;font-family:'Outfit',sans-serif;font-size:16px;font-weight:600;color:#8B3A7F;background:#fff;"></select>
                 <label style="display:block;margin-top:12px;font-size:12.5px;font-weight:600;color:#9A8478;text-transform:uppercase;letter-spacing:.5px;font-family:'Outfit',sans-serif;">How many are you scanning? <span style="text-transform:none;letter-spacing:0;font-weight:400;">(optional)</span></label>
-                <input id="batchTargetCount" type="number" inputmode="numeric" min="1" max="200" placeholder="e.g. 30 for a full sheet" oninput="updateBatchCounter()" style="width:100%;margin-top:6px;box-sizing:border-box;border:1.5px solid #E8DDD6;border-radius:10px;padding:11px;font-family:'Outfit',sans-serif;font-size:16px;font-weight:600;color:#2E2A28;background:#fff;">
+                <input id="batchTargetCount" type="number" inputmode="numeric" min="1" max="200" placeholder="e.g. 30 for a full sheet" oninput="updateBatchCounter()" onfocus="batchPauseScan(true)" onblur="batchPauseScan(false)" style="width:100%;margin-top:6px;box-sizing:border-box;border:1.5px solid #E8DDD6;border-radius:10px;padding:11px;font-family:'Outfit',sans-serif;font-size:16px;font-weight:600;color:#2E2A28;background:#fff;">
             </div>
             <!-- Camera area -->
             <div style="background:#1a1a1a;padding:28px;display:flex;flex-direction:column;align-items:center;">
@@ -2176,13 +2176,13 @@
                             </div>
                             <input type="file" id="productPhotosInput" accept="image/*" multiple style="display:none;" onchange="handleProductPhotos(this)">
                         </div>
-                        <textarea id="productDetails" placeholder="Describe the item — materials, origin, care, a note..." style="width:100%;min-height:80px;resize:vertical;border:1.5px solid #E8DDD6;border-radius:10px;padding:12px;font-family:'Outfit',sans-serif;font-size:16px;color:#2E2A28;box-sizing:border-box;background:#fff;"></textarea>
+                        <textarea id="productDetails" onfocus="batchPauseScan(true)" onblur="batchPauseScan(false)" placeholder="Describe the item — materials, origin, care, a note..." style="width:100%;min-height:80px;resize:vertical;border:1.5px solid #E8DDD6;border-radius:10px;padding:12px;font-family:'Outfit',sans-serif;font-size:16px;color:#2E2A28;box-sizing:border-box;background:#fff;"></textarea>
                     </div>
                 </div>
             </div>
             <!-- Actions -->
             <div style="padding:20px;background:#fff;">
-                <button onclick="finishBatchScan()" class="btn-primary" style="width:100%;font-size:16px;padding:13px;margin-bottom:10px;">Done — Apply Profile to All QR Codes →</button>
+                <button id="batchDoneBtn" onclick="finishBatchScan()" class="btn-primary" style="width:100%;font-size:16px;padding:13px;margin-bottom:10px;">Done — Apply Profile to All QR Codes →</button>
                 <button onclick="showView('bizScanChoice')" style="width:100%;background:#fff;color:#9A8478;border:1.5px solid #E8DDD6;border-radius:10px;padding:11px;font-family:'Outfit',sans-serif;font-size:15px;cursor:pointer;">← Back</button>
                 <p style="font-size:13px;color:#9A8478;text-align:center;margin-top:10px;font-family:'Outfit',sans-serif;">Scan as many as you need. No limit.</p>
             </div>
@@ -6064,11 +6064,15 @@
             reader.appendChild(video);
             reader.appendChild(canvas);
 
-            var scannerState = { stream: null, animFrame: null, stopped: false, lastScan: 0 };
+            var scannerState = { stream: null, animFrame: null, stopped: false, paused: false, lastScan: 0 };
             batchHtml5Scanner = scannerState;
 
             function tick() {
                 if (scannerState.stopped) return;
+                // Paused while the user is typing in a field below — the heavy
+                // per-frame decode otherwise pins the CPU and makes the keyboard
+                // stutter. Keep the RAF alive so scanning resumes on blur.
+                if (scannerState.paused) { scannerState.animFrame = requestAnimationFrame(tick); return; }
                 if (video.readyState === video.HAVE_ENOUGH_DATA) {
                     var now = Date.now();
                     // Throttle: the tiled decode below runs jsQR several times
@@ -6244,6 +6248,20 @@
                 counter.style.background = 'rgba(139,58,127,0.9)';
                 _batchCompleteAnnounced = false;
             }
+            // Mirror the count onto the Done button so it's visible down at the
+            // finish line without scrolling back up to the counter pill.
+            var doneBtn = document.getElementById('batchDoneBtn');
+            if (doneBtn) doneBtn.textContent = n > 0
+                ? 'Done — Apply Profile to ' + n + ' QR Code' + (n !== 1 ? 's' : '') + ' →'
+                : 'Done — Apply Profile to All QR Codes →';
+        }
+
+        // Pause the decode loop while a text field is focused so typing stays
+        // smooth (the per-frame QR decode otherwise pins the phone's CPU). The
+        // camera preview keeps showing; scanning resumes the moment the field
+        // loses focus.
+        function batchPauseScan(p) {
+            if (batchHtml5Scanner) batchHtml5Scanner.paused = !!p;
         }
 
         async function finishBatchScan() {
