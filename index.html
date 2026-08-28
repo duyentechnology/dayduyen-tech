@@ -2138,7 +2138,7 @@
             <!-- Which profile these cards will point to -->
             <div style="padding:14px 16px;background:#fff;border-bottom:1px solid #E8DDD6;">
                 <label style="font-size:12.5px;font-weight:600;color:#9A8478;text-transform:uppercase;letter-spacing:.5px;font-family:'Outfit',sans-serif;">Attaching to</label>
-                <select id="batchProfileSelect" style="width:100%;margin-top:6px;border:1.5px solid #8B3A7F;border-radius:10px;padding:11px;font-family:'Outfit',sans-serif;font-size:16px;font-weight:600;color:#8B3A7F;background:#fff;"></select>
+                <select id="batchProfileSelect" onchange="batchProfileChanged()" style="width:100%;margin-top:6px;border:1.5px solid #8B3A7F;border-radius:10px;padding:11px;font-family:'Outfit',sans-serif;font-size:16px;font-weight:600;color:#8B3A7F;background:#fff;"></select>
                 <label style="display:block;margin-top:12px;font-size:12.5px;font-weight:600;color:#9A8478;text-transform:uppercase;letter-spacing:.5px;font-family:'Outfit',sans-serif;">How many are you scanning? <span style="text-transform:none;letter-spacing:0;font-weight:400;">(optional)</span></label>
                 <input id="batchTargetCount" type="number" inputmode="numeric" min="1" max="200" placeholder="e.g. 30 for a full sheet" oninput="updateBatchCounter()" onfocus="batchPauseScan(true)" onblur="batchPauseScan(false)" style="width:100%;margin-top:6px;box-sizing:border-box;border:1.5px solid #E8DDD6;border-radius:10px;padding:11px;font-family:'Outfit',sans-serif;font-size:16px;font-weight:600;color:#2E2A28;background:#fff;">
             </div>
@@ -6005,30 +6005,45 @@
             } catch(e) { console.warn('loadLastPromotion error:', e); }
         }
 
-        // Fill the "Attaching to" selector with the business's profiles and
-        // default it to the current one, so a batch always lands on a profile
-        // the user explicitly sees (and can change when they have several).
+        // Remember the chosen profile in sessionStorage so it survives a view
+        // re-init (e.g. iOS re-running the page after the photo picker), which
+        // otherwise reset the <select> back to the default and silently attached
+        // the wrong profile.
+        function batchProfileChanged() {
+            var sel = document.getElementById('batchProfileSelect');
+            try { if (sel && sel.value) sessionStorage.setItem('batchProfileId', sel.value); } catch (e) {}
+        }
+        // Fill the "Attaching to" selector with the business's profiles. Keep the
+        // user's existing choice if there is one (current <select> value, else the
+        // saved one); only fall back to the active profile when neither is valid.
         function populateBatchProfiles() {
             var sel = document.getElementById('batchProfileSelect');
             if (!sel) return;
+            var prev = sel.value;
+            if (!prev) { try { prev = sessionStorage.getItem('batchProfileId') || ''; } catch (e) { prev = ''; } }
             sel.innerHTML = '';
             var list = Array.isArray(bizProfiles) ? bizProfiles : [];
             if (!list.length && bizProfileData) list = [bizProfileData];
+            var ids = [];
             list.forEach(function(p, i) {
+                var id = p.profileId || String(i);
+                ids.push(id);
                 var o = document.createElement('option');
-                o.value = p.profileId || String(i);
+                o.value = id;
                 o.textContent = p.name || ('Profile ' + (i + 1));
                 sel.appendChild(o);
             });
-            if (bizProfileData && bizProfileData.profileId) sel.value = bizProfileData.profileId;
+            if (prev && ids.indexOf(prev) > -1) sel.value = prev;
+            else if (bizProfileData && bizProfileData.profileId) sel.value = bizProfileData.profileId;
+            batchProfileChanged(); // persist whatever is now selected
         }
         function selectedBatchProfile() {
             var sel = document.getElementById('batchProfileSelect');
+            var want = (sel && sel.value) ? sel.value : '';
+            if (!want) { try { want = sessionStorage.getItem('batchProfileId') || ''; } catch (e) { want = ''; } }
             var list = Array.isArray(bizProfiles) ? bizProfiles : [];
-            if (sel && sel.value) {
-                for (var i = 0; i < list.length; i++) {
-                    if ((list[i].profileId || String(i)) === sel.value) return list[i];
-                }
+            for (var i = 0; i < list.length; i++) {
+                if ((list[i].profileId || String(i)) === want) return list[i];
             }
             return bizProfileData;
         }
