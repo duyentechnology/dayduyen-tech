@@ -1,0 +1,15 @@
+# Environment / secrets — never commit these.
+# The app ships only the public anon key (safe by design); the service_role
+# key, Stripe secrets, and the Supabase access token live in the environment,
+# never in the repo.
+.env
+.env.*
+!.env.example
+
+# Supabase CLI local state
+.branches/
+.temp/
+
+# OS / editor cruft
+.DS_Store
+*.swp
