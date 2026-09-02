@@ -2924,11 +2924,33 @@
                 var _um = document.getElementById('upgradeModal'); if (_um) _um.style.display = 'none';
                 return;
             }
+            // The $10 generator unlocks ONE specific profile, so the checkout MUST
+            // carry that profile id — otherwise the webhook flips has_generator but
+            // unlocks nothing, and the customer pays with no result. pendingUnlockProfile
+            // is set only when the flow starts from a profile; the plans / upgrade
+            // modals call startUpgrade('generator') with no profile, so fall back to
+            // localStorage and the profile currently open. If none can be determined,
+            // refuse to start checkout rather than take an orphaning payment.
+            var _prof = '';
+            if (tier === 'generator') {
+                _prof = pendingUnlockProfile || '';
+                if (!_prof) { try { _prof = localStorage.getItem('pendingProfileQr') || ''; } catch (e) {} }
+                if (!_prof) _prof = currentProfileId || (bizProfileData && bizProfileData.profileId) || '';
+                if (!_prof) {
+                    alert('Open the business profile you want a QR for, then tap “Generate this profile’s QR”.');
+                    var _pm2 = document.getElementById('plansModal'); if (_pm2) _pm2.style.display = 'none';
+                    var _um2 = document.getElementById('upgradeModal'); if (_um2) _um2.style.display = 'none';
+                    var _sm2 = document.getElementById('startUpgradeModal'); if (_sm2) _sm2.style.display = 'none';
+                    return;
+                }
+                pendingUnlockProfile = _prof;
+                try { localStorage.setItem('pendingProfileQr', _prof); } catch (e) {}
+            }
             var go = document.getElementById('startUpgradeGo');
             if (go) { go.disabled = true; go.textContent = 'Redirecting to secure checkout…'; go.style.opacity = '0.7'; }
             try {
                 var _body = { tier: tier };
-                if (tier === 'generator' && pendingUnlockProfile) _body.profileId = pendingUnlockProfile;
+                if (tier === 'generator') _body.profileId = _prof;
                 var res = await db.functions.invoke('business-checkout', { body: _body });
                 if (res.error || !res.data || !res.data.url) {
                     console.error('business-checkout error:', res.error || res.data);
