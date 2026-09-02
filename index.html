@@ -4694,7 +4694,7 @@
                     // exact profile. Not generated yet → tapping opens the profile
                     // editor, where generation/payment now lives; once generated,
                     // tapping opens design & print. No inline price CTA here.
-                    '<div onclick="' + (code ? 'profileQrAction' : 'editProfile') + '(\'' + p.profileId + '\')" style="background:#FBF7FB;border-top:1px solid #F0E5F0;border-left:3px solid #8B3A7F;padding:13px 14px 13px 12px;display:flex;align-items:center;gap:13px;cursor:pointer;">' +
+                    '<div onclick="' + ((code || paid) ? 'profileQrAction' : 'editProfile') + '(\'' + p.profileId + '\')" style="background:#FBF7FB;border-top:1px solid #F0E5F0;border-left:3px solid #8B3A7F;padding:13px 14px 13px 12px;display:flex;align-items:center;gap:13px;cursor:pointer;">' +
                         (code
                             ? '<canvas class="profQrCanvas" data-url="' + sanitize(code.url || '') + '" data-color="' + sanitize(code.color || '#8B3A7F') + '" width="124" height="124" style="width:56px;height:56px;flex-shrink:0;border-radius:6px;"></canvas>'
                             : '<div style="width:56px;height:56px;flex-shrink:0;border-radius:10px;background:#F3E9F3;display:flex;align-items:center;justify-content:center;">' +
@@ -4706,7 +4706,7 @@
                             '<div style="font-size:14.5px;color:#6B5E56;line-height:1.4;margin-top:2px;font-family:\'Outfit\',sans-serif;">' +
                                 (code
                                     ? (paid ? 'Tap to design &amp; print ›' : 'Unlock design &amp; printing.')
-                                    : 'A standalone QR — open your profile to generate it.') +
+                                    : (paid ? 'Included — tap to generate &amp; design ›' : 'A standalone QR — open your profile to generate it.')) +
                             '</div>' +
                         '</div>' +
                         '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8B3A7F" stroke-width="2.5" style="flex-shrink:0;"><path d="M9 6l6 6-6 6"/></svg>' +
