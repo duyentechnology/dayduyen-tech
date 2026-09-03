@@ -2305,12 +2305,8 @@
             <div id="studioLabel" style="font-size:15px;color:#9A8478;margin-bottom:16px;"></div>
 
             <div style="background:#fff;border:1.5px solid #8B3A7F;border-radius:14px;padding:16px;margin-bottom:16px;">
-                <div style="font-size:15.5px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin:0 0 8px;text-align:center;">Design</div>
-                <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:12px;">
-                    <button type="button" id="designBtnbare" onclick="setStudioDesign('bare')" class="studio-chip sel">Code only</button>
-                    <button type="button" id="designBtntent" onclick="setStudioDesign('tent')" class="studio-chip">Printable sign</button>
-                </div>
-                <label style="display:block;font-size:14.5px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin:12px 0 6px;">Your own line <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#9A8478;">(optional — prints under the code)</span></label>
+                <div style="font-size:15.5px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin:0 0 8px;text-align:center;">Your QR code</div>
+                <label style="display:block;font-size:14.5px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin:2px 0 6px;">Your own line <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#9A8478;">(optional — prints under the code)</span></label>
                 <input type="text" id="studioText" maxlength="48" placeholder="e.g. Scan for 10% off your first order" oninput="studioTextChanged(this.value)" class="input-field" style="margin-bottom:6px;">
                 <div style="display:flex;justify-content:center;padding:6px 0 10px;"><canvas id="studioCanvas" style="max-width:230px;width:100%;height:auto;border-radius:8px;"></canvas></div>
                 <div style="display:flex;align-items:center;gap:14px;margin:8px 0 4px;">
@@ -2347,12 +2343,11 @@
                     <input type="range" id="studioLogoSize" min="0.7" max="1.5" step="0.01" value="1" oninput="setStudioLogoScale(this.value)" style="width:100%;accent-color:#8B3A7F;">
                 </div>
                 <button type="button" id="studioLogoAdjustBtn" onclick="adjustStudioLogo()" style="display:none;margin:10px auto 0;background:none;border:none;color:#8B3A7F;font-family:'Outfit',sans-serif;font-weight:600;font-size:14px;cursor:pointer;text-decoration:underline;">Reposition logo (zoom &amp; move)</button>
-                <!-- Download is right here with the preview, so you can grab the
-                     design you're looking at (the printable sign OR the code-only)
-                     without scrolling down to the Print Center. -->
+                <!-- Download the plain code PNG right here with its preview. The
+                     printable sign / poster is produced from the Poster box below. -->
                 <div style="display:flex;gap:10px;margin-top:16px;">
                     <button id="studioSaveBtn" onclick="saveStudio()" style="flex:1;background:#fff;color:#8B3A7F;border:1.5px solid #8B3A7F;border-radius:11px;padding:12px;font-family:'Outfit',sans-serif;font-weight:600;font-size:15.5px;cursor:pointer;">Save style</button>
-                    <button id="studioDownloadBtn" onclick="downloadStudioPNG()" style="flex:1.5;background:#8B3A7F;color:#fff;border:none;border-radius:11px;padding:12px;font-family:'Outfit',sans-serif;font-weight:700;font-size:15.5px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg><span id="studioDownloadLabel">Download</span></button>
+                    <button id="studioDownloadBtn" onclick="downloadStudioPNG()" style="flex:1.5;background:#8B3A7F;color:#fff;border:none;border-radius:11px;padding:12px;font-family:'Outfit',sans-serif;font-weight:700;font-size:15.5px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg><span id="studioDownloadLabel">Download code</span></button>
                 </div>
             </div>
 
@@ -2364,6 +2359,11 @@
                     <span style="font-size:11px;font-weight:700;color:#2AA8A0;letter-spacing:.5px;font-family:'Outfit',sans-serif;">FREE</span>
                 </div>
                 <div style="font-size:13.5px;color:#9A8478;margin-bottom:12px;font-family:'Outfit',sans-serif;line-height:1.5;">One big QR sign on its own page — for a door, window, or counter.</div>
+                <div style="font-size:13px;color:#9A8478;margin-bottom:6px;font-family:'Outfit',sans-serif;">Sign style</div>
+                <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:12px;">
+                    <button type="button" id="designBtnbare" onclick="setStudioDesign('bare')" class="studio-chip sel">Code only</button>
+                    <button type="button" id="designBtntent" onclick="setStudioDesign('tent')" class="studio-chip">Printable sign</button>
+                </div>
                 <label style="display:block;font-size:13px;color:#9A8478;margin-bottom:8px;font-family:'Outfit',sans-serif;">Sign size
                     <select id="posterSize" class="input-field" style="margin:3px 0 0;" onchange="posterSizeChanged(this.value)">
                         <option value="door">Full page — door / window (8.5 × 11")</option>
@@ -8353,10 +8353,9 @@
 
         function renderStudio() {
             var canvas = document.getElementById('studioCanvas');
-            if (canvas) {
-                if (studioState.design === 'tent') renderStudioTent(canvas, 460);
-                else renderStudioBareWithText(canvas, 460);
-            }
+            // The top card previews the CODE itself; the "Printable sign" style is
+            // a poster choice, previewed in the poster box — so this stays bare.
+            if (canvas) renderStudioBareWithText(canvas, 460);
             // Keep the background hex box showing the current colour (preset tap
             // or typed hex), but never fight the user while they're typing in it.
             var bgHex = document.getElementById('studioBgHex');
@@ -8427,14 +8426,14 @@
         }
 
         function setStudioDesign(d) {
+            // This now picks the POSTER style (simple code vs full printable sign);
+            // the top card always shows/downloads the bare code.
             studioState.design = (d === 'tent') ? 'tent' : 'bare';
             ['bare', 'tent'].forEach(function(k) {
                 var el = document.getElementById('designBtn' + k);
                 if (el) el.className = 'studio-chip' + (studioState.design === k ? ' sel' : '');
             });
-            var dl = document.getElementById('studioDownloadLabel');
-            if (dl) dl.textContent = (studioState.design === 'tent') ? 'Download sign' : 'Download code';
-            renderStudio();
+            updatePosterFitHint();
         }
         function wrapLines(ctx, text, maxW) {
             var words = String(text).split(/\s+/), lines = [], line = '';
@@ -8548,9 +8547,10 @@
         }
 
         function studioPngDataUrl(px) {
+            // Always the bare code — the tent/sign layout is composed by the
+            // poster builder, never returned here.
             var c = document.createElement('canvas');
-            if (studioState.design === 'tent') renderStudioTent(c, px || 1200);
-            else renderStudioBareWithText(c, px || 1200);
+            renderStudioBareWithText(c, px || 1200);
             return c.toDataURL('image/png');
         }
 
@@ -8569,8 +8569,7 @@
 
             try {
                 var c = document.createElement('canvas');
-                if (studioState.design === 'tent') renderStudioTent(c, 1200);
-                else renderStudioBareWithText(c, 1200);
+                renderStudioBareWithText(c, 1200); // top download is always the code
 
                 var blob = await new Promise(function (res) {
                     if (c.toBlob) c.toBlob(res, 'image/png');
