@@ -2368,10 +2368,15 @@
                     </select>
                 </label>
                 <div id="posterCustomWrap" style="display:none;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
-                    <label style="font-size:13px;color:#9A8478;">Width (in)<input type="number" step="0.1" min="1" max="40" id="posterCustomW" value="4" class="input-field" style="margin:2px 0 0;"></label>
-                    <label style="font-size:13px;color:#9A8478;">Height (in)<input type="number" step="0.1" min="1" max="40" id="posterCustomH" value="6" class="input-field" style="margin:2px 0 0;"></label>
+                    <label style="font-size:13px;color:#9A8478;">Width (in)<input type="number" step="0.1" min="1" max="40" id="posterCustomW" value="4" class="input-field" style="margin:2px 0 0;" oninput="updatePosterFitHint()"></label>
+                    <label style="font-size:13px;color:#9A8478;">Height (in)<input type="number" step="0.1" min="1" max="40" id="posterCustomH" value="6" class="input-field" style="margin:2px 0 0;" oninput="updatePosterFitHint()"></label>
                 </div>
-                <button type="button" onclick="printStudioPoster()" style="width:100%;text-align:left;background:#F1F8FB;border:1.5px solid #4A9EC4;border-radius:11px;padding:12px 14px;margin-bottom:14px;font-family:'Outfit',sans-serif;font-size:15.5px;color:#2E2A28;cursor:pointer;display:flex;align-items:center;gap:10px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4A9EC4" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg><span>Flyer poster (PDF)<br><span style="font-size:13px;color:#9A8478;">Your QR + business name, sized to fit</span></span></button>
+                <label style="display:flex;align-items:center;gap:9px;font-size:14.5px;color:#2E2A28;font-family:'Outfit',sans-serif;margin-bottom:6px;cursor:pointer;">
+                    <input type="checkbox" id="posterMulti" onchange="updatePosterFitHint()" style="width:18px;height:18px;accent-color:#8B3A7F;">
+                    Fit several on one sheet (cut apart)
+                </label>
+                <div id="posterFitHint" style="font-size:13px;color:#9A8478;margin-bottom:10px;font-family:'Outfit',sans-serif;">One sign per page (8.5×11").</div>
+                <button type="button" onclick="openPosterPreview()" style="width:100%;text-align:left;background:#F1F8FB;border:1.5px solid #4A9EC4;border-radius:11px;padding:12px 14px;margin-bottom:14px;font-family:'Outfit',sans-serif;font-size:15.5px;color:#2E2A28;cursor:pointer;display:flex;align-items:center;gap:10px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4A9EC4" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M1.5 12S5 5.5 12 5.5 22.5 12 22.5 12 19 18.5 12 18.5 1.5 12 1.5 12Z"/><circle cx="12" cy="12" r="3.2"/></svg><span>Preview &amp; print poster (PDF)<br><span style="font-size:13px;color:#9A8478;">See it first — QR + name, sized to fit</span></span></button>
 
                 <div style="font-size:15px;font-weight:700;color:#2E2A28;margin-bottom:4px;">Sticker sheet (PDF)</div>
                 <div style="font-size:13.5px;color:#5D4E44;line-height:1.55;background:#FBF7FB;border-radius:10px;padding:10px 12px;margin-bottom:10px;">
@@ -8179,6 +8184,7 @@
             if (_t) _t.value = studioState.sheetText || '';
             showView('qrStudio');
             renderStudio();
+            updatePosterFitHint();
         }
 
         function buildStudioSwatches() {
@@ -8598,54 +8604,183 @@
             counter: { w: 4,   h: 6,   tag: 'counter' },
             square:  { w: 4,   h: 4,   tag: 'square' },
         };
-        // Reveal the width/height inputs only for the Custom option.
+        // Reveal the width/height inputs only for the Custom option, then refresh
+        // the "fits N per sheet" hint.
         function posterSizeChanged(v) {
             var wrap = document.getElementById('posterCustomWrap');
             if (wrap) wrap.style.display = (v === 'custom') ? 'grid' : 'none';
+            updatePosterFitHint();
         }
-        function printStudioPoster() {
-            var item = studioItem(); if (!item) return;
-            var jsPDF = (window.jspdf || {}).jsPDF;
-            if (!jsPDF) { alert('PDF library not loaded — check your connection and retry.'); return; }
+        // The chosen single-sign size, or null if a custom size is incomplete.
+        function _posterSignSize() {
             var key = (document.getElementById('posterSize') || {}).value || 'door';
-            var S;
             if (key === 'custom') {
                 var cw = parseFloat((document.getElementById('posterCustomW') || {}).value) || 0;
                 var ch = parseFloat((document.getElementById('posterCustomH') || {}).value) || 0;
-                if (cw < 1 || ch < 1) { alert('Enter a width and height of at least 1 inch — a QR smaller than that scans poorly.'); return; }
-                if (cw > 40 || ch > 40) { alert('Keep each side to 40 inches or less.'); return; }
-                S = { w: cw, h: ch, tag: 'custom' };
-            } else {
-                S = POSTER_SIZES[key] || POSTER_SIZES.door;
+                if (cw < 1 || ch < 1 || cw > 40 || ch > 40) return null;
+                return { w: cw, h: ch, tag: 'custom' };
             }
-            var pw = S.w, ph = S.h;
-            // Explicit [width, height] page, portrait, so custom landscape sizes
-            // aren't silently swapped by an orientation guess.
-            var doc = new jsPDF({ unit: 'in', format: [pw, ph], orientation: 'portrait' });
+            return POSTER_SIZES[key] || POSTER_SIZES.door;
+        }
+        // Layout plan: one sign per page, or — when "fit several" is on — as many
+        // of that size as tile onto a Letter sheet (centred, with cut lines).
+        function posterPlan() {
+            var S = _posterSignSize();
+            if (!S) return null;
+            var multi = !!(document.getElementById('posterMulti') || {}).checked;
+            if (!multi) {
+                return { multi: false, S: S, pageW: S.w, pageH: S.h, cols: 1, rows: 1,
+                         count: 1, cellW: S.w, cellH: S.h, gap: 0, ml: 0, mt: 0 };
+            }
+            var pageW = 8.5, pageH = 11, gap = 0.2, margin = 0.3;
+            var cols = Math.max(1, Math.floor((pageW - 2*margin + gap) / (S.w + gap)));
+            var rows = Math.max(1, Math.floor((pageH - 2*margin + gap) / (S.h + gap)));
+            var usedW = cols*S.w + (cols-1)*gap, usedH = rows*S.h + (rows-1)*gap;
+            return { multi: true, S: S, pageW: pageW, pageH: pageH, cols: cols, rows: rows,
+                     count: cols*rows, cellW: S.w, cellH: S.h, gap: gap,
+                     ml: (pageW-usedW)/2, mt: (pageH-usedH)/2 };
+        }
+        function updatePosterFitHint() {
+            var el = document.getElementById('posterFitHint');
+            if (!el) return;
+            var p = posterPlan();
+            if (!p) { el.textContent = 'Enter a width and height (1–40 in).'; return; }
+            el.textContent = p.multi
+                ? ('Fits ' + p.count + ' per sheet (' + p.cellW + '×' + p.cellH + '" each) on Letter — cut apart.')
+                : ('One sign per page (' + p.pageW + '×' + p.pageH + '").');
+        }
+        // Prepared art shared by the PDF and the preview so they can't drift.
+        function _posterArt() {
+            var item = studioItem();
+            var art = { name: String((bizProfileData && bizProfileData.name) || (item && item.label) || 'My Business') };
             if (studioState.design === 'tent') {
-                // The sign carries its own name, words and call to action, so just
-                // fit the whole sign onto the chosen page.
                 var c = document.createElement('canvas');
                 renderStudioTent(c, 1200);
-                var ar = c.height / c.width;
-                var wIn = pw * 0.9, hIn = wIn * ar;
-                if (hIn > ph * 0.94) { hIn = ph * 0.94; wIn = hIn / ar; }
-                doc.addImage(c.toDataURL('image/png'), 'PNG', (pw - wIn) / 2, Math.max(0.15, (ph - hIn) / 2), wIn, hIn);
+                art.tentUrl = c.toDataURL('image/png');
+                art.tentAR = c.height / c.width;
             } else {
-                var name = (bizProfileData && bizProfileData.name) || item.label || 'My Business';
-                var k = pw / 8.5; // scale everything off the page width
-                var nameFs = Math.max(13, Math.round(30 * k));
-                var ctaFs = Math.max(8, Math.round(13 * k));
-                var topPad = ph * 0.11;
-                doc.setFont('times', 'bold'); doc.setFontSize(nameFs);
-                doc.text(String(name), pw / 2, topPad, { align: 'center', maxWidth: pw * 0.9 });
-                var qr = Math.min(pw * 0.72, ph * 0.55);
-                var qy = topPad + nameFs / 72 + ph * 0.03;
-                doc.addImage(studioPngDataUrl(1200), 'PNG', (pw - qr) / 2, qy, qr, qr);
-                doc.setFont('helvetica', 'normal'); doc.setFontSize(ctaFs); doc.setTextColor(120);
-                doc.text('Scan to see who we are — and save us for later', pw / 2, qy + qr + ph * 0.06, { align: 'center', maxWidth: pw * 0.9 });
+                art.qrUrl = studioPngDataUrl(1200);
             }
-            doc.save((item.label || 'business-qr').replace(/[^\w-]+/g, '_') + '_poster_' + S.tag + '.pdf');
+            return art;
+        }
+        // Draw one sign into an inch-space rect via a tiny abstraction so the same
+        // math serves jsPDF (inches) and canvas (pixels).
+        function _drawPosterCell(d, x, y, w, h, art) {
+            if (studioState.design === 'tent' && art.tentUrl) {
+                var ar = art.tentAR;
+                var ww = w * 0.96, hh = ww * ar;
+                if (hh > h * 0.96) { hh = h * 0.96; ww = hh / ar; }
+                d.img(art.tentUrl, x + (w-ww)/2, y + (h-hh)/2, ww, hh);
+            } else {
+                var k = w / 8.5;
+                var nameFs = Math.max(10, Math.round(30 * k));
+                var ctaFs  = Math.max(7, Math.round(13 * k));
+                var topPad = h * 0.11;
+                d.text(art.name, x + w/2, y + topPad, nameFs, 'times', '#282828', w*0.9);
+                var qr = Math.min(w * 0.72, h * 0.55);
+                var qy = y + topPad + nameFs/72 + h*0.03;
+                if (art.qrUrl) d.img(art.qrUrl, x + (w-qr)/2, qy, qr, qr);
+                d.text('Scan to see who we are — and save us for later', x + w/2, qy + qr + h*0.06, ctaFs, 'helvetica', '#787878', w*0.9);
+            }
+        }
+        // Build the poster PDF from the plan (single or tiled). Returns { doc, plan }.
+        function buildStudioPosterDoc() {
+            var jsPDF = (window.jspdf || {}).jsPDF;
+            if (!jsPDF) { alert('PDF library not loaded — check your connection and retry.'); return null; }
+            var plan = posterPlan();
+            if (!plan) { alert('Enter a width and height between 1 and 40 inches.'); return null; }
+            var art = _posterArt();
+            var doc = new jsPDF({ unit: 'in', format: [plan.pageW, plan.pageH], orientation: 'portrait' });
+            var d = {
+                img: function(url, x, y, w, h) { doc.addImage(url, 'PNG', x, y, w, h); },
+                text: function(t, cx, y, fs, font, color, maxW) {
+                    doc.setFont(font === 'times' ? 'times' : 'helvetica', font === 'times' ? 'bold' : 'normal');
+                    doc.setFontSize(fs);
+                    doc.setTextColor(color === '#282828' ? 40 : 120);
+                    doc.text(t, cx, y, { align: 'center', maxWidth: maxW });
+                    doc.setTextColor(0);
+                },
+            };
+            for (var r = 0; r < plan.rows; r++) for (var c = 0; c < plan.cols; c++) {
+                _drawPosterCell(d, plan.ml + c*(plan.cellW+plan.gap), plan.mt + r*(plan.cellH+plan.gap), plan.cellW, plan.cellH, art);
+            }
+            if (plan.multi) {
+                doc.setDrawColor(205); doc.setLineWidth(0.008);
+                for (var r2 = 0; r2 < plan.rows; r2++) for (var c2 = 0; c2 < plan.cols; c2++) {
+                    doc.rect(plan.ml + c2*(plan.cellW+plan.gap), plan.mt + r2*(plan.cellH+plan.gap), plan.cellW, plan.cellH);
+                }
+            }
+            return { doc: doc, plan: plan };
+        }
+        function downloadStudioPoster() {
+            var built = buildStudioPosterDoc(); if (!built) return;
+            var item = studioItem();
+            var suffix = built.plan.S.tag + (built.plan.multi ? '_' + built.plan.count + 'up' : '');
+            built.doc.save(((item && item.label) || 'business-qr').replace(/[^\w-]+/g, '_') + '_poster_' + suffix + '.pdf');
+        }
+        function _loadImg(src) { return new Promise(function(res) { var im = new Image(); im.onload = function(){ res(im); }; im.onerror = function(){ res(null); }; im.src = src; }); }
+        // Render the exact same plan to a canvas for the on-screen preview.
+        async function renderPosterPreview(canvas) {
+            var plan = posterPlan();
+            if (!plan) return null;
+            var pxIn = Math.max(60, Math.min(150, Math.floor(1000 / Math.max(plan.pageW, plan.pageH))));
+            canvas.width = Math.round(plan.pageW * pxIn);
+            canvas.height = Math.round(plan.pageH * pxIn);
+            var g = canvas.getContext('2d');
+            g.fillStyle = '#FFFFFF'; g.fillRect(0, 0, canvas.width, canvas.height);
+            var art = _posterArt();
+            var qrImg = art.qrUrl ? await _loadImg(art.qrUrl) : null;
+            var tentImg = art.tentUrl ? await _loadImg(art.tentUrl) : null;
+            var d = {
+                img: function(url, x, y, w, h) {
+                    var im = (url === art.qrUrl) ? qrImg : tentImg;
+                    if (im) g.drawImage(im, x*pxIn, y*pxIn, w*pxIn, h*pxIn);
+                },
+                text: function(t, cx, y, fs, font, color, maxW) {
+                    g.fillStyle = color; g.textAlign = 'center';
+                    g.font = (font === 'times' ? 'bold ' : 'normal ') + (fs*pxIn/72) + 'px ' + (font === 'times' ? 'Georgia, serif' : 'Helvetica, Arial, sans-serif');
+                    g.fillText(t, cx*pxIn, (y*pxIn) + (fs*pxIn/72)*0.82);
+                },
+            };
+            for (var r = 0; r < plan.rows; r++) for (var c = 0; c < plan.cols; c++) {
+                _drawPosterCell(d, plan.ml + c*(plan.cellW+plan.gap), plan.mt + r*(plan.cellH+plan.gap), plan.cellW, plan.cellH, art);
+            }
+            if (plan.multi) {
+                g.strokeStyle = '#CCCCCC'; g.lineWidth = 1;
+                for (var r2 = 0; r2 < plan.rows; r2++) for (var c2 = 0; c2 < plan.cols; c2++) {
+                    g.strokeRect((plan.ml + c2*(plan.cellW+plan.gap))*pxIn, (plan.mt + r2*(plan.cellH+plan.gap))*pxIn, plan.cellW*pxIn, plan.cellH*pxIn);
+                }
+            }
+            return plan;
+        }
+        async function openPosterPreview() {
+            var item = studioItem(); if (!item) return;
+            if (!posterPlan()) { alert('Enter a width and height between 1 and 40 inches.'); return; }
+            var modal = document.getElementById('posterPreviewModal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'posterPreviewModal';
+                modal.style.cssText = 'position:fixed;inset:0;z-index:12001;background:rgba(46,42,40,0.72);display:flex;align-items:center;justify-content:center;padding:18px;box-sizing:border-box;';
+                document.body.appendChild(modal);
+            }
+            modal.innerHTML =
+                '<div style="background:#fff;border-radius:20px;max-width:360px;width:100%;padding:20px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.3);max-height:92vh;overflow-y:auto;">' +
+                    '<div style="font-family:\'Cormorant Garamond\',serif;font-size:22px;font-weight:700;color:#2E2A28;margin-bottom:2px;">Poster preview</div>' +
+                    '<div id="posterPreviewNote" style="font-size:13px;color:#9A8478;margin-bottom:12px;font-family:\'Outfit\',sans-serif;">Rendering…</div>' +
+                    '<div style="background:#F0EFED;border-radius:10px;padding:10px;display:flex;justify-content:center;">' +
+                        '<canvas id="posterPreviewCanvas" style="max-width:100%;height:auto;box-shadow:0 2px 12px rgba(0,0,0,0.18);background:#fff;"></canvas>' +
+                    '</div>' +
+                    '<div style="display:flex;gap:10px;margin-top:16px;">' +
+                        '<button onclick="document.getElementById(\'posterPreviewModal\').style.display=\'none\'" style="flex:1;background:#fff;color:#8B3A7F;border:2px solid #8B3A7F;border-radius:12px;padding:12px;font-family:\'Outfit\',sans-serif;font-weight:600;font-size:16px;cursor:pointer;">Close</button>' +
+                        '<button onclick="downloadStudioPoster()" style="flex:1.6;background:#8B3A7F;color:#fff;border:none;border-radius:12px;padding:12px;font-family:\'Outfit\',sans-serif;font-weight:700;font-size:16px;cursor:pointer;">Download PDF</button>' +
+                    '</div>' +
+                '</div>';
+            modal.style.display = 'flex';
+            var plan = await renderPosterPreview(document.getElementById('posterPreviewCanvas'));
+            var note = document.getElementById('posterPreviewNote');
+            if (note && plan) note.textContent = plan.multi
+                ? (plan.count + ' per Letter sheet · ' + plan.cellW + '×' + plan.cellH + '" each')
+                : ('One per page · ' + plan.pageW + '×' + plan.pageH + '"');
         }
 
         function printStudioSheet() {
