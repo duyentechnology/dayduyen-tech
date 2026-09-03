@@ -2382,7 +2382,7 @@
                     Fit several on one sheet (cut apart)
                 </label>
                 <div id="posterFitHint" style="font-size:13px;color:#9A8478;margin-bottom:10px;font-family:'Outfit',sans-serif;">One sign per page (8.5×11").</div>
-                <button type="button" onclick="openPosterPreview()" style="width:100%;text-align:left;background:#F1F8FB;border:1.5px solid #4A9EC4;border-radius:11px;padding:12px 14px;margin-bottom:14px;font-family:'Outfit',sans-serif;font-size:15.5px;color:#2E2A28;cursor:pointer;display:flex;align-items:center;gap:10px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4A9EC4" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M1.5 12S5 5.5 12 5.5 22.5 12 22.5 12 19 18.5 12 18.5 1.5 12 1.5 12Z"/><circle cx="12" cy="12" r="3.2"/></svg><span>Preview &amp; print poster (PDF)<br><span style="font-size:13px;color:#9A8478;">See it first — QR + name, sized to fit</span></span></button>
+                <button type="button" onclick="openPosterPreview()" style="width:100%;text-align:left;background:#F1F8FB;border:1.5px solid #4A9EC4;border-radius:11px;padding:12px 14px;margin-bottom:14px;font-family:'Outfit',sans-serif;font-size:15.5px;color:#2E2A28;cursor:pointer;display:flex;align-items:center;gap:10px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4A9EC4" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M1.5 12S5 5.5 12 5.5 22.5 12 22.5 12 19 18.5 12 18.5 1.5 12 1.5 12Z"/><circle cx="12" cy="12" r="3.2"/></svg><span>Preview &amp; print poster (PDF)<br><span style="font-size:13px;color:#9A8478;">See it first — sized to fit your spot</span></span></button>
             </div>
 
             <!-- Sticker sheet — many small codes tiled on a label sheet. A
@@ -8687,7 +8687,11 @@
                 art.tentUrl = c.toDataURL('image/png');
                 art.tentAR = c.height / c.width;
             } else {
-                art.qrUrl = studioPngDataUrl(1200);
+                // "Code only" = just the code (with the optional line baked in).
+                var qc = document.createElement('canvas');
+                renderStudioBareWithText(qc, 1200);
+                art.qrUrl = qc.toDataURL('image/png');
+                art.qrAR = qc.height / qc.width; // ~1, taller if a line is present
             }
             return art;
         }
@@ -8700,20 +8704,14 @@
                 if (hh > h * 0.96) { hh = h * 0.96; ww = hh / ar; }
                 d.img(art.tentUrl, x + (w-ww)/2, y + (h-hh)/2, ww, hh);
             } else {
-                var k = w / 8.5;
-                var nameFs = Math.max(10, Math.round(30 * k));
-                var ctaFs  = Math.max(7, Math.round(13 * k));
-                var nameH = nameFs / 72, ctaH = ctaFs / 72;
-                var qr = Math.min(w * 0.78, h * 0.62);
-                var gapA = h * 0.035, gapB = h * 0.05;
-                // Centre the whole block vertically so the sign fills its page
-                // instead of hugging the top with empty space below.
-                var blockH = nameH + gapA + qr + gapB + ctaH;
-                var y0 = y + Math.max(h * 0.05, (h - blockH) / 2);
-                d.text(art.name, x + w/2, y0 + nameH, nameFs, 'times', '#282828', w*0.9);
-                var qy = y0 + nameH + gapA;
-                if (art.qrUrl) d.img(art.qrUrl, x + (w-qr)/2, qy, qr, qr);
-                d.text('Scan to see who we are — and save us for later', x + w/2, qy + qr + gapB + ctaH*0.8, ctaFs, 'helvetica', '#787878', w*0.9);
+                // "Code only" — the bare code (its optional line already baked in),
+                // scaled to fill the cell and centred. No name/CTA: that's the
+                // "Printable sign" style.
+                var ar = art.qrAR || 1;
+                var availW = w * 0.86, availH = h * 0.86;
+                var ww = availW, hh = ww * ar;
+                if (hh > availH) { hh = availH; ww = hh / ar; }
+                if (art.qrUrl) d.img(art.qrUrl, x + (w-ww)/2, y + (h-hh)/2, ww, hh);
             }
         }
         // Build the poster PDF from the plan (single or tiled). Returns { doc, plan }.
