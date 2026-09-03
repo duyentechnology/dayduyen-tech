@@ -8475,7 +8475,9 @@
             canvas.width = w; canvas.height = h;
             ctx = canvas.getContext('2d');
 
-            ctx.fillStyle = studioState.bg === '#FFFFFF' ? '#F0E5F0' : studioState.bg;
+            // Honour the chosen background exactly — white means white. (The soft
+            // lilac is still available as a background swatch for those who want it.)
+            ctx.fillStyle = studioState.bg;
             ctx.fillRect(0, 0, w, h);
 
             var y = pad;
