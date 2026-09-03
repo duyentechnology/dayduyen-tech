@@ -2346,6 +2346,7 @@
                     <div style="font-size:13px;color:#9A8478;font-family:'Outfit',sans-serif;margin-bottom:3px;text-align:center;">Logo size</div>
                     <input type="range" id="studioLogoSize" min="0.7" max="1.5" step="0.01" value="1" oninput="setStudioLogoScale(this.value)" style="width:100%;accent-color:#8B3A7F;">
                 </div>
+                <button type="button" id="studioLogoAdjustBtn" onclick="adjustStudioLogo()" style="display:none;margin:10px auto 0;background:none;border:none;color:#8B3A7F;font-family:'Outfit',sans-serif;font-weight:600;font-size:14px;cursor:pointer;text-decoration:underline;">Reposition logo (zoom &amp; move)</button>
                 <!-- Download is right here with the preview, so you can grab the
                      design you're looking at (the printable sign OR the code-only)
                      without scrolling down to the Print Center. -->
@@ -5483,7 +5484,7 @@
                             '<div style="position:absolute;inset:0;border-radius:50%;border:1.5px dashed rgba(139,58,127,0.55);box-sizing:border-box;pointer-events:none;"></div>' +
                         '</div>' +
                         '<div style="font-size:12px;color:#B0A29A;margin-top:8px;font-family:\'Outfit\',sans-serif;">Dashed circle = how it crops as your round avatar</div>' +
-                        '<input id="logoCropZoom" type="range" min="1" max="5" step="0.01" value="1" style="width:100%;margin:12px 0 4px;accent-color:#8B3A7F;">' +
+                        '<input id="logoCropZoom" type="range" min="0.5" max="5" step="0.01" value="1" style="width:100%;margin:12px 0 4px;accent-color:#8B3A7F;">' +
                         '<div style="display:flex;gap:10px;margin-top:8px;">' +
                             '<button id="logoCropCancel" style="flex:1;background:#fff;color:#8B3A7F;border:2px solid #8B3A7F;border-radius:12px;padding:12px;font-family:\'Outfit\',sans-serif;font-weight:600;font-size:16px;cursor:pointer;">Cancel</button>' +
                             '<button id="logoCropSave" style="flex:2;background:#8B3A7F;color:#fff;border:none;border-radius:12px;padding:12px;font-family:\'Outfit\',sans-serif;font-weight:700;font-size:16px;cursor:pointer;">Use logo</button>' +
@@ -5542,7 +5543,7 @@
                         tx += (e.clientX - prev.x); ty += (e.clientY - prev.y); apply();
                     } else if (list.length === 2) {
                         var dist = Math.hypot(list[0].x - list[1].x, list[0].y - list[1].y) || 1;
-                        scale = Math.min(5, Math.max(1, startScale * (dist / startDist)));
+                        scale = Math.min(5, Math.max(0.5, startScale * (dist / startDist)));
                         if (zoom) zoom.value = scale;
                         var mid = { x: (list[0].x + list[1].x) / 2, y: (list[0].y + list[1].y) / 2 };
                         if (lastMid) { tx += (mid.x - lastMid.x); ty += (mid.y - lastMid.y); }
@@ -8206,17 +8207,39 @@
 
         function setStudioLogo(mode) { studioState.logoMode = mode; buildStudioSwatches(); updateStudioLogoSizeUI(); renderStudio(); }
 
-        // Size slider only matters when there is a center logo (Duyên or custom).
+        // Size slider (Duyên or custom) + reposition link (custom only, since it
+        // reframes an uploaded image).
         function updateStudioLogoSizeUI() {
             var wrap = document.getElementById('studioLogoSizeWrap');
             var sl = document.getElementById('studioLogoSize');
-            var on = studioState.logoMode === 'duyen' || (studioState.logoMode === 'custom' && !!studioState.logoUrl);
+            var adj = document.getElementById('studioLogoAdjustBtn');
+            var custom = studioState.logoMode === 'custom' && !!studioState.logoUrl;
+            var on = studioState.logoMode === 'duyen' || custom;
             if (wrap) wrap.style.display = on ? 'block' : 'none';
             if (sl) sl.value = studioState.logoScale || 1;
+            if (adj) adj.style.display = custom ? 'block' : 'none';
         }
         function setStudioLogoScale(v) {
             studioState.logoScale = Math.max(0.7, Math.min(1.5, parseFloat(v) || 1));
             renderStudio();
+        }
+        // Reframe the current center logo (pan + pinch/slider zoom), then re-bake
+        // and swap it in — placement control for a logo already on the code.
+        async function adjustStudioLogo() {
+            var src = studioState.logoUrl;
+            if (!src || !currentUser) return;
+            var blob = await openLogoCropper(src);
+            if (!blob) return;
+            try {
+                var path = 'edit/' + currentUser.id + '/qrlogo_' + Date.now() + '.png';
+                var up = await db.storage.from('qr-media').upload(path, blob, { cacheControl: '31536000', upsert: false, contentType: 'image/png' });
+                if (up.error) { alert('Could not update logo: ' + up.error.message); return; }
+                studioState.logoUrl = db.storage.from('qr-media').getPublicUrl(path).data.publicUrl;
+                studioState.logoMode = 'custom';
+                loadStudioLogoImg(studioState.logoUrl);
+                buildStudioSwatches();
+                updateStudioLogoSizeUI();
+            } catch(e) { alert('Could not update logo. Please try again.'); }
         }
 
         function loadStudioLogoImg(url) {
