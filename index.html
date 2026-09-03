@@ -2356,8 +2356,14 @@
                 </div>
             </div>
 
-            <div style="background:#fff;border:1.5px solid #E8B84A;border-radius:14px;padding:16px;margin-bottom:16px;">
-                <div style="font-size:14.5px;font-weight:600;color:#C77E1E;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;">Print Center — Free</div>
+            <!-- Poster / flyer — one big sign. Kept separate from the sticker
+                 sheet below so the two print jobs aren't confused. -->
+            <div style="background:#fff;border:1.5px solid #4A9EC4;border-radius:14px;padding:16px;margin-bottom:16px;">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:2px;">
+                    <div style="font-size:16.5px;font-weight:700;color:#2E2A28;font-family:'Outfit',sans-serif;">Poster / flyer</div>
+                    <span style="font-size:11px;font-weight:700;color:#2AA8A0;letter-spacing:.5px;font-family:'Outfit',sans-serif;">FREE</span>
+                </div>
+                <div style="font-size:13.5px;color:#9A8478;margin-bottom:12px;font-family:'Outfit',sans-serif;line-height:1.5;">One big QR sign on its own page — for a door, window, or counter.</div>
                 <label style="display:block;font-size:13px;color:#9A8478;margin-bottom:8px;font-family:'Outfit',sans-serif;">Sign size
                     <select id="posterSize" class="input-field" style="margin:3px 0 0;" onchange="posterSizeChanged(this.value)">
                         <option value="door">Full page — door / window (8.5 × 11")</option>
@@ -2377,8 +2383,16 @@
                 </label>
                 <div id="posterFitHint" style="font-size:13px;color:#9A8478;margin-bottom:10px;font-family:'Outfit',sans-serif;">One sign per page (8.5×11").</div>
                 <button type="button" onclick="openPosterPreview()" style="width:100%;text-align:left;background:#F1F8FB;border:1.5px solid #4A9EC4;border-radius:11px;padding:12px 14px;margin-bottom:14px;font-family:'Outfit',sans-serif;font-size:15.5px;color:#2E2A28;cursor:pointer;display:flex;align-items:center;gap:10px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4A9EC4" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M1.5 12S5 5.5 12 5.5 22.5 12 22.5 12 19 18.5 12 18.5 1.5 12 1.5 12Z"/><circle cx="12" cy="12" r="3.2"/></svg><span>Preview &amp; print poster (PDF)<br><span style="font-size:13px;color:#9A8478;">See it first — QR + name, sized to fit</span></span></button>
+            </div>
 
-                <div style="font-size:15px;font-weight:700;color:#2E2A28;margin-bottom:4px;">Sticker sheet (PDF)</div>
+            <!-- Sticker sheet — many small codes tiled on a label sheet. A
+                 separate job from the poster above. -->
+            <div style="background:#fff;border:1.5px solid #E8B84A;border-radius:14px;padding:16px;margin-bottom:16px;">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:2px;">
+                    <div style="font-size:16.5px;font-weight:700;color:#2E2A28;font-family:'Outfit',sans-serif;">Sticker sheet</div>
+                    <span style="font-size:11px;font-weight:700;color:#2AA8A0;letter-spacing:.5px;font-family:'Outfit',sans-serif;">FREE</span>
+                </div>
+                <div style="font-size:13.5px;color:#9A8478;margin-bottom:12px;font-family:'Outfit',sans-serif;line-height:1.5;">Many small codes tiled on a label sheet — peel and stick.</div>
                 <label style="display:block;font-size:13px;color:#9A8478;margin-bottom:8px;">Sheet template
                     <select id="shTemplate" class="input-field" style="margin:2px 0 0;" onchange="applyStickerTemplate(this.value)">
                         <option value="custom">Custom — measure your own</option>
