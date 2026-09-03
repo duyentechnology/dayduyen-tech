@@ -8634,14 +8634,16 @@
         function posterPlan() {
             var S = _posterSignSize();
             if (!S) return null;
+            var single = { multi: false, S: S, pageW: S.w, pageH: S.h, cols: 1, rows: 1,
+                           count: 1, cellW: S.w, cellH: S.h, gap: 0, ml: 0, mt: 0 };
             var multi = !!(document.getElementById('posterMulti') || {}).checked;
-            if (!multi) {
-                return { multi: false, S: S, pageW: S.w, pageH: S.h, cols: 1, rows: 1,
-                         count: 1, cellW: S.w, cellH: S.h, gap: 0, ml: 0, mt: 0 };
-            }
+            if (!multi) return single;
             var pageW = 8.5, pageH = 11, gap = 0.2, margin = 0.3;
             var cols = Math.max(1, Math.floor((pageW - 2*margin + gap) / (S.w + gap)));
             var rows = Math.max(1, Math.floor((pageH - 2*margin + gap) / (S.h + gap)));
+            // If several don't actually fit, don't waste a Letter sheet on one
+            // lonely card — just print the sign at its own size.
+            if (cols * rows < 2) { single.tooBig = true; return single; }
             var usedW = cols*S.w + (cols-1)*gap, usedH = rows*S.h + (rows-1)*gap;
             return { multi: true, S: S, pageW: pageW, pageH: pageH, cols: cols, rows: rows,
                      count: cols*rows, cellW: S.w, cellH: S.h, gap: gap,
@@ -8652,9 +8654,9 @@
             if (!el) return;
             var p = posterPlan();
             if (!p) { el.textContent = 'Enter a width and height (1–40 in).'; return; }
-            el.textContent = p.multi
-                ? ('Fits ' + p.count + ' per sheet (' + p.cellW + '×' + p.cellH + '" each) on Letter — cut apart.')
-                : ('One sign per page (' + p.pageW + '×' + p.pageH + '").');
+            if (p.multi) el.textContent = 'Fits ' + p.count + ' per sheet (' + p.cellW + '×' + p.cellH + '" each) on Letter — cut apart.';
+            else if (p.tooBig) el.textContent = 'A ' + p.pageW + '×' + p.pageH + '" sign is too big to fit several on Letter — it prints one to a page at that size.';
+            else el.textContent = 'One sign per page (' + p.pageW + '×' + p.pageH + '").';
         }
         // Prepared art shared by the PDF and the preview so they can't drift.
         function _posterArt() {
@@ -8682,12 +8684,17 @@
                 var k = w / 8.5;
                 var nameFs = Math.max(10, Math.round(30 * k));
                 var ctaFs  = Math.max(7, Math.round(13 * k));
-                var topPad = h * 0.11;
-                d.text(art.name, x + w/2, y + topPad, nameFs, 'times', '#282828', w*0.9);
-                var qr = Math.min(w * 0.72, h * 0.55);
-                var qy = y + topPad + nameFs/72 + h*0.03;
+                var nameH = nameFs / 72, ctaH = ctaFs / 72;
+                var qr = Math.min(w * 0.78, h * 0.62);
+                var gapA = h * 0.035, gapB = h * 0.05;
+                // Centre the whole block vertically so the sign fills its page
+                // instead of hugging the top with empty space below.
+                var blockH = nameH + gapA + qr + gapB + ctaH;
+                var y0 = y + Math.max(h * 0.05, (h - blockH) / 2);
+                d.text(art.name, x + w/2, y0 + nameH, nameFs, 'times', '#282828', w*0.9);
+                var qy = y0 + nameH + gapA;
                 if (art.qrUrl) d.img(art.qrUrl, x + (w-qr)/2, qy, qr, qr);
-                d.text('Scan to see who we are — and save us for later', x + w/2, qy + qr + h*0.06, ctaFs, 'helvetica', '#787878', w*0.9);
+                d.text('Scan to see who we are — and save us for later', x + w/2, qy + qr + gapB + ctaH*0.8, ctaFs, 'helvetica', '#787878', w*0.9);
             }
         }
         // Build the poster PDF from the plan (single or tiled). Returns { doc, plan }.
@@ -8787,7 +8794,9 @@
             var note = document.getElementById('posterPreviewNote');
             if (note && plan) note.textContent = plan.multi
                 ? (plan.count + ' per Letter sheet · ' + plan.cellW + '×' + plan.cellH + '" each')
-                : ('One per page · ' + plan.pageW + '×' + plan.pageH + '"');
+                : (plan.tooBig
+                    ? ('One per page · ' + plan.pageW + '×' + plan.pageH + '" (too big to fit several on Letter)')
+                    : ('One per page · ' + plan.pageW + '×' + plan.pageH + '"'));
         }
 
         // Named sticker-sheet templates (Duyén-branded blanks). Dimensions in
