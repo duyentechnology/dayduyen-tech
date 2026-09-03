@@ -2379,8 +2379,14 @@
                 <button type="button" onclick="openPosterPreview()" style="width:100%;text-align:left;background:#F1F8FB;border:1.5px solid #4A9EC4;border-radius:11px;padding:12px 14px;margin-bottom:14px;font-family:'Outfit',sans-serif;font-size:15.5px;color:#2E2A28;cursor:pointer;display:flex;align-items:center;gap:10px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4A9EC4" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M1.5 12S5 5.5 12 5.5 22.5 12 22.5 12 19 18.5 12 18.5 1.5 12 1.5 12Z"/><circle cx="12" cy="12" r="3.2"/></svg><span>Preview &amp; print poster (PDF)<br><span style="font-size:13px;color:#9A8478;">See it first — QR + name, sized to fit</span></span></button>
 
                 <div style="font-size:15px;font-weight:700;color:#2E2A28;margin-bottom:4px;">Sticker sheet (PDF)</div>
+                <label style="display:block;font-size:13px;color:#9A8478;margin-bottom:8px;">Sheet template
+                    <select id="shTemplate" class="input-field" style="margin:2px 0 0;" onchange="applyStickerTemplate(this.value)">
+                        <option value="custom">Custom — measure your own</option>
+                        <option value="duyen30">Duyên · 30 squares (1.25")</option>
+                    </select>
+                </label>
                 <div style="font-size:13.5px;color:#5D4E44;line-height:1.55;background:#FBF7FB;border-radius:10px;padding:10px 12px;margin-bottom:10px;">
-                    <strong>How to measure your sheet:</strong> with a ruler, measure one sticker's width and height; the gap between neighboring stickers; and the distance from the top and left page edges to the first sticker. Enter everything in inches — decimals are fine (e.g. 0.13).
+                    <strong>How to measure your sheet:</strong> with a ruler, measure one sticker's width and height; the gap between neighboring stickers; and the distance from the top and left page edges to the first sticker. Enter everything in inches — decimals are fine (e.g. 0.13). Or pick a ready-made template above.
                 </div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
                     <label style="font-size:13px;color:#9A8478;">Sticker width (in)<input type="number" step="0.01" id="shLabelW" value="2" class="input-field" style="margin:2px 0 0;"></label>
@@ -2394,6 +2400,7 @@
                     <select id="shPage" class="input-field" style="margin:2px 0 10px;">
                         <option value="letter">Letter (8.5 × 11 in)</option>
                         <option value="a4">A4 (8.27 × 11.69 in)</option>
+                        <option value="duyen30">Duyên 30-square sheet (11.77 × 14.57 in)</option>
                     </select>
                 </label>
                 <button type="button" onclick="printStudioSheet()" style="width:100%;background:#2AA8A0;color:#fff;border:none;border-radius:11px;padding:12px;font-family:'Outfit',sans-serif;font-weight:600;font-size:15.5px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>Make my sticker sheet PDF</button>
@@ -8783,6 +8790,27 @@
                 : ('One per page · ' + plan.pageW + '×' + plan.pageH + '"');
         }
 
+        // Named sticker-sheet templates (Duyén-branded blanks). Dimensions in
+        // inches, measured from the die-cut sheet. Selecting one fills the fields
+        // and picks the matching page size.
+        var STICKER_TEMPLATES = {
+            duyen30: { lw: 1.25, lh: 1.25, gx: 0.325, gy: 0.482, mt: 2.214, ml: 1.615, page: 'duyen30' },
+        };
+        // Page sizes the sticker generator knows, including the branded sheets.
+        var STICKER_PAGES = {
+            letter:  { w: 8.5,    h: 11,     fmt: 'letter' },
+            a4:      { w: 8.27,   h: 11.69,  fmt: 'a4' },
+            duyen30: { w: 11.765, h: 14.572, fmt: [11.765, 14.572] },
+        };
+        function applyStickerTemplate(key) {
+            var t = STICKER_TEMPLATES[key];
+            if (!t) return; // "custom" → leave the fields for the user
+            var set = function(id, val) { var el = document.getElementById(id); if (el) el.value = val; };
+            set('shLabelW', t.lw); set('shLabelH', t.lh);
+            set('shGapX', t.gx);   set('shGapY', t.gy);
+            set('shMarT', t.mt);   set('shMarL', t.ml);
+            var pg = document.getElementById('shPage'); if (pg) pg.value = t.page;
+        }
         function printStudioSheet() {
             var item = studioItem(); if (!item) return;
             // Stickers are small: always the bare code, whatever design is picked.
@@ -8796,11 +8824,12 @@
             var lw = v('shLabelW'), lh = v('shLabelH'), gx = v('shGapX'), gy = v('shGapY'), mt = v('shMarT'), ml = v('shMarL');
             if (lw <= 0.4 || lh <= 0.4) { alert('Sticker size must be at least 0.4 inch — QR codes smaller than that scan poorly.'); return; }
             var page = document.getElementById('shPage').value;
-            var pw = page === 'a4' ? 8.27 : 8.5, ph = page === 'a4' ? 11.69 : 11;
+            var PG = STICKER_PAGES[page] || STICKER_PAGES.letter;
+            var pw = PG.w, ph = PG.h;
             var cols = Math.floor((pw - ml*2 + gx) / (lw + gx));
             var rows = Math.floor((ph - mt*2 + gy) / (lh + gy));
             if (cols < 1 || rows < 1) { alert('Those measurements do not fit on the page — double-check the sticker size and margins.'); return; }
-            var doc = new jsPDF({ unit: 'in', format: page === 'a4' ? 'a4' : 'letter' });
+            var doc = new jsPDF({ unit: 'in', format: PG.fmt, orientation: 'portrait' });
             var png = studioPngDataUrl(900);
             // The sticker image may be taller than wide once their own line
             // is drawn under the code — fit it without squashing.
