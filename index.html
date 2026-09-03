@@ -8674,7 +8674,10 @@
         // Prepared art shared by the PDF and the preview so they can't drift.
         function _posterArt() {
             var item = studioItem();
-            var art = { name: String((bizProfileData && bizProfileData.name) || (item && item.label) || 'My Business') };
+            // Name from THIS code's own profile — not the globally-loaded one, or a
+            // poster for one code shows another profile's name (e.g. Gap on FTD).
+            var prof = studioProfile();
+            var art = { name: String((prof && prof.name) || (item && item.label) || 'My Business') };
             if (studioState.design === 'tent') {
                 var c = document.createElement('canvas');
                 renderStudioTent(c, 1200);
