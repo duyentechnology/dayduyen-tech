@@ -2320,7 +2320,7 @@
                     </label>
                     <div style="flex:1;min-width:0;">
                         <div style="font-size:14.5px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;">QR Colour</div>
-                        <input type="text" id="studioFgHex" maxlength="7" value="#8B3A7F" autocapitalize="none" spellcheck="false" placeholder="#8B3A7F" oninput="studioFgHexTyped(this.value)" style="width:100%;max-width:150px;border:1.5px solid #E8DDD6;border-radius:9px;padding:7px 10px;font-family:ui-monospace,Menlo,monospace;font-size:15px;font-weight:700;color:#2E2A28;box-sizing:border-box;margin:5px 0 6px;">
+                        <input type="text" id="studioFgHex" maxlength="7" value="#8B3A7F" autocapitalize="none" spellcheck="false" placeholder="#8B3A7F" oninput="studioFgHexTyped(this.value)" onchange="studioFgHexCommit(this)" style="width:100%;max-width:150px;border:1.5px solid #E8DDD6;border-radius:9px;padding:7px 10px;font-family:ui-monospace,Menlo,monospace;font-size:15px;font-weight:700;color:#2E2A28;box-sizing:border-box;margin:5px 0 6px;">
                         <div style="font-size:14px;color:#9A8478;line-height:1.45;">Tap the square or type a colour.</div>
                     </div>
                 </div>
@@ -2331,7 +2331,7 @@
                     <div id="studioBgRow" style="display:flex;flex-wrap:wrap;gap:8px;width:106px;flex-shrink:0;"></div>
                     <div style="flex:1;min-width:0;">
                         <div style="font-size:14.5px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;">Background</div>
-                        <input type="text" id="studioBgHex" maxlength="7" value="#FFFFFF" autocapitalize="none" spellcheck="false" placeholder="#FFFFFF" oninput="studioBgHexTyped(this.value)" style="width:100%;max-width:150px;border:1.5px solid #E8DDD6;border-radius:9px;padding:7px 10px;font-family:ui-monospace,Menlo,monospace;font-size:15px;font-weight:700;color:#2E2A28;box-sizing:border-box;margin:5px 0 6px;">
+                        <input type="text" id="studioBgHex" maxlength="7" value="#FFFFFF" autocapitalize="none" spellcheck="false" placeholder="#FFFFFF" oninput="studioBgHexTyped(this.value)" onchange="studioBgHexCommit(this)" style="width:100%;max-width:150px;border:1.5px solid #E8DDD6;border-radius:9px;padding:7px 10px;font-family:ui-monospace,Menlo,monospace;font-size:15px;font-weight:700;color:#2E2A28;box-sizing:border-box;margin:5px 0 6px;">
                         <div id="studioContrast" style="font-size:14px;color:#9A8478;line-height:1.45;margin-top:2px;"></div>
                     </div>
                 </div>
@@ -2341,6 +2341,10 @@
                     <button type="button" id="logoBtnCustom" onclick="document.getElementById('studioLogoInput').click()" class="studio-chip">Upload logo…</button>
                     <button type="button" id="logoBtnNone" onclick="setStudioLogo('none')" class="studio-chip">None</button>
                     <input type="file" id="studioLogoInput" accept="image/*" style="display:none;" onchange="handleStudioLogo(this)">
+                </div>
+                <div id="studioLogoSizeWrap" style="display:none;max-width:280px;margin:12px auto 0;">
+                    <div style="font-size:13px;color:#9A8478;font-family:'Outfit',sans-serif;margin-bottom:3px;text-align:center;">Logo size</div>
+                    <input type="range" id="studioLogoSize" min="0.7" max="1.5" step="0.01" value="1" oninput="setStudioLogoScale(this.value)" style="width:100%;accent-color:#8B3A7F;">
                 </div>
                 <!-- Download is right here with the preview, so you can grab the
                      design you're looking at (the printable sign OR the code-only)
@@ -6700,11 +6704,12 @@
         }
         
         // Draw Duyên logo on QR code
-        function drawLogoOnCanvas(canvas, color) {
+        function drawLogoOnCanvas(canvas, color, scale) {
             const ctx = canvas.getContext('2d');
             const centerX = canvas.width / 2;
             const centerY = canvas.height / 2;
-            const logoSize = Math.min(canvas.width, canvas.height) * 0.22;
+            const s = Math.max(0.7, Math.min(1.5, scale || 1));
+            const logoSize = Math.min(canvas.width, canvas.height) * 0.22 * s;
             
             // White circle background
             ctx.beginPath();
@@ -8029,7 +8034,7 @@
         // ────────────────────────────────────────────────────────────────────
         // QR STUDIO — customization + print for claimed business-profile QRs
         // (source==='business' only; notes never get this).
-        var studioState = { idx: -1, fg: '#8B3A7F', bg: '#FFFFFF', logoMode: 'duyen', logoUrl: null, logoImg: null, design: 'bare' };
+        var studioState = { idx: -1, fg: '#8B3A7F', bg: '#FFFFFF', logoMode: 'duyen', logoUrl: null, logoImg: null, design: 'bare', logoScale: 1 };
         var STUDIO_FG = ['#8B3A7F', '#DA251D', '#1C1410', '#166534', '#0A66C2', '#6e2d65'];
         var STUDIO_BG = ['#FFFFFF', '#F0E5F0', '#FDF8F5', '#FFF8E1'];
 
@@ -8078,22 +8083,39 @@
         // Waits for a full 6-digit hex before applying so mid-typing isn't fought.
         // Editable hex "number box" for the QR colour — same idea as the
         // background field, so an exact brand colour can be typed either place.
-        function studioFgHexTyped(v) {
+        // Normalise a typed colour: add the #, expand #RGB → #RRGGBB. Returns a
+        // valid #RRGGBB or '' if it isn't a colour yet.
+        function _normStudioHex(v) {
             v = String(v == null ? '' : v).trim();
             if (v && v[0] !== '#') v = '#' + v;
-            if (!/^#[0-9a-f]{6}$/i.test(v)) return;
-            studioState.fg = v.toUpperCase();
+            if (/^#[0-9a-f]{3}$/i.test(v)) v = '#' + v[1]+v[1] + v[2]+v[2] + v[3]+v[3];
+            return /^#[0-9a-f]{6}$/i.test(v) ? v.toUpperCase() : '';
+        }
+        function studioFgHexTyped(v) {
+            var hx = _normStudioHex(v);
+            if (!hx) return;              // partial/invalid → wait for a full code
+            studioState.fg = hx;
             studioSyncColorUI();
             renderStudio();
         }
-
         function studioBgHexTyped(v) {
-            v = String(v == null ? '' : v).trim();
-            if (v && v[0] !== '#') v = '#' + v;
-            if (!/^#[0-9a-f]{6}$/i.test(v)) return;
-            studioState.bg = v.toUpperCase();
+            var hx = _normStudioHex(v);
+            if (!hx) return;
+            studioState.bg = hx;
             buildStudioSwatches();
             renderStudio();
+        }
+        // On blur: apply if valid, otherwise snap the field back to the current
+        // colour so a half-typed code (e.g. "#3B471") never looks accepted.
+        function studioFgHexCommit(el) {
+            var hx = _normStudioHex(el.value);
+            if (hx) { studioState.fg = hx; studioSyncColorUI(); renderStudio(); }
+            else { el.value = String(studioState.fg).toUpperCase(); }
+        }
+        function studioBgHexCommit(el) {
+            var hx = _normStudioHex(el.value);
+            if (hx) { studioState.bg = hx; buildStudioSwatches(); renderStudio(); }
+            else { el.value = String(studioState.bg).toUpperCase(); }
         }
 
         function studioSyncColorUI() {
@@ -8130,10 +8152,12 @@
                 logoImg: null,
                 design: lm.qr_design === 'tent' ? 'tent' : 'bare',
                 sheetText: lm.qr_text || '',
+                logoScale: (typeof lm.qr_logo_scale === 'number' && lm.qr_logo_scale > 0) ? lm.qr_logo_scale : 1,
             };
             document.getElementById('studioLabel').textContent = item.label || 'Business QR';
             if (studioState.logoUrl) loadStudioLogoImg(studioState.logoUrl);
             buildStudioSwatches();
+            updateStudioLogoSizeUI();
             studioSyncColorUI();
             studioApplyColorFallback();
             setStudioDesign(studioState.design);
@@ -8180,7 +8204,20 @@
             });
         }
 
-        function setStudioLogo(mode) { studioState.logoMode = mode; buildStudioSwatches(); renderStudio(); }
+        function setStudioLogo(mode) { studioState.logoMode = mode; buildStudioSwatches(); updateStudioLogoSizeUI(); renderStudio(); }
+
+        // Size slider only matters when there is a center logo (Duyên or custom).
+        function updateStudioLogoSizeUI() {
+            var wrap = document.getElementById('studioLogoSizeWrap');
+            var sl = document.getElementById('studioLogoSize');
+            var on = studioState.logoMode === 'duyen' || (studioState.logoMode === 'custom' && !!studioState.logoUrl);
+            if (wrap) wrap.style.display = on ? 'block' : 'none';
+            if (sl) sl.value = studioState.logoScale || 1;
+        }
+        function setStudioLogoScale(v) {
+            studioState.logoScale = Math.max(0.7, Math.min(1.5, parseFloat(v) || 1));
+            renderStudio();
+        }
 
         function loadStudioLogoImg(url) {
             var img = new Image();
@@ -8208,6 +8245,7 @@
                 studioState.logoMode = 'custom';
                 loadStudioLogoImg(studioState.logoUrl);
                 buildStudioSwatches();
+                updateStudioLogoSizeUI();
             } catch(e) { alert('Could not upload logo. Please try again.'); }
         }
 
@@ -8237,10 +8275,11 @@
             ctx.fillStyle = studioState.fg;
             for (var r = 0; r < n; r++) for (var c = 0; c < n; c++)
                 if (qr.isDark(r, c)) ctx.fillRect((c+4)*cell, (r+4)*cell, cell, cell);
+            var LS = Math.max(0.7, Math.min(1.5, studioState.logoScale || 1));
             if (studioState.logoMode === 'duyen') {
-                drawLogoOnCanvas(canvas, studioState.fg);
+                drawLogoOnCanvas(canvas, studioState.fg, LS);
             } else if (studioState.logoMode === 'custom' && studioState.logoImg) {
-                var cx = dim/2, cy = dim/2, R = dim * 0.22 * 0.7;
+                var cx = dim/2, cy = dim/2, R = dim * 0.22 * 0.7 * LS;
                 ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI*2); ctx.fillStyle = '#FFFFFF'; ctx.fill();
                 ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, R*0.88, 0, Math.PI*2); ctx.clip();
                 var img = studioState.logoImg, s = (R*0.88*2) / Math.min(img.width, img.height);
@@ -8289,6 +8328,7 @@
                 lm.qr_logo = studioState.logoMode === 'custom' ? studioState.logoUrl : null;
                 lm.qr_design = studioState.design;
                 lm.qr_text = studioState.sheetText || '';
+                lm.qr_logo_scale = studioState.logoScale || 1;
                 var { error } = await db.from('qr_codes').update({
                     color: studioState.fg,
                     include_logo: studioState.logoMode === 'duyen',
