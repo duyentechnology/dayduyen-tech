@@ -8651,7 +8651,10 @@
                            count: 1, cellW: S.w, cellH: S.h, gap: 0, ml: 0, mt: 0 };
             var multi = !!(document.getElementById('posterMulti') || {}).checked;
             if (!multi) return single;
-            var pageW = 8.5, pageH = 11, gap = 0.2, margin = 0.3;
+            // Letter sheet, packed tight so sizes fit their true count — a 4×6
+            // is 8" for two, which fits 8.5" wide; generous margins wrongly
+            // showed only one. Small page margin + thin cut gutter.
+            var pageW = 8.5, pageH = 11, gap = 0.1, margin = 0.15;
             var cols = Math.max(1, Math.floor((pageW - 2*margin + gap) / (S.w + gap)));
             var rows = Math.max(1, Math.floor((pageH - 2*margin + gap) / (S.h + gap)));
             // If several don't actually fit, don't waste a Letter sheet on one
