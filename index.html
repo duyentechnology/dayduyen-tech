@@ -2358,7 +2358,15 @@
 
             <div style="background:#fff;border:1.5px solid #E8B84A;border-radius:14px;padding:16px;margin-bottom:16px;">
                 <div style="font-size:14.5px;font-weight:600;color:#C77E1E;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;">Print Center — Free</div>
-                <button type="button" onclick="printStudioPoster()" style="width:100%;text-align:left;background:#F1F8FB;border:1.5px solid #4A9EC4;border-radius:11px;padding:12px 14px;margin-bottom:14px;font-family:'Outfit',sans-serif;font-size:15.5px;color:#2E2A28;cursor:pointer;display:flex;align-items:center;gap:10px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4A9EC4" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg><span>Flyer poster (PDF)<br><span style="font-size:13px;color:#9A8478;">Your QR + business name on one page</span></span></button>
+                <label style="display:block;font-size:13px;color:#9A8478;margin-bottom:8px;font-family:'Outfit',sans-serif;">Sign size
+                    <select id="posterSize" class="input-field" style="margin:3px 0 0;">
+                        <option value="door">Full page — door / window (8.5 × 11")</option>
+                        <option value="half">Half sheet (5.5 × 8.5")</option>
+                        <option value="counter">Counter card (4 × 6")</option>
+                        <option value="square">Small square (4 × 4")</option>
+                    </select>
+                </label>
+                <button type="button" onclick="printStudioPoster()" style="width:100%;text-align:left;background:#F1F8FB;border:1.5px solid #4A9EC4;border-radius:11px;padding:12px 14px;margin-bottom:14px;font-family:'Outfit',sans-serif;font-size:15.5px;color:#2E2A28;cursor:pointer;display:flex;align-items:center;gap:10px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4A9EC4" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg><span>Flyer poster (PDF)<br><span style="font-size:13px;color:#9A8478;">Your QR + business name, sized to fit</span></span></button>
 
                 <div style="font-size:15px;font-weight:700;color:#2E2A28;margin-bottom:4px;">Sticker sheet (PDF)</div>
                 <div style="font-size:13.5px;color:#5D4E44;line-height:1.55;background:#FBF7FB;border-radius:10px;padding:10px 12px;margin-bottom:10px;">
@@ -8577,27 +8585,46 @@
             }
         }
 
+        // Sign sizes for the flyer/poster PDF — full page down to a counter card,
+        // since not every spot wants a full sheet. Page dims are inches.
+        var POSTER_SIZES = {
+            door:    { w: 8.5, h: 11,  fmt: 'letter',    tag: 'door' },
+            half:    { w: 5.5, h: 8.5, fmt: [5.5, 8.5],  tag: 'half' },
+            counter: { w: 4,   h: 6,   fmt: [4, 6],      tag: 'counter' },
+            square:  { w: 4,   h: 4,   fmt: [4, 4],      tag: 'square' },
+        };
         function printStudioPoster() {
             var item = studioItem(); if (!item) return;
             var jsPDF = (window.jspdf || {}).jsPDF;
             if (!jsPDF) { alert('PDF library not loaded — check your connection and retry.'); return; }
-            var doc = new jsPDF({ unit: 'in', format: 'letter' });
+            var key = (document.getElementById('posterSize') || {}).value || 'door';
+            var S = POSTER_SIZES[key] || POSTER_SIZES.door;
+            var pw = S.w, ph = S.h;
+            var doc = new jsPDF({ unit: 'in', format: S.fmt, orientation: pw > ph ? 'landscape' : 'portrait' });
             if (studioState.design === 'tent') {
-                // The sign carries its own name, words and call to action —
-                // adding them again would duplicate. Scale to the page.
+                // The sign carries its own name, words and call to action, so just
+                // fit the whole sign onto the chosen page.
                 var c = document.createElement('canvas');
                 renderStudioTent(c, 1200);
-                var wIn = 5.5, hIn = wIn * (c.height / c.width);
-                doc.addImage(c.toDataURL('image/png'), 'PNG', (8.5 - wIn) / 2, Math.max(0.6, (11 - hIn) / 2), wIn, hIn);
+                var ar = c.height / c.width;
+                var wIn = pw * 0.9, hIn = wIn * ar;
+                if (hIn > ph * 0.94) { hIn = ph * 0.94; wIn = hIn / ar; }
+                doc.addImage(c.toDataURL('image/png'), 'PNG', (pw - wIn) / 2, Math.max(0.15, (ph - hIn) / 2), wIn, hIn);
             } else {
                 var name = (bizProfileData && bizProfileData.name) || item.label || 'My Business';
-                doc.setFont('times', 'bold'); doc.setFontSize(30);
-                doc.text(String(name), 4.25, 1.6, { align: 'center' });
-                doc.addImage(studioPngDataUrl(1200), 'PNG', 1.75, 2.2, 5, 5);
-                doc.setFont('helvetica', 'normal'); doc.setFontSize(13); doc.setTextColor(120);
-                doc.text('Scan to see who we are — and save us for later', 4.25, 7.7, { align: 'center' });
+                var k = pw / 8.5; // scale everything off the page width
+                var nameFs = Math.max(13, Math.round(30 * k));
+                var ctaFs = Math.max(8, Math.round(13 * k));
+                var topPad = ph * 0.11;
+                doc.setFont('times', 'bold'); doc.setFontSize(nameFs);
+                doc.text(String(name), pw / 2, topPad, { align: 'center', maxWidth: pw * 0.9 });
+                var qr = Math.min(pw * 0.72, ph * 0.55);
+                var qy = topPad + nameFs / 72 + ph * 0.03;
+                doc.addImage(studioPngDataUrl(1200), 'PNG', (pw - qr) / 2, qy, qr, qr);
+                doc.setFont('helvetica', 'normal'); doc.setFontSize(ctaFs); doc.setTextColor(120);
+                doc.text('Scan to see who we are — and save us for later', pw / 2, qy + qr + ph * 0.06, { align: 'center', maxWidth: pw * 0.9 });
             }
-            doc.save((item.label || 'business-qr').replace(/[^\w-]+/g, '_') + '_poster.pdf');
+            doc.save((item.label || 'business-qr').replace(/[^\w-]+/g, '_') + '_poster_' + S.tag + '.pdf');
         }
 
         function printStudioSheet() {
