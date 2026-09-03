@@ -1784,6 +1784,7 @@
                 <div style="font-size:15px;font-weight:600;color:#8B3A7F;font-family:'Outfit',sans-serif;">Upload logo or photo</div>
                 <div style="font-size:14px;color:#9A8478;margin-top:3px;">Shows on every QR code you send</div>
             </div>
+            <button type="button" id="bizLogoAdjustBtn" onclick="adjustBizLogo()" style="display:none;margin:-12px auto 20px;background:none;border:none;color:#8B3A7F;font-family:'Outfit',sans-serif;font-weight:600;font-size:14px;cursor:pointer;text-decoration:underline;">Reposition logo</button>
 
             <label style="display:block;font-size:15.5px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;">Profile Nickname</label>
             <input type="text" id="bizProfileLabel" placeholder='e.g. "Main Store" or "Holiday Campaign"' class="input-field" style="margin-bottom:4px;">
@@ -4449,6 +4450,10 @@
         function startNewProfile() {
             bizProfileData = null;
             currentProfileId = null;
+            bizLogoUrl = null;
+            var lp0 = document.getElementById('bizLogoPreview');
+            if (lp0) lp0.innerHTML = '🏢';
+            showLogoAdjust(false);
             aboutPhotos = [];
             renderAboutPhotos();
             menuPhotos = [];
@@ -4726,6 +4731,9 @@
                 bizLogoUrl = bizProfileData.logo;
                 var lp = document.getElementById('bizLogoPreview');
                 if (lp) lp.innerHTML = '<img src="' + bizProfileData.logo + '" style="width:64px;height:64px;object-fit:cover;border-radius:50%;border:2px solid #8B3A7F;">';
+                showLogoAdjust(true);
+            } else {
+                showLogoAdjust(false);
             }
             var _f = function(id, val) { var el = document.getElementById(id); if(el) el.value = val || ''; };
             _f('bizProfileLabel', bizProfileData.profileLabel || bizProfileData.name || '');
@@ -5440,25 +5448,156 @@
         }
 
         var bizLogoUrl = null; // persisted with the profile; shown on customer scans & tapestry Polaroids
-        async function previewBizLogo(input) {
-            if (!input.files || !input.files[0]) return;
-            var file = input.files[0];
-            var reader = new FileReader();
-            reader.onload = function(e) {
-                var el = document.getElementById('bizLogoPreview');
-                if (el) el.innerHTML = '<img src="' + e.target.result + '" style="width:64px;height:64px;object-fit:cover;border-radius:50%;border:2px solid #8B3A7F;">';
-            };
-            reader.readAsDataURL(file);
-            // Actually persist it — the preview alone used to be theater.
+
+        // Toggle the "Reposition logo" link (only meaningful once a logo exists).
+        function showLogoAdjust(on) {
+            var b = document.getElementById('bizLogoAdjustBtn');
+            if (b) b.style.display = on ? 'block' : 'none';
+        }
+
+        // Logo positioner — pan + pinch/slider zoom, then bake a clean square.
+        // Business logos come in every shape and rarely sit centered, so a raw
+        // upload looks "off" in the circular avatar. Frame it once here; we bake
+        // the framed square so it renders consistently on the avatar AND the
+        // customer header. Resolves with a Blob (the framed PNG) or null on cancel.
+        function openLogoCropper(imgSrc) {
+            return new Promise(function(resolve) {
+                var V = 260, OUT = 512;
+                var modal = document.getElementById('logoCropModal');
+                if (!modal) {
+                    modal = document.createElement('div');
+                    modal.id = 'logoCropModal';
+                    modal.style.cssText = 'position:fixed;inset:0;z-index:12000;background:rgba(46,42,40,0.75);display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;';
+                    document.body.appendChild(modal);
+                }
+                modal.innerHTML =
+                    '<div style="background:#fff;border-radius:20px;max-width:340px;width:100%;padding:22px 20px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.3);">' +
+                        '<div style="font-family:\'Cormorant Garamond\',serif;font-size:22px;font-weight:700;color:#2E2A28;margin-bottom:3px;">Position your logo</div>' +
+                        '<div style="font-size:13.5px;color:#9A8478;margin-bottom:14px;font-family:\'Outfit\',sans-serif;">Drag to move · pinch or use the slider to zoom</div>' +
+                        '<div id="logoCropStage" style="width:' + V + 'px;height:' + V + 'px;margin:0 auto;position:relative;overflow:hidden;border-radius:16px;background:#F0EFED;touch-action:none;cursor:grab;">' +
+                            '<img id="logoCropImg" alt="" style="position:absolute;left:0;top:0;transform-origin:0 0;-webkit-user-drag:none;user-select:none;pointer-events:none;max-width:none;max-height:none;">' +
+                            '<div style="position:absolute;inset:0;border-radius:50%;border:1.5px dashed rgba(139,58,127,0.55);box-sizing:border-box;pointer-events:none;"></div>' +
+                        '</div>' +
+                        '<div style="font-size:12px;color:#B0A29A;margin-top:8px;font-family:\'Outfit\',sans-serif;">Dashed circle = how it crops as your round avatar</div>' +
+                        '<input id="logoCropZoom" type="range" min="1" max="5" step="0.01" value="1" style="width:100%;margin:12px 0 4px;accent-color:#8B3A7F;">' +
+                        '<div style="display:flex;gap:10px;margin-top:8px;">' +
+                            '<button id="logoCropCancel" style="flex:1;background:#fff;color:#8B3A7F;border:2px solid #8B3A7F;border-radius:12px;padding:12px;font-family:\'Outfit\',sans-serif;font-weight:600;font-size:16px;cursor:pointer;">Cancel</button>' +
+                            '<button id="logoCropSave" style="flex:2;background:#8B3A7F;color:#fff;border:none;border-radius:12px;padding:12px;font-family:\'Outfit\',sans-serif;font-weight:700;font-size:16px;cursor:pointer;">Use logo</button>' +
+                        '</div>' +
+                    '</div>';
+                modal.style.display = 'flex';
+
+                var stage = document.getElementById('logoCropStage');
+                var img = document.getElementById('logoCropImg');
+                var zoom = document.getElementById('logoCropZoom');
+                var iw = 1, ih = 1, base = 1, scale = 1, tx = 0, ty = 0;
+
+                function apply() {
+                    var dw = iw * base * scale, dh = ih * base * scale;
+                    // Keep the image covering the frame at all times.
+                    var maxX = Math.max(0, (dw - V) / 2), maxY = Math.max(0, (dh - V) / 2);
+                    tx = Math.min(maxX, Math.max(-maxX, tx));
+                    ty = Math.min(maxY, Math.max(-maxY, ty));
+                    img.style.width = dw + 'px'; img.style.height = dh + 'px';
+                    img.style.transform = 'translate(' + ((V - dw) / 2 + tx) + 'px,' + ((V - dh) / 2 + ty) + 'px)';
+                }
+
+                img.onload = function() {
+                    iw = img.naturalWidth || 1; ih = img.naturalHeight || 1;
+                    // Start at "contain" so the whole logo is visible (wide logos
+                    // included); the owner zooms IN to fill the round avatar.
+                    base = Math.min(V / iw, V / ih);
+                    scale = 1; tx = 0; ty = 0;
+                    if (zoom) zoom.value = 1;
+                    apply();
+                };
+                if (/^https?:/i.test(imgSrc)) img.crossOrigin = 'anonymous';
+                img.src = imgSrc;
+
+                if (zoom) zoom.oninput = function() { scale = parseFloat(zoom.value) || 1; apply(); };
+
+                // Drag (one finger/mouse) + pinch (two fingers) via Pointer Events.
+                var pointers = {}, startDist = 0, startScale = 1, lastMid = null;
+                function ptList() { return Object.keys(pointers).map(function(k){ return pointers[k]; }); }
+                stage.addEventListener('pointerdown', function(e) {
+                    try { stage.setPointerCapture(e.pointerId); } catch (err) {}
+                    pointers[e.pointerId] = { x: e.clientX, y: e.clientY };
+                    var list = ptList();
+                    if (list.length === 2) {
+                        startDist = Math.hypot(list[0].x - list[1].x, list[0].y - list[1].y) || 1;
+                        startScale = scale;
+                        lastMid = { x: (list[0].x + list[1].x) / 2, y: (list[0].y + list[1].y) / 2 };
+                    }
+                });
+                stage.addEventListener('pointermove', function(e) {
+                    if (!pointers[e.pointerId]) return;
+                    var prev = pointers[e.pointerId];
+                    pointers[e.pointerId] = { x: e.clientX, y: e.clientY };
+                    var list = ptList();
+                    if (list.length === 1) {
+                        tx += (e.clientX - prev.x); ty += (e.clientY - prev.y); apply();
+                    } else if (list.length === 2) {
+                        var dist = Math.hypot(list[0].x - list[1].x, list[0].y - list[1].y) || 1;
+                        scale = Math.min(5, Math.max(1, startScale * (dist / startDist)));
+                        if (zoom) zoom.value = scale;
+                        var mid = { x: (list[0].x + list[1].x) / 2, y: (list[0].y + list[1].y) / 2 };
+                        if (lastMid) { tx += (mid.x - lastMid.x); ty += (mid.y - lastMid.y); }
+                        lastMid = mid;
+                        apply();
+                    }
+                });
+                function upH(e) {
+                    if (pointers[e.pointerId]) delete pointers[e.pointerId];
+                    if (ptList().length < 2) { startDist = 0; lastMid = null; }
+                }
+                stage.addEventListener('pointerup', upH);
+                stage.addEventListener('pointercancel', upH);
+
+                function close(result) { modal.style.display = 'none'; modal.innerHTML = ''; resolve(result); }
+                document.getElementById('logoCropCancel').onclick = function() { close(null); };
+                document.getElementById('logoCropSave').onclick = function() {
+                    try {
+                        var dw = iw * base * scale, dh = ih * base * scale, k = OUT / V;
+                        var cv = document.createElement('canvas'); cv.width = OUT; cv.height = OUT;
+                        var ctx = cv.getContext('2d');
+                        ctx.drawImage(img, ((V - dw) / 2 + tx) * k, ((V - dh) / 2 + ty) * k, dw * k, dh * k);
+                        cv.toBlob(function(blob) { close(blob || null); }, 'image/png', 0.92);
+                    } catch (err) { console.error('logo bake failed:', err); close(null); }
+                };
+            });
+        }
+
+        // Upload a framed logo blob and reflect it in the preview + bizLogoUrl.
+        async function commitBizLogo(blob) {
+            var el = document.getElementById('bizLogoPreview');
+            if (el) el.innerHTML = '<img src="' + URL.createObjectURL(blob) + '" style="width:64px;height:64px;object-fit:cover;border-radius:50%;border:2px solid #8B3A7F;">';
+            showLogoAdjust(true);
             try {
                 var { data: sd } = await db.auth.getSession();
                 var user = sd && sd.session && sd.session.user;
                 if (!user) return;
-                var path = 'biz/' + user.id + '/logo_' + Date.now() + '.' + (file.name.split('.').pop() || 'png');
-                var up = await db.storage.from('qr-media').upload(path, file, { cacheControl: '31536000', upsert: false });
+                var path = 'biz/' + user.id + '/logo_' + Date.now() + '.png';
+                var up = await db.storage.from('qr-media').upload(path, blob, { cacheControl: '31536000', upsert: false, contentType: 'image/png' });
                 if (up.error) { console.error('Logo upload:', up.error); return; }
                 bizLogoUrl = db.storage.from('qr-media').getPublicUrl(path).data.publicUrl;
             } catch(e) { console.error('Logo upload failed:', e); }
+        }
+
+        async function previewBizLogo(input) {
+            if (!input.files || !input.files[0]) return;
+            var file = input.files[0];
+            var dataUrl = await new Promise(function(res){ var r = new FileReader(); r.onload = function(e){ res(e.target.result); }; r.readAsDataURL(file); });
+            input.value = ''; // let the same file be re-picked later
+            var blob = await openLogoCropper(dataUrl);
+            if (blob) await commitBizLogo(blob);
+        }
+
+        // Reposition an already-set logo without re-uploading a file.
+        async function adjustBizLogo() {
+            var src = bizLogoUrl || (bizProfileData && bizProfileData.logo);
+            if (!src) return;
+            var blob = await openLogoCropper(src);
+            if (blob) await commitBizLogo(blob);
         }
 
         // When set, showBizProfilePreview() injects this modular's item into the
