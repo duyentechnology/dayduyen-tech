@@ -2374,8 +2374,8 @@
                     </select>
                 </label>
                 <div id="posterCustomWrap" style="display:none;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
-                    <label style="font-size:13px;color:#9A8478;">Width (in)<input type="number" step="0.1" min="1" max="40" id="posterCustomW" value="4" class="input-field" style="margin:2px 0 0;" oninput="updatePosterFitHint()"></label>
-                    <label style="font-size:13px;color:#9A8478;">Height (in)<input type="number" step="0.1" min="1" max="40" id="posterCustomH" value="6" class="input-field" style="margin:2px 0 0;" oninput="updatePosterFitHint()"></label>
+                    <label style="font-size:13px;color:#9A8478;">Width (in)<input type="text" inputmode="decimal" autocomplete="off" id="posterCustomW" value="4" class="input-field" style="margin:2px 0 0;" oninput="updatePosterFitHint()"></label>
+                    <label style="font-size:13px;color:#9A8478;">Height (in)<input type="text" inputmode="decimal" autocomplete="off" id="posterCustomH" value="6" class="input-field" style="margin:2px 0 0;" oninput="updatePosterFitHint()"></label>
                 </div>
                 <label style="display:flex;align-items:center;gap:9px;font-size:14.5px;color:#2E2A28;font-family:'Outfit',sans-serif;margin-bottom:6px;cursor:pointer;">
                     <input type="checkbox" id="posterMulti" onchange="updatePosterFitHint()" checked style="width:18px;height:18px;accent-color:#8B3A7F;">
@@ -2403,12 +2403,12 @@
                     <strong>How to measure your sheet:</strong> with a ruler, measure one sticker's width and height; the gap between neighboring stickers; and the distance from the top and left page edges to the first sticker. Enter everything in inches — decimals are fine (e.g. 0.13). Or pick a ready-made template above.
                 </div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
-                    <label style="font-size:13px;color:#9A8478;">Sticker width (in)<input type="number" step="0.01" id="shLabelW" value="2" class="input-field" style="margin:2px 0 0;"></label>
-                    <label style="font-size:13px;color:#9A8478;">Sticker height (in)<input type="number" step="0.01" id="shLabelH" value="2" class="input-field" style="margin:2px 0 0;"></label>
-                    <label style="font-size:13px;color:#9A8478;">Gap across (in)<input type="number" step="0.01" id="shGapX" value="0.13" class="input-field" style="margin:2px 0 0;"></label>
-                    <label style="font-size:13px;color:#9A8478;">Gap down (in)<input type="number" step="0.01" id="shGapY" value="0.13" class="input-field" style="margin:2px 0 0;"></label>
-                    <label style="font-size:13px;color:#9A8478;">Top margin (in)<input type="number" step="0.01" id="shMarT" value="0.5" class="input-field" style="margin:2px 0 0;"></label>
-                    <label style="font-size:13px;color:#9A8478;">Left margin (in)<input type="number" step="0.01" id="shMarL" value="0.19" class="input-field" style="margin:2px 0 0;"></label>
+                    <label style="font-size:13px;color:#9A8478;">Sticker width (in)<input type="text" inputmode="decimal" autocomplete="off" id="shLabelW" value="2" class="input-field" style="margin:2px 0 0;"></label>
+                    <label style="font-size:13px;color:#9A8478;">Sticker height (in)<input type="text" inputmode="decimal" autocomplete="off" id="shLabelH" value="2" class="input-field" style="margin:2px 0 0;"></label>
+                    <label style="font-size:13px;color:#9A8478;">Gap across (in)<input type="text" inputmode="decimal" autocomplete="off" id="shGapX" value="0.13" class="input-field" style="margin:2px 0 0;"></label>
+                    <label style="font-size:13px;color:#9A8478;">Gap down (in)<input type="text" inputmode="decimal" autocomplete="off" id="shGapY" value="0.13" class="input-field" style="margin:2px 0 0;"></label>
+                    <label style="font-size:13px;color:#9A8478;">Top margin (in)<input type="text" inputmode="decimal" autocomplete="off" id="shMarT" value="0.5" class="input-field" style="margin:2px 0 0;"></label>
+                    <label style="font-size:13px;color:#9A8478;">Left margin (in)<input type="text" inputmode="decimal" autocomplete="off" id="shMarL" value="0.19" class="input-field" style="margin:2px 0 0;"></label>
                 </div>
                 <label style="font-size:13px;color:#9A8478;">Paper
                     <select id="shPage" class="input-field" style="margin:2px 0 10px;">
