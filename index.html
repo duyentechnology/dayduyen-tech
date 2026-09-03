@@ -8193,9 +8193,15 @@
             var file = input.files && input.files[0];
             input.value = '';
             if (!file || !currentUser) return;
+            // Frame it first — the QR center crops the logo to a square, so an
+            // off-center or wide logo looks clipped. The positioner bakes a clean
+            // square so it sits right in the code's center.
+            var dataUrl = await new Promise(function(res){ var r = new FileReader(); r.onload = function(e){ res(e.target.result); }; r.readAsDataURL(file); });
+            var blob = await openLogoCropper(dataUrl);
+            if (!blob) return;
             try {
-                var path = 'edit/' + currentUser.id + '/qrlogo_' + Date.now() + '.' + (file.name.split('.').pop() || 'png');
-                var up = await db.storage.from('qr-media').upload(path, file, { cacheControl: '31536000', upsert: false });
+                var path = 'edit/' + currentUser.id + '/qrlogo_' + Date.now() + '.png';
+                var up = await db.storage.from('qr-media').upload(path, blob, { cacheControl: '31536000', upsert: false, contentType: 'image/png' });
                 if (up.error) { alert('Could not upload logo: ' + up.error.message); return; }
                 var pub = db.storage.from('qr-media').getPublicUrl(path);
                 studioState.logoUrl = pub.data.publicUrl;
