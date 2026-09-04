@@ -4476,23 +4476,59 @@
         }
         // ── Inline per-profile promo composer — opens right inside the card ──
         var _pushOpenPid = null, _pushText = '', _pushPhotos = [], _pushSending = false;
-        function _inlinePushComposerHTML(pid) {
-            var n = _promoCodesForProfile(pid).length;
+        // Full customer-screen preview for the composer: the same brand card a
+        // customer sees on scan (logo header, contact icons, About + What's new
+        // collapse), built from the shared bizPreviewCard renderer with the
+        // live promo draft folded in. Re-rendered on each keystroke into its own
+        // box (the textarea is a sibling, so focus is never lost).
+        function _buildPushPreviewCard(pid) {
+            var p = (bizProfiles || []).find(function(x){ return x.profileId === pid; }) || {};
             var pvText = (_pushText || '').trim();
-            var pvPhotos = _pushPhotos.length
-                ? '<div style="display:flex;flex-direction:column;gap:8px;margin-top:' + (pvText ? '10px' : '0') + ';">' +
-                    _pushPhotos.map(function(p){ return '<div style="width:100%;border-radius:8px;overflow:hidden;background:#f5f0eb;"><img src="' + p.url + '" style="width:100%;height:auto;display:block;"></div>'; }).join('') +
+            var parts = bizPreviewCard({
+                name: p.name || p.profileLabel || '',
+                desc: p.description || '',
+                aboutUrls: Array.isArray(p.aboutPhotos) ? p.aboutPhotos : [],
+                logo: p.logo || '',
+                website: p.website || '',
+                phone: p.phone || '',
+                email: p.email || '',
+                address: (p.address && p.address.full) ? p.address.full : '',
+                socialHrefs: p.social || {},
+                promoText: pvText,
+                promoPhotos: _pushPhotos.map(function(x){ return x.url; }),
+                product: null
+            }, {
+                iconMode: 'static', showShare: true, namePlaceholder: '', originPad: false,
+                aboutOpen: false, promoOpen: true,
+                escText: sanitize, escUrl: function(u){ return u; }
+            });
+            // When there's no promo content yet, bizPreviewCard omits the What's
+            // new section — show a placeholder accordion so the merchant sees
+            // where the promo will land.
+            var emptyPromo = (!pvText && _pushPhotos.length === 0)
+                ? '<div style="background:#fff;border:1.5px solid #E8DDD6;border-radius:12px;overflow:hidden;margin-bottom:12px;opacity:.8;">' +
+                      '<div style="display:flex;align-items:center;gap:10px;padding:15px 16px;">' +
+                          '<span style="flex:1;font-family:\'Crimson Pro\',serif;font-size:22px;font-weight:600;color:#2E2A28;">What\'s new</span>' +
+                          '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8B3A7F" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>' +
+                      '</div>' +
+                      '<div style="padding:0 16px 16px;font-family:\'Outfit\',sans-serif;font-size:14px;color:#B8A99E;font-style:italic;">Your promo will appear here as customers see it…</div>' +
                   '</div>'
                 : '';
-            var preview =
-                '<div style="margin-top:14px;border:1px solid #F0E5F0;border-radius:12px;background:#fff;overflow:hidden;">' +
-                    '<div style="background:#FBF7FB;padding:8px 12px;font-size:11px;font-weight:700;color:#8B3A7F;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #F0E5F0;font-family:\'Outfit\',sans-serif;">Preview · what customers see</div>' +
-                    '<div style="padding:12px 14px;">' +
-                        '<div id="pushPvPlaceholder_' + pid + '" style="color:#B8A99E;font-size:14px;font-style:italic;font-family:\'Outfit\',sans-serif;' + ((pvText || _pushPhotos.length) ? 'display:none;' : '') + '">Your promo will appear here as customers see it…</div>' +
-                        '<div id="pushPvText_' + pid + '" style="font-size:15px;color:#2E2A28;line-height:1.5;white-space:pre-wrap;font-family:\'Outfit\',sans-serif;' + (pvText ? '' : 'display:none;') + '">' + sanitize(pvText) + '</div>' +
-                        pvPhotos +
-                    '</div>' +
+            var card =
+                '<div style="border:1px solid #E0CFE0;border-radius:14px;overflow:hidden;background:#F0EFED;">' +
+                    parts.header +
+                    '<div style="padding:18px 14px 6px;background:#F0EFED;">' + parts.sectionsInner + emptyPromo + '</div>' +
                 '</div>';
+            return '<div style="font-size:11px;font-weight:700;color:#8B3A7F;text-transform:uppercase;letter-spacing:.5px;margin:14px 0 8px;font-family:\'Outfit\',sans-serif;">Preview · what customers see</div>' + card;
+        }
+        // Live-refresh only the preview box (textarea is outside it → keeps focus).
+        function _renderPushPreview(pid) {
+            var box = document.getElementById('pushPreviewBox_' + pid);
+            if (box) box.innerHTML = _buildPushPreviewCard(pid);
+        }
+        function _inlinePushComposerHTML(pid) {
+            var n = _promoCodesForProfile(pid).length;
+            var preview = '<div id="pushPreviewBox_' + pid + '">' + _buildPushPreviewCard(pid) + '</div>';
             var thumbs = _pushPhotos.map(function(p, i) {
                 return '<div style="position:relative;width:56px;height:56px;border-radius:10px;overflow:hidden;border:1px solid #E8DDD6;flex-shrink:0;">' +
                     '<img src="' + p.url + '" style="width:100%;height:100%;object-fit:cover;">' +
@@ -4506,7 +4542,7 @@
             var sendLbl = _pushSending ? 'Sending…' : ('Send to ' + n + ' code' + (n !== 1 ? 's' : ''));
             return '<div onclick="event.stopPropagation();" style="padding:14px;border-top:1px solid #F0E5F0;background:#FBF7FB;">' +
                 '<div style="font-size:12.5px;font-weight:700;color:#8B3A7F;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;font-family:\'Outfit\',sans-serif;">Push a promo · all ' + n + ' code' + (n !== 1 ? 's' : '') + '</div>' +
-                '<textarea id="pushDraft_' + pid + '" oninput="_pushText=this.value;_syncPushPreview(\'' + pid + '\')" placeholder="e.g. 🌸 Spring sale — 20% off this weekend!" style="width:100%;border:1.5px solid #E8DDD6;border-radius:12px;padding:12px 14px;font-family:\'Outfit\',sans-serif;font-size:16px;line-height:1.5;color:#2E2A28;resize:none;min-height:80px;outline:none;box-sizing:border-box;background:#fff;">' + sanitize(_pushText) + '</textarea>' +
+                '<textarea id="pushDraft_' + pid + '" oninput="_pushText=this.value;_renderPushPreview(\'' + pid + '\')" placeholder="e.g. 🌸 Spring sale — 20% off this weekend!" style="width:100%;border:1.5px solid #E8DDD6;border-radius:12px;padding:12px 14px;font-family:\'Outfit\',sans-serif;font-size:16px;line-height:1.5;color:#2E2A28;resize:none;min-height:80px;outline:none;box-sizing:border-box;background:#fff;">' + sanitize(_pushText) + '</textarea>' +
                 '<div style="display:flex;gap:8px;margin-top:10px;align-items:center;flex-wrap:wrap;">' + thumbs + addPhoto + '</div>' +
                 preview +
                 '<div style="display:flex;gap:10px;margin-top:12px;">' +
@@ -4515,15 +4551,6 @@
                 '</div>' +
                 '<div style="font-size:12px;color:#9A8478;text-align:center;margin-top:8px;line-height:1.4;font-family:\'Outfit\',sans-serif;">Shows as “What’s new” when a customer scans any of this profile’s codes.</div>' +
             '</div>';
-        }
-        // Live-update the composer's customer preview as the merchant types,
-        // without re-rendering the whole card (which would blur the textarea).
-        function _syncPushPreview(pid) {
-            var v = (_pushText || '').trim();
-            var t  = document.getElementById('pushPvText_' + pid);
-            var ph = document.getElementById('pushPvPlaceholder_' + pid);
-            if (t)  { t.textContent = v; t.style.display = v ? '' : 'none'; }
-            if (ph) { ph.style.display = (v || _pushPhotos.length) ? 'none' : ''; }
         }
         function openProfilePush(pid) {
             if (!canPush()) { showUpgradeModal('push'); return; }
