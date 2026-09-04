@@ -3192,6 +3192,110 @@
             } else if (pw) {
                 pw.style.display = 'none';
             }
+
+            // Subscribers get a "Your plan" card (renewal date + cancel) in the
+            // same spot. Only for a REAL paid subscription — not admins or the
+            // client-side test grant, which have nothing to cancel.
+            var sc = document.getElementById('dashSubCard');
+            if (isRealSubscriber()) {
+                if (!sc && anchor && anchor.parentNode) {
+                    sc = document.createElement('div');
+                    sc.id = 'dashSubCard';
+                    anchor.parentNode.insertBefore(sc, anchor);
+                }
+                if (sc) { sc.innerHTML = subscriptionCardHTML(); sc.style.display = ''; }
+                loadSubscriptionStatus();   // fills in renewal date + cancel state
+            } else if (sc) {
+                sc.style.display = 'none';
+            }
+        }
+
+        // A real, cancellable subscription (Insights/Boutique, active) — not the
+        // admin bypass or the client-side TEST_GRANT_TIER.
+        function isRealSubscriber() {
+            var p = ent().plan;
+            return (p === 'insights' || p === 'boutique') && ent().plan_status === 'active';
+        }
+        var _subStatus = null;   // { plan, renews_at, cancel_at_period_end, ends_at }
+        function _prettyDate(iso) {
+            if (!iso) return '';
+            try { return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }); }
+            catch (e) { return ''; }
+        }
+        function subscriptionCardHTML() {
+            if (!isRealSubscriber()) return '';
+            var boutique = ent().plan === 'boutique';
+            var planName = boutique ? 'Boutique' : 'Insights';
+            var price = boutique ? '$19.99/mo' : '$9.99/mo';
+            var s = _subStatus || {};
+            var when = _prettyDate(s.ends_at || s.renews_at);
+            var canceling = !!s.cancel_at_period_end;
+            var statusLine, btn;
+            if (canceling) {
+                statusLine = when ? ('Ends ' + when + ' · won’t renew') : 'Set to cancel · won’t renew';
+                btn = '<button onclick="resumeSubscription()" id="subActionBtn" style="width:100%;background:#8B3A7F;color:#fff;border:none;border-radius:11px;padding:13px;font-family:\'Outfit\',sans-serif;font-weight:700;font-size:15.5px;cursor:pointer;">Resume plan</button>';
+            } else {
+                statusLine = when ? ('Renews ' + when) : 'Active';
+                btn = '<button onclick="cancelSubscription()" id="subActionBtn" style="width:100%;background:#fff;color:#9A8478;border:1.5px solid #E8DDD6;border-radius:11px;padding:13px;font-family:\'Outfit\',sans-serif;font-weight:600;font-size:15.5px;cursor:pointer;">Cancel plan</button>';
+            }
+            return '<div style="background:#fff;border:1.5px solid ' + (canceling ? '#D98A3D' : '#2AA8A0') + ';border-radius:14px;padding:18px;margin-bottom:24px;">' +
+                '<div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">' +
+                    '<span style="font-family:\'Outfit\',sans-serif;font-size:20px;font-weight:700;color:#1D1B1E;">' + planName + '</span>' +
+                    '<span style="font-size:13px;font-weight:700;color:' + (canceling ? '#D98A3D' : '#2AA8A0') + ';background:' + (canceling ? '#FBEEE0' : '#E6F5F3') + ';padding:2px 9px;border-radius:20px;">' + (canceling ? 'Canceling' : 'Active') + '</span>' +
+                    '<span style="margin-left:auto;font-size:14px;color:#9A8478;">' + price + '</span>' +
+                '</div>' +
+                '<div style="font-size:14.5px;color:#8A8A8F;margin-bottom:14px;font-family:\'Outfit\',sans-serif;">' + statusLine + '</div>' +
+                btn +
+                (canceling ? '' : '<div style="font-size:12px;color:#9A8478;text-align:center;margin-top:8px;line-height:1.4;">You keep analytics &amp; push until the end of your paid period.</div>') +
+            '</div>';
+        }
+        function refreshSubscriptionCard() {
+            var sc = document.getElementById('dashSubCard');
+            if (sc) sc.innerHTML = subscriptionCardHTML();
+        }
+        var _subStatusLoading = false;
+        async function loadSubscriptionStatus() {
+            if (_subStatus || _subStatusLoading || !isRealSubscriber()) return;
+            _subStatusLoading = true;
+            try {
+                var res = await db.functions.invoke('business-cancel-subscription', { body: { action: 'status' } });
+                if (res && res.data && res.data.ok) { _subStatus = res.data; refreshSubscriptionCard(); }
+            } catch (e) { console.warn('subscription status failed:', e); }
+            _subStatusLoading = false;
+        }
+        async function cancelSubscription() {
+            var planName = ent().plan === 'boutique' ? 'Boutique' : 'Insights';
+            if (!confirm('Cancel your ' + planName + ' plan? You’ll keep analytics and push until the end of your current billing period, then it stops. No further charges.')) return;
+            var btn = document.getElementById('subActionBtn');
+            if (btn) { btn.textContent = 'Canceling…'; btn.disabled = true; }
+            try {
+                var res = await db.functions.invoke('business-cancel-subscription', { body: { action: 'cancel' } });
+                if (res.error || !(res.data && res.data.ok)) { alert('Could not cancel. Please try again.'); refreshSubscriptionCard(); return; }
+                _subStatus = res.data;
+                refreshSubscriptionCard();
+                if (typeof showPromoToast === 'function') {
+                    showPromoToast('Plan set to cancel — access continues until ' + (_prettyDate(res.data.ends_at) || 'period end') + '.');
+                }
+            } catch (e) {
+                console.error('cancelSubscription error:', e);
+                alert('Could not cancel. Please try again.');
+                refreshSubscriptionCard();
+            }
+        }
+        async function resumeSubscription() {
+            var btn = document.getElementById('subActionBtn');
+            if (btn) { btn.textContent = 'Resuming…'; btn.disabled = true; }
+            try {
+                var res = await db.functions.invoke('business-cancel-subscription', { body: { action: 'resume' } });
+                if (res.error || !(res.data && res.data.ok)) { alert('Could not resume. Please try again.'); refreshSubscriptionCard(); return; }
+                _subStatus = res.data;
+                refreshSubscriptionCard();
+                if (typeof showPromoToast === 'function') showPromoToast('Plan resumed — it will keep renewing.');
+            } catch (e) {
+                console.error('resumeSubscription error:', e);
+                alert('Could not resume. Please try again.');
+                refreshSubscriptionCard();
+            }
         }
 
         function applyAdminNav() {
