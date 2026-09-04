@@ -3260,9 +3260,9 @@
             var stats = document.getElementById('dashStatsSection'); // scan/save analytics
             var promo = document.getElementById('dashPromoSection');  // push promotions
             if (stats) stats.style.display = insightsOK ? '' : 'none';
-            // Admin has every entitlement but no business to promote, so the
-            // push block is noise on that account. Businesses still see it.
-            if (promo) promo.style.display = (insightsOK && !isAdmin()) ? '' : 'none';
+            // The global push composer is retired — pushing now happens inline in
+            // each profile card (openProfilePush). Keep this section hidden.
+            if (promo) promo.style.display = 'none';
 
             // Clean up any paywalls from the older two-card design.
             ['dashStatsSectionPaywall', 'dashPromoSectionPaywall'].forEach(function(id) {
@@ -4067,9 +4067,7 @@
         // ── Push targeting: choose which profiles' codes get the promotion ──
         var _promoTargets = null; // { profileId: true }; null until first render (then all on)
         function _promoCodesForProfile(profileId) {
-            return (savedQRCodes || []).filter(function(c) {
-                return c && c.businessData && c.businessData.profileId === profileId;
-            });
+            return _profileMemberCodes(profileId);
         }
         function selectedPromoCodeIds() {
             if (!_promoTargets) return [];
@@ -4624,13 +4622,25 @@
             var code = (savedQRCodes || []).find(function(c) { return m && m.codeId && (c.dbId || c.id) === m.codeId; });
             return { scans: code ? (code.scan_count || 0) : 0, saves: code ? (code.save_count || 0) : 0 };
         }
-        // Per-profile analytics: sum scans/saves/shares across every code that
-        // carries this profile (its own QR + attached product/menu QRs).
+        // The codes that belong to a profile: its own QR + the product/menu codes
+        // listed on it, plus anything stamped with its profileId. Using the listed
+        // products (not just the stamp) keeps analytics and push consistent with
+        // what the card shows, even if a code's stamped id drifted.
+        function _profileMemberCodes(profileId) {
+            var prof = (bizProfiles || []).find(function(p){ return p.profileId === profileId; });
+            var idset = {};
+            var own = (typeof codeForProfile === 'function') ? codeForProfile(profileId) : null;
+            if (own) idset[own.dbId || own.id] = 1;
+            if (prof && Array.isArray(prof.products)) prof.products.forEach(function(m){ if (m && m.codeId) idset[m.codeId] = 1; });
+            return (savedQRCodes || []).filter(function(c) {
+                return idset[c.dbId || c.id] || (c.businessData && c.businessData.profileId === profileId);
+            });
+        }
+        // Per-profile analytics: sum scans/saves/shares across the profile's codes.
         function _profileStats(profileId) {
             var s = 0, v = 0, h = 0;
-            (savedQRCodes || []).forEach(function(c) {
-                var pid = c.businessData && c.businessData.profileId;
-                if (pid === profileId) { s += (c.scan_count || 0); v += (c.save_count || 0); h += (c.share_count || 0); }
+            _profileMemberCodes(profileId).forEach(function(c) {
+                s += (c.scan_count || 0); v += (c.save_count || 0); h += (c.share_count || 0);
             });
             return { scans: s, saves: v, shares: h };
         }
@@ -4647,26 +4657,96 @@
                 cell(st.scans, 'Scans', '#2AA8A0') + cell(st.saves, 'Saves', '#3A8F6E') + cell(st.shares, 'Shares', '#E8636F') +
             '</div>';
             var caption = '<div style="background:#FBF7FB;font-size:12px;color:#9A8478;text-align:center;padding:0 14px 12px;font-family:\'Outfit\',sans-serif;">Totals across all QR codes on this profile</div>';
-            var push = canPush()
-                ? '<div style="padding:14px;border-top:1px solid #F0E5F0;">' +
-                    '<button onclick="event.stopPropagation();pushToProfile(\'' + profileId + '\')" style="width:100%;background:#8B3A7F;color:#fff;border:none;border-radius:12px;padding:14px;font-family:\'Outfit\',sans-serif;font-weight:700;font-size:16px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:9px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>Push a promo</button>' +
-                    '<div style="font-size:12.5px;color:#9A8478;text-align:center;margin-top:8px;line-height:1.45;font-family:\'Outfit\',sans-serif;">Goes to <b>all QR codes</b> on this profile — its profile QR and any product or menu codes.</div>' +
-                  '</div>'
-                : '';
+            var push = '';
+            if (canPush()) {
+                push = (_pushOpenPid === profileId)
+                    ? _inlinePushComposerHTML(profileId)
+                    : '<div style="padding:14px;border-top:1px solid #F0E5F0;">' +
+                        '<button onclick="event.stopPropagation();openProfilePush(\'' + profileId + '\')" style="width:100%;background:#8B3A7F;color:#fff;border:none;border-radius:12px;padding:14px;font-family:\'Outfit\',sans-serif;font-weight:700;font-size:16px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:9px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>Push a promo</button>' +
+                        '<div style="font-size:12.5px;color:#9A8478;text-align:center;margin-top:8px;line-height:1.45;font-family:\'Outfit\',sans-serif;">Reaches <b>all QR codes</b> on this profile — its profile QR and any product or menu codes.</div>' +
+                      '</div>';
+            }
             return strip + caption + push;
         }
-        // Push a promo to a whole profile (master): pre-select ONLY this profile
-        // in the composer's picker — which includes all its product/menu codes —
-        // then jump to the composer so they can write and send.
-        function pushToProfile(pid) {
+        // ── Inline per-profile promo composer — opens right inside the card ──
+        var _pushOpenPid = null, _pushText = '', _pushPhotos = [], _pushSending = false;
+        function _inlinePushComposerHTML(pid) {
+            var n = _promoCodesForProfile(pid).length;
+            var thumbs = _pushPhotos.map(function(p, i) {
+                return '<div style="position:relative;width:56px;height:56px;border-radius:10px;overflow:hidden;border:1px solid #E8DDD6;flex-shrink:0;">' +
+                    '<img src="' + p.url + '" style="width:100%;height:100%;object-fit:cover;">' +
+                    '<div onclick="event.stopPropagation();removeProfilePushPhoto(' + i + ')" style="position:absolute;top:2px;right:2px;width:18px;height:18px;line-height:18px;text-align:center;background:rgba(0,0,0,0.6);color:#fff;border-radius:50%;font-size:12px;cursor:pointer;">✕</div>' +
+                '</div>';
+            }).join('');
+            var addPhoto = _pushPhotos.length < 5
+                ? '<div onclick="event.stopPropagation();document.getElementById(\'pushPhoto_' + pid + '\').click()" style="width:56px;height:56px;border:1.5px dashed #C9A0C4;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:#8B3A7F;font-size:24px;line-height:1;">＋</div>' +
+                  '<input type="file" id="pushPhoto_' + pid + '" accept="image/*" multiple style="display:none;" onchange="handleProfilePushPhoto(this)">'
+                : '';
+            var sendLbl = _pushSending ? 'Sending…' : ('Send to ' + n + ' code' + (n !== 1 ? 's' : ''));
+            return '<div onclick="event.stopPropagation();" style="padding:14px;border-top:1px solid #F0E5F0;background:#FBF7FB;">' +
+                '<div style="font-size:12.5px;font-weight:700;color:#8B3A7F;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;font-family:\'Outfit\',sans-serif;">Push a promo · all ' + n + ' code' + (n !== 1 ? 's' : '') + '</div>' +
+                '<textarea id="pushDraft_' + pid + '" oninput="_pushText=this.value" placeholder="e.g. 🌸 Spring sale — 20% off this weekend!" style="width:100%;border:1.5px solid #E8DDD6;border-radius:12px;padding:12px 14px;font-family:\'Outfit\',sans-serif;font-size:16px;line-height:1.5;color:#2E2A28;resize:none;min-height:80px;outline:none;box-sizing:border-box;background:#fff;">' + sanitize(_pushText) + '</textarea>' +
+                '<div style="display:flex;gap:8px;margin-top:10px;align-items:center;flex-wrap:wrap;">' + thumbs + addPhoto + '</div>' +
+                '<div style="display:flex;gap:10px;margin-top:12px;">' +
+                    '<button onclick="event.stopPropagation();closeProfilePush()" style="flex:1;background:#fff;color:#9A8478;border:1.5px solid #E8DDD6;border-radius:11px;padding:12px;font-family:\'Outfit\',sans-serif;font-weight:600;font-size:15.5px;cursor:pointer;">Cancel</button>' +
+                    '<button id="pushSendBtn_' + pid + '" onclick="event.stopPropagation();sendProfilePush(\'' + pid + '\')" style="flex:1.7;background:#8B3A7F;color:#fff;border:none;border-radius:11px;padding:12px;font-family:\'Outfit\',sans-serif;font-weight:700;font-size:15.5px;cursor:pointer;">' + sendLbl + '</button>' +
+                '</div>' +
+                '<div style="font-size:12px;color:#9A8478;text-align:center;margin-top:8px;line-height:1.4;font-family:\'Outfit\',sans-serif;">Shows as “What’s new” when a customer scans any of this profile’s codes.</div>' +
+            '</div>';
+        }
+        function openProfilePush(pid) {
             if (!canPush()) { showUpgradeModal('push'); return; }
-            _promoTargets = {};
-            (bizProfiles || []).forEach(function(p) { _promoTargets[p.profileId] = (p.profileId === pid); });
-            renderPromoProfileChips();
-            var sec = document.getElementById('dashPromoSection');
-            if (sec) { try { sec.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) { sec.scrollIntoView(); } }
-            var ta = document.getElementById('dashPromoText');
-            if (ta) setTimeout(function(){ try { ta.focus(); } catch (e) {} }, 450);
+            _pushOpenPid = pid; _pushText = ''; _pushSending = false;
+            _pushPhotos.forEach(function(p){ try { URL.revokeObjectURL(p.url); } catch(e){} });
+            _pushPhotos = [];
+            renderProfilesList();
+            setTimeout(function(){ var t = document.getElementById('pushDraft_' + pid); if (t) try { t.focus(); } catch(e){} }, 60);
+        }
+        function closeProfilePush() {
+            _pushPhotos.forEach(function(p){ try { URL.revokeObjectURL(p.url); } catch(e){} });
+            _pushOpenPid = null; _pushText = ''; _pushPhotos = []; _pushSending = false;
+            renderProfilesList();
+        }
+        function handleProfilePushPhoto(input) {
+            var files = Array.prototype.slice.call(input.files || []);
+            input.value = '';
+            files.forEach(function(f){ if (_pushPhotos.length < 5) _pushPhotos.push({ file: f, url: URL.createObjectURL(f) }); });
+            renderProfilesList();
+        }
+        function removeProfilePushPhoto(i) {
+            var p = _pushPhotos[i]; if (p) { try { URL.revokeObjectURL(p.url); } catch(e){} }
+            _pushPhotos.splice(i, 1);
+            renderProfilesList();
+        }
+        async function sendProfilePush(pid) {
+            if (!canPush()) { showUpgradeModal('push'); return; }
+            var text = (_pushText || '').trim();
+            if (!text && _pushPhotos.length === 0) { alert('Add a message or a photo first.'); return; }
+            var codeIds = _promoCodesForProfile(pid).map(function(c){ return c.dbId || c.id; });
+            if (!codeIds.length) { alert('This profile has no QR codes yet — generate one first.'); return; }
+            _pushSending = true;
+            var btn = document.getElementById('pushSendBtn_' + pid);
+            if (btn) { btn.textContent = 'Sending…'; btn.disabled = true; }
+            try {
+                var sd = await db.auth.getSession();
+                var user = sd && sd.data && sd.data.session && sd.data.session.user;
+                if (!user) { alert('Please sign in again.'); _pushSending = false; if (btn) btn.disabled = false; return; }
+                var photoUrls = [];
+                for (var i = 0; i < _pushPhotos.length; i++) {
+                    var u = await uploadPromoPhoto(_pushPhotos[i].file, user.id, i);
+                    if (u) photoUrls.push(u);
+                }
+                var promoData = { text: sanitize(text), photos: photoUrls, pushedAt: new Date().toISOString() };
+                var res = await db.from('qr_codes').update({ promotion: promoData, updated_at: new Date().toISOString() })
+                    .eq('business_user_id', user.id).in('id', codeIds);
+                if (res.error) { alert('Could not push: ' + res.error.message); _pushSending = false; if (btn) btn.disabled = false; return; }
+                closeProfilePush();
+                showPromoToast(codeIds.length + ' QR code' + (codeIds.length !== 1 ? 's' : '') + ' updated. Tap to dismiss.');
+            } catch (e) {
+                console.error('sendProfilePush error:', e);
+                alert('Could not push. Please try again.');
+                _pushSending = false; if (btn) btn.disabled = false;
+            }
         }
         function renderProfilesList() {
             var container = document.getElementById('dashProfilesList');
