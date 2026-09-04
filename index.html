@@ -2039,74 +2039,6 @@
                 <div id="momentFunnelBody" style="margin-top:22px;"></div>
             </div>
 
-            <!-- Push a Promotion -->
-            <div id="dashPromoSection" style="background:#fff;border:2px solid #8B3A7F;border-radius:18px;padding:26px 24px;margin-bottom:24px;box-shadow:0 6px 22px rgba(139,58,127,0.08);">
-                <div style="font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:700;color:#2E2A28;margin-bottom:8px;display:flex;align-items:center;gap:10px;"><svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="#8B3A7F" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>Push a Promotion</div>
-                <div style="font-size:16.5px;color:#9A8478;margin-bottom:18px;line-height:1.55;">This message appears on the QR codes you pick below when someone scans. Add a photo to make it stand out.</div>
-                <textarea id="dashPromoText" placeholder="e.g. 🌸 Spring sale — 20% off all bouquets this weekend! Use code SPRING20" style="width:100%;border:1.5px solid #E8DDD6;border-radius:12px;padding:16px 18px;font-family:'Outfit',sans-serif;font-size:17px;line-height:1.5;color:#2E2A28;resize:none;min-height:120px;outline:none;margin-bottom:18px;background:#fafafa;box-sizing:border-box;"></textarea>
-                <!-- Photo upload -->
-                <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;">
-                    <div onclick="document.getElementById('dashPromoPhoto').click()" id="dashPromoAddBtn" style="width:112px;height:112px;border:1.5px dashed #C9A0C4;border-radius:14px;background:#fafafa;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;">
-                        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#8B3A7F" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3l2-3h8l2 3h3a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-                        <div style="font-size:14px;color:#8B3A7F;font-weight:600;margin-top:6px;font-family:'Outfit',sans-serif;">Add Photo</div>
-                    </div>
-                    <input type="file" id="dashPromoPhoto" accept="image/*" multiple style="display:none;" onchange="handleDashPromoPhotos(this)">
-                    <div id="dashPromoThumbs" style="display:flex;gap:10px;flex-wrap:wrap;flex:1;"></div>
-                    <div id="dashPromoHint" style="font-size:14.5px;color:#9A8478;line-height:1.45;">Upload a sale flyer, new arrival, or seasonal photo · up to 5 photos</div>
-                </div>
-                <div id="dashPromoCount" style="display:none;font-size:14px;color:#9A8478;margin:-8px 0 16px 2px;">0 of 5 photos added.</div>
-                <!-- Audience snapshot + targeting.
-                     Hide by setting PROMO_TARGETING_ENABLED = false. -->
-                <div id="promoTargeting" style="display:none;">
-                    <!-- Audience snapshot -->
-                    <div style="display:flex;gap:8px;margin-bottom:16px;">
-                        <div style="flex:1;background:#faf6fa;border:1px solid #eaddea;border-radius:10px;padding:9px 10px;text-align:center;">
-                            <div id="promoStatScans" style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:#8B3A7F;line-height:1;">—</div>
-                            <div style="font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:#9A8478;margin-top:3px;">Total Scans</div>
-                        </div>
-                        <div style="flex:1;background:#faf6fa;border:1px solid #eaddea;border-radius:10px;padding:9px 10px;text-align:center;">
-                            <div id="promoStatSaves" style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:#8B3A7F;line-height:1;">—</div>
-                            <div style="font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:#9A8478;margin-top:3px;">Total Saves</div>
-                        </div>
-                    </div>
-
-                    <!-- Who to send to -->
-                    <div style="font-size:15.5px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;">Send to</div>
-                    <div style="display:flex;gap:8px;margin-bottom:9px;">
-                        <button type="button" id="promoSeg-all" onclick="selectPromoTarget('all')" style="flex:1;padding:9px 6px;border-radius:9px;border:1.5px solid #8B3A7F;background:#8B3A7F;color:#fff;font-family:'Outfit',sans-serif;font-weight:600;font-size:15px;cursor:pointer;">Everyone</button>
-                        <button type="button" id="promoSeg-savers" onclick="selectPromoTarget('savers')" style="flex:1;padding:9px 6px;border-radius:9px;border:1.5px solid #E8DDD6;background:#fff;color:#6B5751;font-family:'Outfit',sans-serif;font-weight:600;font-size:15px;cursor:pointer;">Savers</button>
-                        <button type="button" id="promoSeg-scanned" onclick="selectPromoTarget('scanned')" style="flex:1;padding:9px 6px;border-radius:9px;border:1.5px solid #E8DDD6;background:#fff;color:#6B5751;font-family:'Outfit',sans-serif;font-weight:600;font-size:15px;cursor:pointer;">Scanners</button>
-                    </div>
-                    <div id="promoTargetNote" style="font-size:15px;color:#9A8478;line-height:1.45;margin-bottom:6px;">Reaches everyone who saved one of your QR codes, plus anyone who scans.</div>
-                    <div style="font-size:13.5px;color:#b9a6b4;line-height:1.45;margin-bottom:18px;font-style:italic;">Emailing your audience turns on soon. For now, each push updates the promo shown on your QR codes.</div>
-                </div>
-
-                <!-- Pick which profiles' codes to push to (default: all). -->
-                <div id="promoProfilePicker" style="margin-bottom:18px;">
-                    <div style="font-size:15.5px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;">Push to which codes?</div>
-                    <div id="promoProfileChips" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
-                </div>
-                <button onclick="showPromoPreview()" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px;background:#faf6fa;color:#8B3A7F;border:1.5px solid #eaddea;border-radius:12px;padding:13px;font-family:'Outfit',sans-serif;font-weight:600;font-size:17px;cursor:pointer;margin-bottom:10px;">
-                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#8B3A7F" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
-                    <span>Preview how this looks on a QR code</span>
-                </button>
-                <div style="display:flex;gap:12px;">
-                    <button onclick="dashPushPromotion()" id="promoPushBtn" style="flex:2;display:inline-flex;align-items:center;justify-content:center;gap:8px;background:#8B3A7F;color:#fff;border:none;border-radius:12px;padding:16px;font-family:'Outfit',sans-serif;font-weight:600;font-size:18px;cursor:pointer;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg><span id="promoPushBtnLabel">Push to your QR codes</span></button>
-                    <button onclick="dashClearPromotion()" style="flex:1;background:#fff;color:#9A8478;border:1.5px solid #E8DDD6;border-radius:12px;padding:16px;font-family:'Outfit',sans-serif;font-size:18px;cursor:pointer;">✕ Clear</button>
-                </div>
-            </div>
-
-            <!-- Promotion card preview modal -->
-            <div id="promoPreviewModal" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(46,42,40,0.55);align-items:center;justify-content:center;padding:20px;box-sizing:border-box;" onclick="if(event.target===this)closePromoPreview()">
-                <div style="background:#F0EFED;border-radius:22px;max-width:400px;width:100%;max-height:88vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
-                    <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 18px 8px;">
-                        <div style="font-family:'Cormorant Garamond',serif;font-size:19px;font-weight:700;color:#2E2A28;">QR code preview</div>
-                        <button onclick="closePromoPreview()" style="background:none;border:none;font-size:22px;color:#9A8478;cursor:pointer;line-height:1;">✕</button>
-                    </div>
-                    <div style="font-size:14px;color:#9A8478;padding:0 18px 14px;line-height:1.45;">Your full QR code, exactly as a customer sees it when they scan. Sections are expanded here so you can review everything.</div>
-                    <div id="promoPreviewBody" style="padding:0;"></div>
-                </div>
-            </div>
 
         </div>
     </div>
@@ -4808,7 +4740,6 @@
             Array.prototype.forEach.call(container.querySelectorAll('.profQrCanvas'), function(cv) {
                 drawProfileQr(cv, cv.getAttribute('data-url'), cv.getAttribute('data-color'));
             });
-            renderPromoProfileChips(); // keep the push targeting picker in sync
         }
 
         function populateBizProfile() {
