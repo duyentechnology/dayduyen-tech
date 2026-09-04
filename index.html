@@ -3050,6 +3050,12 @@
                 var qs = params.toString();
                 history.replaceState({}, '', window.location.pathname + (qs ? '?' + qs : '') + window.location.hash);
                 if (u === 'success') {
+                    // We own where the app lands after payment — not the splash
+                    // router (which would leave us on the marketing page after the
+                    // iOS PWA relaunch). Drop the splash right away, no lantern flash.
+                    hasRoutedOnLoad = true;
+                    var sp = document.getElementById('duyenSplash');
+                    if (sp) sp.classList.add('dismissed');
                     var refresh = function() {
                         loadEntitlements().then(function() {
                             if (typeof applyDashboardGating === 'function') applyDashboardGating();
@@ -3062,7 +3068,11 @@
                     var pendProf = null; try { pendProf = localStorage.getItem('pendingProfileQr'); } catch (e) {}
                     if (hadModular || pend) { finishPendingModular(midParam, pidParam); }
                     else if (pidParam || pendProf) { finishPendingProfile(pidParam || pendProf); }
-                    else { alert('Payment received — your upgrade is being activated! ✨'); }
+                    else {
+                        // A plan upgrade (Insights / Boutique): straight to the dashboard.
+                        showView('bizDashboard');
+                        if (typeof showPromoToast === 'function') showPromoToast('Payment received — your upgrade is activating ✨');
+                    }
                 }
             } catch (e) { console.warn('handleUpgradeReturn error:', e); }
         }
