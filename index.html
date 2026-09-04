@@ -2042,7 +2042,7 @@
             <!-- Push a Promotion -->
             <div id="dashPromoSection" style="background:#fff;border:2px solid #8B3A7F;border-radius:18px;padding:26px 24px;margin-bottom:24px;box-shadow:0 6px 22px rgba(139,58,127,0.08);">
                 <div style="font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:700;color:#2E2A28;margin-bottom:8px;display:flex;align-items:center;gap:10px;"><svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="#8B3A7F" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>Push a Promotion</div>
-                <div style="font-size:16.5px;color:#9A8478;margin-bottom:18px;line-height:1.55;">This message appears on all active QR codes when someone scans. Add a photo to make it stand out.</div>
+                <div style="font-size:16.5px;color:#9A8478;margin-bottom:18px;line-height:1.55;">This message appears on the QR codes you pick below when someone scans. Add a photo to make it stand out.</div>
                 <textarea id="dashPromoText" placeholder="e.g. 🌸 Spring sale — 20% off all bouquets this weekend! Use code SPRING20" style="width:100%;border:1.5px solid #E8DDD6;border-radius:12px;padding:16px 18px;font-family:'Outfit',sans-serif;font-size:17px;line-height:1.5;color:#2E2A28;resize:none;min-height:120px;outline:none;margin-bottom:18px;background:#fafafa;box-sizing:border-box;"></textarea>
                 <!-- Photo upload -->
                 <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;">
@@ -2081,12 +2081,17 @@
                     <div style="font-size:13.5px;color:#b9a6b4;line-height:1.45;margin-bottom:18px;font-style:italic;">Emailing your audience turns on soon. For now, each push updates the promo shown on your QR codes.</div>
                 </div>
 
+                <!-- Pick which profiles' codes to push to (default: all). -->
+                <div id="promoProfilePicker" style="margin-bottom:18px;">
+                    <div style="font-size:15.5px;font-weight:600;color:#8B3A7F;text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;">Push to which codes?</div>
+                    <div id="promoProfileChips" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+                </div>
                 <button onclick="showPromoPreview()" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px;background:#faf6fa;color:#8B3A7F;border:1.5px solid #eaddea;border-radius:12px;padding:13px;font-family:'Outfit',sans-serif;font-weight:600;font-size:17px;cursor:pointer;margin-bottom:10px;">
                     <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#8B3A7F" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
                     <span>Preview how this looks on a QR code</span>
                 </button>
                 <div style="display:flex;gap:12px;">
-                    <button onclick="dashPushPromotion()" id="promoPushBtn" style="flex:2;display:inline-flex;align-items:center;justify-content:center;gap:8px;background:#8B3A7F;color:#fff;border:none;border-radius:12px;padding:16px;font-family:'Outfit',sans-serif;font-weight:600;font-size:18px;cursor:pointer;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg><span>Push to All QR Codes</span></button>
+                    <button onclick="dashPushPromotion()" id="promoPushBtn" style="flex:2;display:inline-flex;align-items:center;justify-content:center;gap:8px;background:#8B3A7F;color:#fff;border:none;border-radius:12px;padding:16px;font-family:'Outfit',sans-serif;font-weight:600;font-size:18px;cursor:pointer;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg><span id="promoPushBtnLabel">Push to your QR codes</span></button>
                     <button onclick="dashClearPromotion()" style="flex:1;background:#fff;color:#9A8478;border:1.5px solid #E8DDD6;border-radius:12px;padding:16px;font-family:'Outfit',sans-serif;font-size:18px;cursor:pointer;">✕ Clear</button>
                 </div>
             </div>
@@ -4217,7 +4222,49 @@
         var dashPromoPhotos = []; // [{file: File} | {url: string}]
         var PROMO_PHOTO_MAX = 5;  // max photos per promotion
         // Inner HTML for the push button (megaphone icon + label), so JS resets keep the icon.
-        var PROMO_PUSH_BTN_HTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg><span>Push to All QR Codes</span>';
+        var PROMO_PUSH_BTN_HTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg><span id="promoPushBtnLabel">Push to your QR codes</span>';
+
+        // ── Push targeting: choose which profiles' codes get the promotion ──
+        var _promoTargets = null; // { profileId: true }; null until first render (then all on)
+        function _promoCodesForProfile(profileId) {
+            return (savedQRCodes || []).filter(function(c) {
+                return c && c.businessData && c.businessData.profileId === profileId;
+            });
+        }
+        function selectedPromoCodeIds() {
+            if (!_promoTargets) return [];
+            var ids = [];
+            (savedQRCodes || []).forEach(function(c) {
+                var pid = c && c.businessData && c.businessData.profileId;
+                if (pid && _promoTargets[pid]) ids.push(c.dbId || c.id);
+            });
+            return ids;
+        }
+        function renderPromoProfileChips() {
+            var host = document.getElementById('promoProfileChips');
+            if (!host) return;
+            var profs = (bizProfiles || []).filter(function(p){ return _promoCodesForProfile(p.profileId).length > 0; });
+            if (!profs.length) { host.innerHTML = '<span style="font-size:14px;color:#9A8478;">Generate a QR code first, then you can push to it.</span>'; updatePromoPushLabel(); return; }
+            if (!_promoTargets) { _promoTargets = {}; profs.forEach(function(p){ _promoTargets[p.profileId] = true; }); }
+            host.innerHTML = profs.map(function(p) {
+                var on = !!_promoTargets[p.profileId];
+                var nm = sanitize(p.profileLabel || p.name || 'Profile');
+                var n = _promoCodesForProfile(p.profileId).length;
+                return '<button type="button" onclick="togglePromoProfile(\'' + p.profileId + '\')" style="padding:9px 14px;border-radius:20px;border:1.5px solid ' + (on ? '#8B3A7F' : '#E8DDD6') + ';background:' + (on ? '#8B3A7F' : '#fff') + ';color:' + (on ? '#fff' : '#6B5751') + ';font-family:\'Outfit\',sans-serif;font-weight:600;font-size:15px;cursor:pointer;">' + (on ? '✓ ' : '') + nm + ' <span style="opacity:.75;font-weight:400;">(' + n + ')</span></button>';
+            }).join('');
+            updatePromoPushLabel();
+        }
+        function togglePromoProfile(pid) {
+            if (!_promoTargets) _promoTargets = {};
+            _promoTargets[pid] = !_promoTargets[pid];
+            renderPromoProfileChips();
+        }
+        function updatePromoPushLabel() {
+            var lbl = document.getElementById('promoPushBtnLabel');
+            if (!lbl) return;
+            var n = selectedPromoCodeIds().length;
+            lbl.textContent = n === 0 ? 'Pick codes to push' : ('Push to ' + n + ' QR code' + (n !== 1 ? 's' : ''));
+        }
         var dashPromoTarget = 'all'; // 'all' | 'savers' | 'scanned'
 
         // Keep the photo UI in sync with dashPromoPhotos: live count, hide the
@@ -4724,6 +4771,27 @@
             '</div>';
         }
 
+        // Per-profile analytics: sum scans/saves/shares across every code that
+        // carries this profile (its own QR + attached product/menu QRs).
+        function _profileStats(profileId) {
+            var s = 0, v = 0, h = 0;
+            (savedQRCodes || []).forEach(function(c) {
+                var pid = c.businessData && c.businessData.profileId;
+                if (pid === profileId) { s += (c.scan_count || 0); v += (c.save_count || 0); h += (c.share_count || 0); }
+            });
+            return { scans: s, saves: v, shares: h };
+        }
+        function _profileStatsStripHTML(profileId) {
+            var st = _profileStats(profileId);
+            var cell = function(n, lbl, col) {
+                return '<div style="flex:1;text-align:center;">' +
+                    '<div style="font-family:\'Outfit\',sans-serif;font-size:20px;font-weight:700;color:' + col + ';line-height:1;">' + n + '</div>' +
+                    '<div style="font-size:11px;font-weight:600;color:#9AA0A6;text-transform:uppercase;letter-spacing:.6px;margin-top:4px;">' + lbl + '</div></div>';
+            };
+            return '<div style="display:flex;gap:8px;background:#fff;border-top:1px solid #F0E5F0;padding:12px 14px;">' +
+                cell(st.scans, 'Scans', '#2AA8A0') + cell(st.saves, 'Saves', '#3A8F6E') + cell(st.shares, 'Shares', '#E8636F') +
+            '</div>';
+        }
         function renderProfilesList() {
             var container = document.getElementById('dashProfilesList');
             if (!container) return;
@@ -4776,6 +4844,7 @@
                         '</div>' +
                         '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8B3A7F" stroke-width="2.5" style="flex-shrink:0;"><path d="M9 6l6 6-6 6"/></svg>' +
                     '</div>' +
+                    (canViewAnalytics() ? _profileStatsStripHTML(p.profileId) : '') +
                     dashModularsSectionHTML(p, isActive) +
                 '</div>';
             }).join('');
@@ -4783,6 +4852,7 @@
             Array.prototype.forEach.call(container.querySelectorAll('.profQrCanvas'), function(cv) {
                 drawProfileQr(cv, cv.getAttribute('data-url'), cv.getAttribute('data-color'));
             });
+            renderPromoProfileChips(); // keep the push targeting picker in sync
         }
 
         function populateBizProfile() {
@@ -6037,6 +6107,8 @@
             if (!text.trim() && dashPromoPhotos.length === 0) {
                 alert('Please add a message or photo before pushing.'); return;
             }
+            var targetIds = selectedPromoCodeIds();
+            if (!targetIds.length) { alert('Pick at least one profile to push to.'); return; }
             var btn = document.querySelector('[onclick="dashPushPromotion()"]');
             if (btn) { btn.textContent = '⏳ Pushing...'; btn.disabled = true; }
             try {
@@ -6068,17 +6140,20 @@
                 };
                 var { error } = await db.from('qr_codes')
                     .update({ promotion: promoData, updated_at: new Date().toISOString() })
-                    .eq('business_user_id', user.id);
+                    .eq('business_user_id', user.id)
+                    .in('id', targetIds);
 
                 if (error) { alert('Error pushing promotion: ' + error.message); return; }
                 // Reset button (form stays populated so business can see what was last pushed)
                 if (btn) { btn.innerHTML = PROMO_PUSH_BTN_HTML; btn.disabled = false; }
-                showPromoToast('All your active QR codes are updated. Tap to dismiss.');
+                updatePromoPushLabel();
+                showPromoToast(targetIds.length + ' QR code' + (targetIds.length !== 1 ? 's' : '') + ' updated. Tap to dismiss.');
             } catch(e) {
                 console.error('dashPushPromotion error:', e);
                 alert('Error pushing promotion. Please try again.');
             } finally {
                 if (btn) { btn.innerHTML = PROMO_PUSH_BTN_HTML; btn.disabled = false; }
+                updatePromoPushLabel();
             }
         }
 
