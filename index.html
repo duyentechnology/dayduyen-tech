@@ -3991,118 +3991,13 @@
         var bizIsFirstTime = false;
         var bizProfiles = [];
         var currentProfileId = null;
-        var dashPromoPhotos = []; // [{file: File} | {url: string}]
-        var PROMO_PHOTO_MAX = 5;  // max photos per promotion
-        // Inner HTML for the push button (megaphone icon + label), so JS resets keep the icon.
-        var PROMO_PUSH_BTN_HTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg><span id="promoPushBtnLabel">Push to your QR codes</span>';
 
-        // ── Push targeting: choose which profiles' codes get the promotion ──
-        var _promoTargets = null; // { profileId: true }; null until first render (then all on)
         function _promoCodesForProfile(profileId) {
             return _profileMemberCodes(profileId);
         }
-        function selectedPromoCodeIds() {
-            if (!_promoTargets) return [];
-            var ids = [];
-            (savedQRCodes || []).forEach(function(c) {
-                var pid = c && c.businessData && c.businessData.profileId;
-                if (pid && _promoTargets[pid]) ids.push(c.dbId || c.id);
-            });
-            return ids;
-        }
-        function renderPromoProfileChips() {
-            var host = document.getElementById('promoProfileChips');
-            if (!host) return;
-            var profs = (bizProfiles || []).filter(function(p){ return _promoCodesForProfile(p.profileId).length > 0; });
-            if (!profs.length) { host.innerHTML = '<span style="font-size:14px;color:#9A8478;">Generate a QR code first, then you can push to it.</span>'; updatePromoPushLabel(); return; }
-            if (!_promoTargets) { _promoTargets = {}; profs.forEach(function(p){ _promoTargets[p.profileId] = true; }); }
-            host.innerHTML = profs.map(function(p) {
-                var on = !!_promoTargets[p.profileId];
-                var nm = sanitize(p.profileLabel || p.name || 'Profile');
-                var n = _promoCodesForProfile(p.profileId).length;
-                return '<button type="button" onclick="togglePromoProfile(\'' + p.profileId + '\')" style="padding:9px 14px;border-radius:20px;border:1.5px solid ' + (on ? '#8B3A7F' : '#E8DDD6') + ';background:' + (on ? '#8B3A7F' : '#fff') + ';color:' + (on ? '#fff' : '#6B5751') + ';font-family:\'Outfit\',sans-serif;font-weight:600;font-size:15px;cursor:pointer;">' + (on ? '✓ ' : '') + nm + ' <span style="opacity:.75;font-weight:400;">(' + n + ')</span></button>';
-            }).join('');
-            updatePromoPushLabel();
-        }
-        function togglePromoProfile(pid) {
-            if (!_promoTargets) _promoTargets = {};
-            _promoTargets[pid] = !_promoTargets[pid];
-            renderPromoProfileChips();
-        }
-        function updatePromoPushLabel() {
-            var lbl = document.getElementById('promoPushBtnLabel');
-            if (!lbl) return;
-            var n = selectedPromoCodeIds().length;
-            lbl.textContent = n === 0 ? 'Pick codes to push' : ('Push to ' + n + ' QR code' + (n !== 1 ? 's' : ''));
-        }
-        var dashPromoTarget = 'all'; // 'all' | 'savers' | 'scanned'
-
-        // Keep the photo UI in sync with dashPromoPhotos: live count, hide the
-        // Add-Photo tile at the cap, and (when limitHit) briefly warn that extras
-        // over the cap weren't added.
-        function updatePromoPhotoUI(limitHit) {
-            var n = dashPromoPhotos.length;
-            var addBtn = document.getElementById('dashPromoAddBtn');
-            var hint   = document.getElementById('dashPromoHint');
-            var count  = document.getElementById('dashPromoCount');
-            if (addBtn) addBtn.style.display = (n >= PROMO_PHOTO_MAX) ? 'none' : 'flex';
-            if (hint)   hint.style.display   = (n === 0) ? 'block' : 'none';
-            if (count) {
-                if (n === 0) {
-                    count.style.display = 'none';
-                } else {
-                    count.style.display = 'block';
-                    if (limitHit) {
-                        count.textContent = 'Up to ' + PROMO_PHOTO_MAX + ' photos — extra photos weren’t added.';
-                        count.style.color = '#b3261e';
-                    } else {
-                        count.textContent = n + ' of ' + PROMO_PHOTO_MAX + ' photos added.';
-                        count.style.color = '#9A8478';
-                    }
-                }
-            }
-        }
         var batchScannedIds = [];
 
-        // Feature flag: the scans/saves snapshot + audience targeting UI is built but
-        // HIDDEN for now. Flip to true to reveal it (email delivery is a separate,
-        // not-yet-wired step — see git history for the send-promotion function).
-        var PROMO_TARGETING_ENABLED = true;
 
-        // Audience targeting for a promotion push (dormant while hidden).
-        var PROMO_TARGET_NOTES = {
-            all:     'Reaches everyone who saved one of your QR codes, plus anyone who scans.',
-            savers:  'Reaches only people who saved one of your QR codes to their tapestry.',
-            scanned: 'Refreshes the promo shown on your QR codes when scanned.'
-        };
-        function selectPromoTarget(target) {
-            if (!PROMO_TARGET_NOTES[target]) return;
-            dashPromoTarget = target;
-            ['all','savers','scanned'].forEach(function(t) {
-                var el = document.getElementById('promoSeg-' + t);
-                if (!el) return;
-                var on = (t === target);
-                el.style.background = on ? '#8B3A7F' : '#fff';
-                el.style.color = on ? '#fff' : '#6B5751';
-                el.style.borderColor = on ? '#8B3A7F' : '#E8DDD6';
-            });
-            var note = document.getElementById('promoTargetNote');
-            if (note) note.textContent = PROMO_TARGET_NOTES[target];
-        }
-
-        // Fill the scans/saves snapshot in the promo card from the business's codes.
-        // Only reveals the (otherwise hidden) targeting block when the feature is enabled.
-        function updatePromoAudience(codes) {
-            var wrap = document.getElementById('promoTargeting');
-            if (wrap) wrap.style.display = PROMO_TARGETING_ENABLED ? 'block' : 'none';
-            if (!PROMO_TARGETING_ENABLED) return;
-            var scans = 0, saves = 0;
-            (codes || []).forEach(function(c) { scans += (c.scan_count || 0); saves += (c.save_count || 0); });
-            var s1 = document.getElementById('promoStatScans');
-            var s2 = document.getElementById('promoStatSaves');
-            if (s1) s1.textContent = scans;
-            if (s2) s2.textContent = saves;
-        }
         var batchHtml5Scanner = null;
 
         async function loadBizProfileFromSupabase(accessToken) {
@@ -5637,11 +5532,10 @@
             try { showBizProfilePreview(); } finally { _previewModularObj = null; }
         }
 
-        // ── ONE preview-card renderer for both business-app previews ──────────
-        // The creator/editor preview (showBizProfilePreview) and the "as a
-        // customer sees it" scan preview (showPromoPreview) used to hand-build
-        // the same brand header, contact-icon row, and About / What's-new
-        // accordions from their own copy-pasted markup. This is the single copy.
+        // ── ONE preview-card renderer for the business-app preview ────────────
+        // The creator/editor preview (showBizProfilePreview) builds the brand
+        // header, contact-icon row, and About / What's-new accordions here — a
+        // single shared copy instead of hand-built, copy-pasted markup.
         // Each caller gathers its own data (live form vs saved profile), passes
         // it in, and layers on its own chrome (the creator preview's collapse
         // arrow + product; the scan preview's role CTA + footer).
@@ -5837,7 +5731,6 @@
             if (!bizProfileData) {
                 await loadBizProfileFromSupabase();
             }
-            loadLastPromotion();
             if (bizProfileData) {
                 var name = sanitize(bizProfileData.name || 'My Business');
                 var initials = name.split(' ').map(function(w){return w[0];}).join('').substring(0,2).toUpperCase();
@@ -5860,7 +5753,6 @@
                     .order('created_at', { ascending: false });
                 if (error || !codes) return;
 
-                updatePromoAudience(codes);
 
                 // Totals across every code carrying their profile — a business
                 // wants the audience number, not a per-code breakdown.
@@ -5885,51 +5777,6 @@
                     : (activeCodes ? 'Live and scannable' : 'Claim or create one to get started');
 
             } catch(e) { console.warn('loadDashboard error:', e); }
-        }
-
-        // Render a thumbnail for either a {file: File} or {url: string} item
-        function renderDashPromoThumb(item, thumbsEl) {
-            if (!thumbsEl) thumbsEl = document.getElementById('dashPromoThumbs');
-            if (!thumbsEl) return;
-            var div = document.createElement('div');
-            div.style.cssText = 'position:relative;width:112px;height:112px;border-radius:14px;overflow:hidden;border:1.5px solid #E8DDD6;flex-shrink:0;';
-            var removeOverlay = '<div onclick="removeDashPromoPhoto(this)" style="position:absolute;top:2px;right:2px;width:18px;height:18px;background:rgba(0,0,0,0.55);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;color:#fff;text-align:center;line-height:18px;">✕</div>';
-            if (item.url) {
-                div.innerHTML = '<img src="' + item.url + '" style="width:100%;height:100%;object-fit:cover;">' + removeOverlay;
-                thumbsEl.appendChild(div);
-            } else if (item.file) {
-                var reader = new FileReader();
-                reader.onload = function(e) {
-                    div.innerHTML = '<img src="' + e.target.result + '" style="width:100%;height:100%;object-fit:cover;">' + removeOverlay;
-                };
-                reader.readAsDataURL(item.file);
-                thumbsEl.appendChild(div);
-            }
-        }
-
-        function handleDashPromoPhotos(input) {
-            if (!input.files || !input.files.length) return;
-            var thumbs = document.getElementById('dashPromoThumbs');
-            var remaining = PROMO_PHOTO_MAX - dashPromoPhotos.length;
-            var selected = Array.from(input.files);
-            var toAdd = selected.slice(0, Math.max(0, remaining));
-            toAdd.forEach(function(file) {
-                var item = { file: file };
-                dashPromoPhotos.push(item);
-                renderDashPromoThumb(item, thumbs);
-            });
-            var limitHit = selected.length > toAdd.length; // tried to add past the cap
-            updatePromoPhotoUI(limitHit);
-            if (limitHit) setTimeout(function() { updatePromoPhotoUI(false); }, 3500);
-            input.value = '';
-        }
-
-        function removeDashPromoPhoto(btn) {
-            var div = btn.parentElement;
-            var idx = Array.from(div.parentElement.children).indexOf(div);
-            dashPromoPhotos.splice(idx, 1);
-            div.remove();
-            updatePromoPhotoUI(false);
         }
 
         // Upload a single promo photo: resize → blob → Storage → public URL
@@ -5987,131 +5834,11 @@
             setTimeout(dismiss, 3800);
         }
 
-        async function dashPushPromotion() {
-            // Push promotions → can_push (isAdmin bypasses).
-            if (!canPush()) { showUpgradeModal('push'); return; }
-            var text = (document.getElementById('dashPromoText') || {}).value || '';
-            if (!text.trim() && dashPromoPhotos.length === 0) {
-                alert('Please add a message or photo before pushing.'); return;
-            }
-            var targetIds = selectedPromoCodeIds();
-            if (!targetIds.length) { alert('Pick at least one profile to push to.'); return; }
-            var btn = document.querySelector('[onclick="dashPushPromotion()"]');
-            if (btn) { btn.textContent = '⏳ Pushing...'; btn.disabled = true; }
-            try {
-                var { data: sessionData } = await db.auth.getSession();
-                var user = sessionData && sessionData.session && sessionData.session.user;
-                if (!user) { alert('Please sign in first.'); return; }
-
-                // Build final photo URL list: keep already-uploaded URLs, upload new Files in parallel
-                var photoUrls = [];
-                var filesToUpload = [];
-                dashPromoPhotos.forEach(function(p) {
-                    if (p.url) photoUrls.push(p.url);
-                    else if (p.file) filesToUpload.push(p.file);
-                });
-                if (filesToUpload.length > 0) {
-                    if (btn) btn.textContent = '⏳ Uploading photos...';
-                    var uploads = filesToUpload.map(function(file, i) {
-                        return uploadPromoPhoto(file, user.id, i);
-                    });
-                    var results = await Promise.all(uploads);
-                    results.forEach(function(u) { if (u) photoUrls.push(u); });
-                }
-
-                if (btn) btn.textContent = '⏳ Pushing...';
-                var promoData = {
-                    text: sanitize(text.trim()),
-                    photos: photoUrls,
-                    pushedAt: new Date().toISOString()
-                };
-                var { error } = await db.from('qr_codes')
-                    .update({ promotion: promoData, updated_at: new Date().toISOString() })
-                    .eq('business_user_id', user.id)
-                    .in('id', targetIds);
-
-                if (error) { alert('Error pushing promotion: ' + error.message); return; }
-                // Reset button (form stays populated so business can see what was last pushed)
-                if (btn) { btn.innerHTML = PROMO_PUSH_BTN_HTML; btn.disabled = false; }
-                updatePromoPushLabel();
-                showPromoToast(targetIds.length + ' QR code' + (targetIds.length !== 1 ? 's' : '') + ' updated. Tap to dismiss.');
-            } catch(e) {
-                console.error('dashPushPromotion error:', e);
-                alert('Error pushing promotion. Please try again.');
-            } finally {
-                if (btn) { btn.innerHTML = PROMO_PUSH_BTN_HTML; btn.disabled = false; }
-                updatePromoPushLabel();
-            }
-        }
-
-        function dashClearPromotion() {
-            var ta = document.getElementById('dashPromoText');
-            if (ta) ta.value = '';
-            dashPromoPhotos = [];
-            var thumbs = document.getElementById('dashPromoThumbs');
-            if (thumbs) thumbs.innerHTML = '';
-            updatePromoPhotoUI(false);
-        }
-
         // ── Full card preview ───────────────────────────────────────────────
         // Renders the entire business profile exactly as duyen.io shows it on a
         // scanned card — DUYÊN header + contact/social icons, About, and the
         // What's new promo — using the saved profile + the current promo draft.
         var promoPreviewObjUrls = [];
-        function showPromoPreview() {
-            var esc = function(s){ var d=document.createElement('div'); d.textContent=(s==null?'':s); return d.innerHTML; };
-            var text = ((document.getElementById('dashPromoText') || {}).value || '').trim();
-
-            // Revoke prior object URLs, then build fresh ones for File items.
-            promoPreviewObjUrls.forEach(function(u){ try { URL.revokeObjectURL(u); } catch(e){} });
-            promoPreviewObjUrls = [];
-            var photos = dashPromoPhotos.map(function(p){
-                if (p.url) return p.url;
-                if (p.file) { var u = URL.createObjectURL(p.file); promoPreviewObjUrls.push(u); return u; }
-                return null;
-            }).filter(Boolean);
-
-            var biz = (typeof bizProfileData === 'object' && bizProfileData) ? bizProfileData : {};
-            var addr = (biz.address && biz.address.full) ? biz.address.full : (typeof biz.address === 'string' ? biz.address : '');
-            var soc = biz.social || {};
-
-            var body = document.getElementById('promoPreviewBody');
-            if (!body) return;
-
-            if (!text && photos.length === 0 && !biz.name && !biz.description) {
-                body.innerHTML = '<div style="text-align:center;color:#9A8478;padding:26px 18px;font-size:16px;line-height:1.5;">Fill in your business profile and add a promotion,<br>then preview.</div>';
-                document.getElementById('promoPreviewModal').style.display = 'flex';
-                return;
-            }
-
-            // The ONE shared preview card — scan-preview surface: inert icons,
-            // "Your business" name placeholder, sections open by default. Escaping
-            // matches the original (esc for both text and image URLs).
-            var _parts = bizPreviewCard({
-                name: biz.name || '', desc: biz.description || '',
-                aboutUrls: (Array.isArray(biz.aboutPhotos) ? biz.aboutPhotos : []),
-                logo: (typeof biz.logo === 'string' ? biz.logo : ''),
-                website: biz.website || '', phone: biz.phone || '', email: biz.email || '', address: addr,
-                socialHrefs: soc, promoText: text, promoPhotos: photos, product: null
-            }, {
-                iconMode: 'static', showShare: false, namePlaceholder: 'Your business', originPad: false,
-                aboutOpen: true, promoOpen: true, escText: esc, escUrl: esc
-            });
-            body.innerHTML =
-                _parts.header +
-                // Sections
-                '<div style="padding:22px 16px 4px;background:#F0EFED;">' + _parts.sectionsInner + '</div>' +
-                // Role CTA (static preview of the customer's next step)
-                '<div style="height:1px;background:#E8DDD6;margin:16px 28px 0;"></div>' +
-                '<div style="padding:20px 24px 22px;background:#F0EFED;pointer-events:none;">' +
-                    '<div style="font-size:13px;letter-spacing:2px;color:#6B5751;text-transform:uppercase;text-align:center;margin-bottom:16px;">What\'s your part in this story?</div>' +
-                    '<div style="width:100%;padding:16px 22px;border-radius:100px;font-family:\'DM Sans\',sans-serif;margin-bottom:12px;background:#f9f4f9;color:#5C2255;border:1.5px solid #C9A0C4;box-sizing:border-box;"><div style="font-size:17px;font-weight:500;line-height:1.2;margin-bottom:3px;">I am giving this</div><div style="font-size:16px;color:#9A8478;line-height:1.3;">Add a message for the recipient</div></div>' +
-                    '<div style="width:100%;padding:16px 22px;border-radius:100px;font-family:\'DM Sans\',sans-serif;background:#fff;color:#6B5751;border:1.5px solid #E8DDD6;box-sizing:border-box;"><div style="font-size:17px;font-weight:500;line-height:1.2;margin-bottom:3px;">Just save this</div><div style="font-size:16px;color:#9A8478;line-height:1.3;">Keep this business in your life tapestry</div></div>' +
-                '</div>' +
-                '<div style="text-align:center;padding:0 0 22px;background:#F0EFED;font-size:13px;letter-spacing:1.5px;color:#6B5751;">WOVEN WITH <span style="color:#DA251D;font-family:\'Crimson Pro\',serif;font-size:16px;">緣 DUYÊN</span></div>';
-
-            document.getElementById('promoPreviewModal').style.display = 'flex';
-        }
         function togglePreviewSection(key) {
             var inner = document.getElementById('pvBody-' + key);
             var chev  = document.getElementById('pvChev-' + key);
@@ -6119,45 +5846,6 @@
             var open = inner.style.display !== 'none';
             inner.style.display = open ? 'none' : 'block';
             if (chev) chev.style.transform = open ? 'rotate(0deg)' : 'rotate(180deg)';
-        }
-        function closePromoPreview() {
-            var m = document.getElementById('promoPreviewModal');
-            if (m) m.style.display = 'none';
-            promoPreviewObjUrls.forEach(function(u){ try { URL.revokeObjectURL(u); } catch(e){} });
-            promoPreviewObjUrls = [];
-        }
-
-        // Load the most recent promotion into the form (so business sees last push and can edit)
-        async function loadLastPromotion() {
-            try {
-                var { data: sessionData } = await db.auth.getSession();
-                var user = sessionData && sessionData.session && sessionData.session.user;
-                if (!user) return;
-                var { data: rows, error } = await db.from('qr_codes')
-                    .select('promotion, updated_at')
-                    .eq('business_user_id', user.id)
-                    .not('promotion', 'is', null)
-                    .order('updated_at', { ascending: false })
-                    .limit(1);
-                if (error || !rows || rows.length === 0) return;
-                var promo = rows[0].promotion;
-                if (!promo) return;
-                // Populate text
-                var ta = document.getElementById('dashPromoText');
-                if (ta && promo.text) ta.value = promo.text;
-                // Populate photos (as URL items so they don't re-upload on next push)
-                dashPromoPhotos = [];
-                var thumbs = document.getElementById('dashPromoThumbs');
-                if (thumbs) thumbs.innerHTML = '';
-                if (promo.photos && promo.photos.length > 0) {
-                    promo.photos.slice(0, PROMO_PHOTO_MAX).forEach(function(url) {
-                        var item = { url: url };
-                        dashPromoPhotos.push(item);
-                        renderDashPromoThumb(item, thumbs);
-                    });
-                }
-                updatePromoPhotoUI(false);
-            } catch(e) { console.warn('loadLastPromotion error:', e); }
         }
 
         // Remember the chosen profile in sessionStorage so it survives a view
