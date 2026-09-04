@@ -4746,6 +4746,14 @@
                 var isMenu = m.type === 'menu';
                 var mName = sanitize((m.name || '').trim() || (isMenu ? 'Menu' : 'Product'));
                 var live = !!m.generated;
+                // Sub-line: drafts say "draft"; generated codes show their own
+                // scans/saves for Insights, and nothing otherwise (no "Live").
+                var subLine = '';
+                if (!live) subLine = isMenu ? 'Menu · draft' : 'Product · draft';
+                else if (canViewAnalytics()) {
+                    var ms = _modularStats(m);
+                    subLine = ms.scans + ' scan' + (ms.scans !== 1 ? 's' : '') + ' · ' + ms.saves + ' save' + (ms.saves !== 1 ? 's' : '');
+                }
                 var photo = (m.photos || []).map(function(x){ return typeof x === 'string' ? x : (x && x.url); }).filter(Boolean)[0];
                 var thumb = photo
                     ? '<div style="width:38px;height:38px;border-radius:8px;overflow:hidden;border:1px solid #E8DDD6;flex-shrink:0;"><img src="' + String(photo).replace(/"/g,'&quot;') + '" style="width:100%;height:100%;object-fit:cover;display:block;"></div>'
@@ -4753,7 +4761,7 @@
                 return '<div onclick="dashEditModular(\'' + p.profileId + '\',\'' + m.id + '\')" style="display:flex;align-items:center;gap:11px;padding:10px 12px;border:1px solid #E8DDD6;border-radius:10px;margin-bottom:8px;background:#fff;cursor:pointer;">' +
                     thumb +
                     '<div style="flex:1;min-width:0;"><div style="font-size:16.5px;font-weight:700;color:#2E2A28;font-family:\'Outfit\',sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + mName + '</div>' +
-                    '<div style="font-size:13px;color:' + (live ? '#3A8F6E' : '#9A8478') + ';font-family:\'Outfit\',sans-serif;">' + (live ? '✓ Live · scannable' : (isMenu ? 'Menu · draft' : 'Product · draft')) + '</div></div>' +
+                    (subLine ? '<div style="font-size:13px;color:#9AA0A6;font-family:\'Outfit\',sans-serif;">' + subLine + '</div>' : '') + '</div>' +
                     (live
                         ? '<button onclick="event.stopPropagation();dashReopenModular(\'' + p.profileId + '\',\'' + m.id + '\')" style="flex-shrink:0;background:#2AA8A0;color:#fff;border:none;border-radius:9px;padding:9px 13px;font-size:14px;font-weight:700;cursor:pointer;font-family:\'Outfit\',sans-serif;">Design &amp; print</button>'
                         : '<span style="flex-shrink:0;color:#C9A0C4;font-size:22px;font-weight:300;line-height:1;margin-left:2px;">›</span>') +
@@ -4771,6 +4779,11 @@
             '</div>';
         }
 
+        // One modular's (product/menu) own code counts, matched via m.codeId.
+        function _modularStats(m) {
+            var code = (savedQRCodes || []).find(function(c) { return m && m.codeId && (c.dbId || c.id) === m.codeId; });
+            return { scans: code ? (code.scan_count || 0) : 0, saves: code ? (code.save_count || 0) : 0 };
+        }
         // Per-profile analytics: sum scans/saves/shares across every code that
         // carries this profile (its own QR + attached product/menu QRs).
         function _profileStats(profileId) {
@@ -4781,16 +4794,39 @@
             });
             return { scans: s, saves: v, shares: h };
         }
-        function _profileStatsStripHTML(profileId) {
+        // Insights-only block inside a profile card: combined analytics for every
+        // code on the profile, plus a push that plainly covers all of them.
+        function _profileAnalyticsBlockHTML(profileId) {
             var st = _profileStats(profileId);
             var cell = function(n, lbl, col) {
                 return '<div style="flex:1;text-align:center;">' +
-                    '<div style="font-family:\'Outfit\',sans-serif;font-size:20px;font-weight:700;color:' + col + ';line-height:1;">' + n + '</div>' +
+                    '<div style="font-family:\'Outfit\',sans-serif;font-size:22px;font-weight:700;color:' + col + ';line-height:1;">' + n + '</div>' +
                     '<div style="font-size:11px;font-weight:600;color:#9AA0A6;text-transform:uppercase;letter-spacing:.6px;margin-top:4px;">' + lbl + '</div></div>';
             };
-            return '<div style="display:flex;gap:8px;background:#fff;border-top:1px solid #F0E5F0;padding:12px 14px;">' +
+            var strip = '<div style="display:flex;gap:8px;background:#FBF7FB;border-top:1px solid #F0E5F0;padding:14px 14px 6px;">' +
                 cell(st.scans, 'Scans', '#2AA8A0') + cell(st.saves, 'Saves', '#3A8F6E') + cell(st.shares, 'Shares', '#E8636F') +
             '</div>';
+            var caption = '<div style="background:#FBF7FB;font-size:12px;color:#9A8478;text-align:center;padding:0 14px 12px;font-family:\'Outfit\',sans-serif;">Totals across all QR codes on this profile</div>';
+            var push = canPush()
+                ? '<div style="padding:14px;border-top:1px solid #F0E5F0;">' +
+                    '<button onclick="event.stopPropagation();pushToProfile(\'' + profileId + '\')" style="width:100%;background:#8B3A7F;color:#fff;border:none;border-radius:12px;padding:14px;font-family:\'Outfit\',sans-serif;font-weight:700;font-size:16px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:9px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>Push a promo</button>' +
+                    '<div style="font-size:12.5px;color:#9A8478;text-align:center;margin-top:8px;line-height:1.45;font-family:\'Outfit\',sans-serif;">Goes to <b>all QR codes</b> on this profile — its profile QR and any product or menu codes.</div>' +
+                  '</div>'
+                : '';
+            return strip + caption + push;
+        }
+        // Push a promo to a whole profile (master): pre-select ONLY this profile
+        // in the composer's picker — which includes all its product/menu codes —
+        // then jump to the composer so they can write and send.
+        function pushToProfile(pid) {
+            if (!canPush()) { showUpgradeModal('push'); return; }
+            _promoTargets = {};
+            (bizProfiles || []).forEach(function(p) { _promoTargets[p.profileId] = (p.profileId === pid); });
+            renderPromoProfileChips();
+            var sec = document.getElementById('dashPromoSection');
+            if (sec) { try { sec.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) { sec.scrollIntoView(); } }
+            var ta = document.getElementById('dashPromoText');
+            if (ta) setTimeout(function(){ try { ta.focus(); } catch (e) {} }, 450);
         }
         function renderProfilesList() {
             var container = document.getElementById('dashProfilesList');
@@ -4844,7 +4880,7 @@
                         '</div>' +
                         '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8B3A7F" stroke-width="2.5" style="flex-shrink:0;"><path d="M9 6l6 6-6 6"/></svg>' +
                     '</div>' +
-                    (canViewAnalytics() ? _profileStatsStripHTML(p.profileId) : '') +
+                    (canViewAnalytics() ? _profileAnalyticsBlockHTML(p.profileId) : '') +
                     dashModularsSectionHTML(p, isActive) +
                 '</div>';
             }).join('');
