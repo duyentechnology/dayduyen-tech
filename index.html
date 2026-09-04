@@ -2003,32 +2003,11 @@
                 <div id="dashProfilesList" style="display:flex;flex-direction:column;gap:8px;"></div>
             </div>
 
-            <!-- Stats -->
-            <!-- What a business actually asks: how many scans, saves, shares.
-                 Not which code they came from. -->
-            <!-- Always visible: a business should never have to guess how many
-                 codes carry their profile, subscription or not. -->
-            <div id="dashCodeCount" style="background:#fff;border:1.5px solid #D4823E;border-radius:12px;padding:14px 15px;margin-bottom:10px;display:flex;align-items:center;gap:13px;">
-                <div id="dashCodeCountNum" style="font-family:'Outfit',sans-serif;font-size:28px;font-weight:700;color:#D4823E;line-height:1;">0</div>
-                <div style="flex:1;min-width:0;">
-                    <div id="dashCodeCountLabel" style="font-size:16.5px;font-weight:600;color:#1D1B1E;font-family:'Outfit',sans-serif;">QR codes carrying your profile</div>
-                    <div id="dashCodeCountSub" style="font-size:14px;color:#8A8A8F;font-family:'Outfit',sans-serif;margin-top:2px;"></div>
-                </div>
-            </div>
-            <div id="dashStatsSection" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;">
-                <div style="background:#fff;border:1.5px solid #2AA8A0;border-radius:12px;padding:14px;">
-                    <div id="dStatTotal" style="font-family:'Outfit',sans-serif;font-size:26px;font-weight:700;color:#2AA8A0;line-height:1;">0</div>
-                    <div style="font-size:12.5px;font-weight:600;color:#9AA0A6;text-transform:uppercase;letter-spacing:1px;margin-top:7px;">Scans</div>
-                </div>
-                <div style="background:#fff;border:1.5px solid #3A8F6E;border-radius:12px;padding:14px;">
-                    <div id="dStatSaves" style="font-family:'Outfit',sans-serif;font-size:26px;font-weight:700;color:#3A8F6E;line-height:1;">0</div>
-                    <div style="font-size:12.5px;font-weight:600;color:#9AA0A6;text-transform:uppercase;letter-spacing:1px;margin-top:7px;">Saves</div>
-                </div>
-                <div style="background:#fff;border:1.5px solid #E8636F;border-radius:12px;padding:14px;">
-                    <div id="dStatShares" style="font-family:'Outfit',sans-serif;font-size:26px;font-weight:700;color:#E8636F;line-height:1;">0</div>
-                    <div style="font-size:12.5px;font-weight:600;color:#9AA0A6;text-transform:uppercase;letter-spacing:1px;margin-top:7px;">Shares</div>
-                </div>
-            </div>
+            <!-- Analytics now live inside each profile card (scans/saves/shares
+                 per profile, plus inline push). The old account-wide totals and
+                 code counter were removed as a redundant duplicate. This anchor
+                 is where the plans funnel (paywall) is injected for free users. -->
+            <div id="dashInsightsAnchor"></div>
             </div>
 
             <!-- Admin only: what happened to the codes this account printed. -->
@@ -3188,10 +3167,7 @@
 
         // A locked business now sees ALL applicable tiers on the dashboard.
         function applyDashboardGating() {
-            var insightsOK = canViewAnalytics() && canPush();
-            var stats = document.getElementById('dashStatsSection'); // scan/save analytics
             var promo = document.getElementById('dashPromoSection');  // push promotions
-            if (stats) stats.style.display = insightsOK ? '' : 'none';
             // The global push composer is retired — pushing now happens inline in
             // each profile card (openProfilePush). Keep this section hidden.
             if (promo) promo.style.display = 'none';
@@ -3201,13 +3177,16 @@
                 var e = document.getElementById(id); if (e) e.remove();
             });
 
+            // The plans funnel guides free users toward Insights; it renders at the
+            // anchor left where the old account-wide stats block used to sit.
+            var anchor = document.getElementById('dashInsightsAnchor');
             var pw = document.getElementById('dashInsightsPaywall');
             var plansHtml = dashboardPlansHTML();
             if (plansHtml) {
-                if (!pw && stats && stats.parentNode) {
+                if (!pw && anchor && anchor.parentNode) {
                     pw = document.createElement('div');
                     pw.id = 'dashInsightsPaywall';
-                    stats.parentNode.insertBefore(pw, stats);
+                    anchor.parentNode.insertBefore(pw, anchor);
                 }
                 if (pw) { pw.innerHTML = plansHtml; pw.style.display = ''; }
             } else if (pw) {
@@ -5743,40 +5722,9 @@
             }
             renderProfilesList();
             applyDashboardGating();
-            try {
-                var { data: sessionData } = await db.auth.getSession();
-                var user = sessionData && sessionData.session && sessionData.session.user;
-                if (!user) return;
-                var { data: codes, error } = await db.from('qr_codes')
-                    .select('*')
-                    .eq('business_user_id', user.id)
-                    .order('created_at', { ascending: false });
-                if (error || !codes) return;
-
-
-                // Totals across every code carrying their profile — a business
-                // wants the audience number, not a per-code breakdown.
-                var sum = function(k){ return codes.reduce(function(a,c){ return a + (c[k]||0); }, 0); };
-                var _s = function(id,v){ var el=document.getElementById(id); if(el) el.textContent=v; };
-                _s('dStatTotal',  sum('scan_count'));
-                _s('dStatSaves',  sum('save_count'));
-                _s('dStatShares', sum('share_count'));
-
-                // Feed the always-visible counter. active = codes carrying the
-                // profile a customer would actually see; drafts are claimed but
-                // not yet attached.
-                var activeCodes = codes.filter(function(c){ return !!c.business_data; }).length;
-                var draftCodes  = codes.length - activeCodes;
-                var _n = document.getElementById('dashCodeCountNum');
-                var _l = document.getElementById('dashCodeCountLabel');
-                var _b = document.getElementById('dashCodeCountSub');
-                if (_n) _n.textContent = activeCodes;
-                if (_l) _l.textContent = 'QR code' + (activeCodes === 1 ? '' : 's') + ' carrying your profile';
-                if (_b) _b.textContent = draftCodes > 0
-                    ? draftCodes + ' more claimed, not attached yet'
-                    : (activeCodes ? 'Live and scannable' : 'Claim or create one to get started');
-
-            } catch(e) { console.warn('loadDashboard error:', e); }
+            // Account-wide totals + code counter were removed; per-profile
+            // analytics (rendered inside each profile card) are the source of
+            // truth now, so the dashboard no longer needs its own code fetch.
         }
 
         // Upload a single promo photo: resize → blob → Storage → public URL
