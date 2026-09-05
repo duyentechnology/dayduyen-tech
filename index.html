@@ -5913,6 +5913,30 @@
             // sign-in, so a save a customer just made wouldn't show until a full
             // relaunch. Refresh the live counts and re-render if anything moved.
             refreshProfileCounts().then(function(changed){ if (changed) renderProfilesList(); });
+            startDashCountsAutoRefresh();
+        }
+
+        // Keep the dashboard's counts live while it stays open: poll every 30s
+        // when it's the active view AND the tab is focused, and refresh once the
+        // moment the tab regains focus. Skipped while a push composer is open, so
+        // a re-render never discards an in-progress draft.
+        var _dashCountsTimer = null;
+        function _dashIsActive() {
+            var el = document.getElementById('bizDashboardView');
+            return !!(el && el.classList.contains('active')) && document.visibilityState === 'visible';
+        }
+        async function _dashCountsTick() {
+            if (!_dashIsActive()) return;
+            if (_pushOpenPid) return;                 // don't clobber a draft
+            var changed = await refreshProfileCounts();
+            if (changed && _dashIsActive() && !_pushOpenPid) renderProfilesList();
+        }
+        function startDashCountsAutoRefresh() {
+            if (_dashCountsTimer) return;             // once only
+            _dashCountsTimer = setInterval(_dashCountsTick, 30000);
+            document.addEventListener('visibilitychange', function() {
+                if (document.visibilityState === 'visible') _dashCountsTick();
+            });
         }
 
         // Pull the latest scan/save/share counts for this account's codes and
