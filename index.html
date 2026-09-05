@@ -3204,10 +3204,11 @@
                     anchor.parentNode.insertBefore(sc, anchor);
                 }
                 if (sc) { sc.innerHTML = subscriptionCardHTML(); sc.style.display = ''; }
-                loadSubscriptionStatus();   // fills in renewal date + cancel state
             } else if (sc) {
                 sc.style.display = 'none';
             }
+            // Fills in renewal date / cancel state (active) or the ended date (lapsed).
+            loadSubscriptionStatus();
         }
 
         // A real, cancellable subscription (Insights/Boutique, active) — not the
@@ -3215,6 +3216,12 @@
         function isRealSubscriber() {
             var p = ent().plan;
             return (p === 'insights' || p === 'boutique') && ent().plan_status === 'active';
+        }
+        // Had a paid plan that has now lapsed (canceled at period end). Analytics
+        // is off; the profile shows a resubscribe prompt instead.
+        function planEnded() {
+            var p = ent().plan;
+            return (p === 'insights' || p === 'boutique') && ent().plan_status === 'canceled';
         }
         var _subStatus = null;   // { plan, renews_at, cancel_at_period_end, ends_at }
         function _prettyDate(iso) {
@@ -3255,11 +3262,19 @@
         }
         var _subStatusLoading = false;
         async function loadSubscriptionStatus() {
-            if (_subStatus || _subStatusLoading || !isRealSubscriber()) return;
+            // Load for an active subscriber (renewal date + cancel state) AND for a
+            // lapsed one (to date the "Insights ended" notice). A canceled Stripe
+            // subscription still returns its last period end.
+            if (_subStatus || _subStatusLoading || !(isRealSubscriber() || planEnded())) return;
             _subStatusLoading = true;
             try {
                 var res = await db.functions.invoke('business-cancel-subscription', { body: { action: 'status' } });
-                if (res && res.data && res.data.ok) { _subStatus = res.data; refreshSubscriptionCard(); }
+                if (res && res.data && res.data.ok) {
+                    _subStatus = res.data;
+                    refreshSubscriptionCard();
+                    // Profile cards carry the ends-on / resubscribe notices too.
+                    if (typeof renderProfilesList === 'function') renderProfilesList();
+                }
             } catch (e) { console.warn('subscription status failed:', e); }
             _subStatusLoading = false;
         }
@@ -4567,6 +4582,11 @@
                 cell(st.scans, 'Scans', '#2AA8A0') + cell(st.saves, 'Saves', '#3A8F6E') + cell(st.shares, 'Shares', '#E8636F') +
             '</div>';
             var caption = '<div style="background:#FBF7FB;font-size:12px;color:#9A8478;text-align:center;padding:0 14px 12px;font-family:\'Outfit\',sans-serif;">Totals across all QR codes on this profile</div>';
+            // #2 — while canceling, note when analytics access ends, right here.
+            var endNotice = '';
+            if (isRealSubscriber() && _subStatus && _subStatus.cancel_at_period_end && _subStatus.ends_at) {
+                endNotice = '<div style="background:#FBF7FB;font-size:12px;font-weight:600;color:#B4863E;text-align:center;padding:0 14px 12px;font-family:\'Outfit\',sans-serif;">⏳ Analytics access ends ' + _prettyDate(_subStatus.ends_at) + '</div>';
+            }
             var push = '';
             if (canPush()) {
                 push = (_pushOpenPid === profileId)
@@ -4576,7 +4596,17 @@
                         '<div style="font-size:12.5px;color:#9A8478;text-align:center;margin-top:8px;line-height:1.45;font-family:\'Outfit\',sans-serif;">Reaches <b>all QR codes</b> on this profile — its profile QR and any product or menu codes.</div>' +
                       '</div>';
             }
-            return strip + caption + push;
+            return strip + caption + endNotice + push;
+        }
+        // #3 — after the plan lapses, the analytics slot becomes a resubscribe
+        // prompt (data is preserved; resubscribing turns it back on).
+        function _profileEndedBlockHTML(profileId) {
+            var when = (_subStatus && _subStatus.ends_at) ? _prettyDate(_subStatus.ends_at) : '';
+            return '<div style="background:#F7F3F0;border-top:1px solid #F0E5F0;padding:18px 16px;text-align:center;">' +
+                '<div style="font-size:15px;font-weight:700;color:#6B5E56;margin-bottom:3px;font-family:\'Outfit\',sans-serif;">🔒 Insights ended' + (when ? ' ' + when : '') + '</div>' +
+                '<div style="font-size:13.5px;color:#9A8478;line-height:1.5;margin-bottom:13px;font-family:\'Outfit\',sans-serif;">Your scan &amp; save analytics and push are paused. Resubscribe to turn them back on — your data is kept.</div>' +
+                '<button onclick="event.stopPropagation();startUpgrade(\'insights\')" style="background:#8B3A7F;color:#fff;border:none;border-radius:10px;padding:12px 18px;font-family:\'Outfit\',sans-serif;font-weight:700;font-size:15px;cursor:pointer;">Resubscribe · $9.99/mo</button>' +
+            '</div>';
         }
         // ── Inline per-profile promo composer — opens right inside the card ──
         var _pushOpenPid = null, _pushText = '', _pushPhotos = [], _pushSending = false;
@@ -4762,7 +4792,8 @@
                         '</div>' +
                         '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8B3A7F" stroke-width="2.5" style="flex-shrink:0;"><path d="M9 6l6 6-6 6"/></svg>' +
                     '</div>' +
-                    (canViewAnalytics() ? _profileAnalyticsBlockHTML(p.profileId) : '') +
+                    (canViewAnalytics() ? _profileAnalyticsBlockHTML(p.profileId)
+                        : (planEnded() ? _profileEndedBlockHTML(p.profileId) : '')) +
                     dashModularsSectionHTML(p, isActive) +
                 '</div>';
             }).join('');
