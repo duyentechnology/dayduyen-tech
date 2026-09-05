@@ -5909,9 +5909,36 @@
             }
             renderProfilesList();
             applyDashboardGating();
-            // Account-wide totals + code counter were removed; per-profile
-            // analytics (rendered inside each profile card) are the source of
-            // truth now, so the dashboard no longer needs its own code fetch.
+            // savedQRCodes (and its scan/save/share counts) is loaded once at
+            // sign-in, so a save a customer just made wouldn't show until a full
+            // relaunch. Refresh the live counts and re-render if anything moved.
+            refreshProfileCounts().then(function(changed){ if (changed) renderProfilesList(); });
+        }
+
+        // Pull the latest scan/save/share counts for this account's codes and
+        // fold them into savedQRCodes in place (leaving every other field alone).
+        // Returns true if any count changed, so the caller can re-render.
+        async function refreshProfileCounts() {
+            try {
+                if (!Array.isArray(savedQRCodes) || !savedQRCodes.length) return false;
+                var sd = await db.auth.getSession();
+                var user = sd && sd.data && sd.data.session && sd.data.session.user;
+                if (!user) return false;
+                var res = await db.from('qr_codes')
+                    .select('id,scan_count,save_count,share_count')
+                    .or('user_id.eq.' + user.id + ',business_user_id.eq.' + user.id);
+                if (res.error || !res.data) return false;
+                var byId = {};
+                res.data.forEach(function(r) { byId[r.id] = r; });
+                var changed = false;
+                savedQRCodes.forEach(function(c) {
+                    var r = byId[c.dbId || c.id]; if (!r) return;
+                    var ns = r.scan_count || 0, nv = r.save_count || 0, nh = r.share_count || 0;
+                    if (c.scan_count !== ns || c.save_count !== nv || c.share_count !== nh) changed = true;
+                    c.scan_count = ns; c.save_count = nv; c.share_count = nh;
+                });
+                return changed;
+            } catch (e) { console.warn('refreshProfileCounts failed:', e); return false; }
         }
 
         // Upload a single promo photo: resize → blob → Storage → public URL
