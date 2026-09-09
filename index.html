@@ -3251,13 +3251,11 @@
             // profile card instead, so showing it to them both leads to the wrong
             // form and overflows the header on a phone.
             var showNewQR = isAdmin() || canMint();
-            // 'My QR Codes' is the per-code list — where scan/save stats live,
-            // which is a subscription feature. Without one there is nothing in
-            // there they can't see on the dashboard, where their profile card
-            // already carries the code and its design + print.
-            var showMyCodes = isAdmin() || canViewAnalytics() || canMint();
+            // 'My Codes' is the operator generation log (reprint any past run).
+            // Admin-only — a business's single profile QR reprints from its
+            // profile card / studio, so they never need this list.
             if (newQR)   newQR.style.display   = showNewQR ? 'inline-block' : 'none';
-            if (myCodes) myCodes.style.display = showMyCodes ? 'inline-block' : 'none';
+            if (myCodes) myCodes.style.display = isAdmin() ? 'inline-block' : 'none';
         }
 
         // ---- Store (pre-printed cards & stickers) -------------------------
