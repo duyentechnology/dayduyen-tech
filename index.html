@@ -8562,6 +8562,15 @@
             var d = c.createdAt ? new Date(c.createdAt) : new Date();
             return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
         }
+        // What kind of code this is, for the log's type label.
+        function _codeKind(c) {
+            switch (c && c.source) {
+                case 'business': return { t: 'Business profile', bg: '#F3E9F3', fg: '#8B3A7F' };
+                case 'product':  return { t: 'Product',          bg: '#E6F5F3', fg: '#2AA8A0' };
+                case 'menu':     return { t: 'Menu',             bg: '#EAF4F9', fg: '#4A9EC4' };
+                default:         return { t: 'Note',             bg: '#FBEEE0', fg: '#C77E1E' };
+            }
+        }
         function reprintCode(id, kind) {
             var c = (savedQRCodes || []).find(function(x){ return (x.dbId || x.id) === id; });
             if (!c) { alert('Code not found.'); return; }
@@ -8616,12 +8625,16 @@
                     var id = c.dbId || c.id;
                     var slug = (c.url || '').replace(/^https?:\/\//, '');
                     var active = c.status === 'active';
+                    var kind = _codeKind(c);
                     html += '<div style="background:#fff;border:1.5px solid #E8DDD6;border-radius:13px;padding:12px;margin-bottom:10px;display:flex;gap:12px;align-items:center;">' +
                         '<canvas class="genLogQr" data-url="' + sanitize(c.url) + '" data-color="' + sanitize(c.color || '#2E2A28') + '" width="160" height="160" style="width:56px;height:56px;border-radius:8px;border:1px solid #eee;flex-shrink:0;"></canvas>' +
                         '<div style="flex:1;min-width:0;">' +
                             '<div style="font-size:16px;font-weight:700;color:#2E2A28;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + sanitize(c.label || 'QR code') + '</div>' +
                             '<div style="font-size:12.5px;color:#9A8478;font-family:monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + sanitize(slug) + '</div>' +
-                            '<span style="display:inline-block;font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:20px;margin-top:4px;' + (active ? 'background:#E6F5F3;color:#2AA8A0;' : 'background:#F3E9F3;color:#8B3A7F;') + '">' + (active ? 'Active' : 'Draft') + '</span>' +
+                            '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:5px;">' +
+                                '<span style="font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:20px;background:' + kind.bg + ';color:' + kind.fg + ';">' + kind.t + '</span>' +
+                                '<span style="font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:20px;' + (active ? 'background:#EAF7EF;color:#3A8F6E;' : 'background:#F1ECE8;color:#9A8478;') + '">' + (active ? 'Active' : 'Draft') + '</span>' +
+                            '</div>' +
                         '</div>' +
                         '<div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">' +
                             '<button onclick="reprintCode(\'' + id + '\',\'std\')" style="font-size:13px;font-weight:700;border:none;background:#8B3A7F;color:#fff;border-radius:9px;padding:8px 10px;cursor:pointer;white-space:nowrap;">⬇ PDF</button>' +
