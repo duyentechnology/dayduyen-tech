@@ -1492,17 +1492,21 @@
                 </div>
             </div>
 
-            <!-- Sticker background: fill the entire sticker box (default white) -->
-            <h3 style="font-size: 18px; font-weight: 600; margin-top: 40px; margin-bottom: 15px;">🎨 Sticker Background</h3>
-            <div class="color-section">
-                <div class="color-input-group">
-                    <input type="color" id="stickerBgPicker" value="#FFFFFF" onchange="updateStickerBg(this.value)">
-                    <input type="text" id="stickerBgHex" class="input-field" style="flex: 1;" value="#FFFFFF" placeholder="#FFFFFF" onchange="updateStickerBg(this.value)">
-                    <button type="button" onclick="updateStickerBg('#FFFFFF')" style="background:white;color:#8B3A7F;border:2px solid var(--lantern-plum);border-radius:9px;padding:8px 14px;font-weight:600;cursor:pointer;white-space:nowrap;">White</button>
+            <!-- Sticker background: fill the entire sticker box (default white).
+                 Admin + Duyên notes only (revealed by setPrintKind); hidden and
+                 forced white for every other kind / non-admin run. -->
+            <div id="stickerBgSection" style="display:none;">
+                <h3 style="font-size: 18px; font-weight: 600; margin-top: 40px; margin-bottom: 15px;">🎨 Sticker Background <span style="font-size:13px;font-weight:600;color:#8B3A7F;">· Duyên notes</span></h3>
+                <div class="color-section">
+                    <div class="color-input-group">
+                        <input type="color" id="stickerBgPicker" value="#FFFFFF" onchange="updateStickerBg(this.value)">
+                        <input type="text" id="stickerBgHex" class="input-field" style="flex: 1;" value="#FFFFFF" placeholder="#FFFFFF" onchange="updateStickerBg(this.value)">
+                        <button type="button" onclick="updateStickerBg('#FFFFFF')" style="background:white;color:#8B3A7F;border:2px solid var(--lantern-plum);border-radius:9px;padding:8px 14px;font-weight:600;cursor:pointer;white-space:nowrap;">White</button>
+                    </div>
+                    <p style="color: #7D6E64; font-size: 15px; margin-top: 10px;">
+                        Fills the whole sticker — quiet zone, behind the code, and the logo circle — so it blends onto a coloured card instead of a white square. Keep it white for a plain sticker.
+                    </p>
                 </div>
-                <p style="color: #7D6E64; font-size: 15px; margin-top: 10px;">
-                    Fills the whole sticker — quiet zone, behind the code, and the logo circle — so it blends onto a coloured card instead of a white square. Keep it white for a plain sticker.
-                </p>
             </div>
 
             <!-- Logo Option -->
@@ -6713,6 +6717,16 @@
             });
             var hint = document.getElementById('printKindHint');
             if (hint) hint.textContent = PRINT_KIND_HINTS[adminPrintKind];
+
+            // Sticker-background fill is Duyên-notes-only (admin) for now. Reveal
+            // it on notes; hide it and force the sticker back to white for every
+            // other kind so a leftover tint never rides onto a business/product run.
+            var bgSec = document.getElementById('stickerBgSection');
+            if (bgSec) {
+                var showBg = isAdmin() && adminPrintKind === 'note';
+                bgSec.style.display = showBg ? 'block' : 'none';
+                if (!showBg) updateStickerBg('#FFFFFF');
+            }
         }
 
         async function generateQR() {
