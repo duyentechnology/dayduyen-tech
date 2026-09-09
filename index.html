@@ -2632,60 +2632,6 @@
         let batchEditMode = false;
         let batchSelectedIndices = new Set();
         
-        // Avery template specifications (in inches, converted to PDF points: 1 inch = 72 points)
-        const averyTemplates = {
-            '22806': { // 2x2 Square Labels
-                name: 'Avery 22806 - 2" Square Labels',
-                cols: 3, rows: 4, perSheet: 12,
-                labelW: 2, labelH: 2,
-                marginLeft: 0.3125, marginTop: 0.75,
-                gapX: 0.25, gapY: 0
-            },
-            '22565': { // 1.5x1.5 Print-to-Edge Square Labels (Glossy)
-                name: 'Avery 22565 - 1.5" Square (Print-to-Edge)',
-                cols: 4, rows: 6, perSheet: 24,
-                labelW: 1.5, labelH: 1.5,
-                marginLeft: 0.875, marginTop: 0.625,
-                gapX: 0.3125, gapY: 0.1875
-            },
-            '5371': { // Business Cards
-                name: 'Avery 5371 - Business Cards',
-                cols: 2, rows: 5, perSheet: 10,
-                labelW: 3.5, labelH: 2,
-                marginLeft: 0.75, marginTop: 0.5,
-                gapX: 0, gapY: 0
-            },
-            '22807': { // 2" Round Labels
-                name: 'Avery 22807 - 2" Round Labels',
-                cols: 3, rows: 4, perSheet: 12,
-                labelW: 2, labelH: 2,
-                marginLeft: 0.4375, marginTop: 0.5,
-                gapX: 0.375, gapY: 0,
-                round: true
-            },
-            '5163': { // 2x4 Shipping
-                name: 'Avery 5163 - 2"x4" Shipping Labels',
-                cols: 2, rows: 5, perSheet: 10,
-                labelW: 4, labelH: 2,
-                marginLeft: 0.15625, marginTop: 0.5,
-                gapX: 0.1875, gapY: 0
-            },
-            '5160': { // Address Labels
-                name: 'Avery 5160 - Address Labels',
-                cols: 3, rows: 10, perSheet: 30,
-                labelW: 2.625, labelH: 1,
-                marginLeft: 0.1875, marginTop: 0.5,
-                gapX: 0.125, gapY: 0
-            },
-            '5164': { // Large Shipping
-                name: 'Avery 5164 - 3.33"x4" Shipping Labels',
-                cols: 2, rows: 3, perSheet: 6,
-                labelW: 4, labelH: 3.333,
-                marginLeft: 0.15625, marginTop: 0.5,
-                gapX: 0.1875, gapY: 0
-            }
-        };
-        
         // Color presets
         const colorPresets = [
             '#8B3A7F', // lantern-plum
@@ -2759,6 +2705,7 @@
             return !!(bizProfileData && bizProfileData.name);
         }
         function requireBizProfile() {
+            if (isAdmin()) return true;   // admins (operators) don't use a business profile
             if (hasBizProfile()) return true;
             alert('First build your business profile — that\'s what the QR code carries.');
             showView('bizProfile');
@@ -7237,118 +7184,6 @@
             showDownloadPreview(previewHTML);
         }
         
-        function downloadAveryPDF(templateId) {
-            if (!generatedQRCodes || generatedQRCodes.length === 0) {
-                alert('⚠️ Please generate QR codes first!');
-                return;
-            }
-            
-            const template = averyTemplates[templateId];
-            if (!template) {
-                alert('⚠️ Template not found');
-                return;
-            }
-            
-            showAveryPreview(templateId);
-        }
-        
-        function showAveryPreview(templateId) {
-            const template = averyTemplates[templateId];
-            const scale = 0.6;
-            
-            const pageW = 8.5 * 96 * scale;
-            const pageH = 11 * 96 * scale;
-            const labelW = template.labelW * 96 * scale;
-            const labelH = template.labelH * 96 * scale;
-            const marginLeft = template.marginLeft * 96 * scale;
-            const marginTop = template.marginTop * 96 * scale;
-            const gapX = template.gapX * 96 * scale;
-            const gapY = template.gapY * 96 * scale;
-            
-            const totalPages = Math.ceil(generatedQRCodes.length / template.perSheet);
-            let pagesHTML = '';
-            let printImageData = [];
-            
-            for (let page = 0; page < totalPages; page++) {
-                let pageContent = '';
-                let qrIndex = page * template.perSheet;
-                
-                for (let row = 0; row < template.rows; row++) {
-                    for (let col = 0; col < template.cols; col++) {
-                        const x = marginLeft + col * (labelW + gapX);
-                        const y = marginTop + row * (labelH + gapY);
-                        
-                        const borderRadius = template.round ? '50%' : '3px';
-                        pageContent += `<div style="position: absolute; left: ${x}px; top: ${y}px; width: ${labelW}px; height: ${labelH}px; border: 1px dashed #ccc; border-radius: ${borderRadius};"></div>`;
-                        
-                        if (qrIndex < generatedQRCodes.length) {
-                            const qrData = generatedQRCodes[qrIndex];
-                            const qrSizePx = Math.min(labelW, labelH) * 0.7;
-                            const canvas = createHighResQR(qrData.url, 150, qrData.includeLogo);
-                            const dataUrl = canvas.toDataURL('image/png');
-                            
-                            printImageData.push({ dataUrl, label: qrData.label });
-                            
-                            const qrX = x + (labelW - qrSizePx) / 2;
-                            const qrY = y + (labelH - qrSizePx) / 2 - (labelH >= 50 ? 6 : 0);
-                            
-                            pageContent += `
-                                <div style="position: absolute; left: ${qrX}px; top: ${qrY}px; text-align: center;">
-                                    <img src="${dataUrl}" style="width: ${qrSizePx}px; height: ${qrSizePx}px; ${template.round ? 'border-radius: 50%;' : ''}">
-                                    ${labelH >= 50 ? `<div style="font-size: 9px; color: #7D6E64; margin-top: 1px;">${qrData.label}</div>` : ''}
-                                </div>
-                            `;
-                            qrIndex++;
-                        }
-                    }
-                }
-                
-                pagesHTML += `
-                    <div style="position: relative; width: ${pageW}px; height: ${pageH}px; background: white; border: 2px solid #ccc; margin: 10px auto; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
-                        <div style="position: absolute; top: 5px; right: 10px; font-size: 11px; color: #9A8478;">Page ${page + 1}/${totalPages}</div>
-                        <div style="position: absolute; top: 5px; left: 10px; font-size: 10px; color: #8B3A7F; font-weight: 600;">${template.name}</div>
-                        ${pageContent}
-                    </div>
-                `;
-            }
-            
-            window.currentPrintData = { type: templateId, template: template, images: printImageData };
-            
-            const previewHTML = `
-                <div style="text-align: center;">
-                    <h4 style="color: #166534; margin-bottom: 10px;">🏷️ Avery Preview: ${template.name}</h4>
-                    <p style="color: #7D6E64; font-size: 15px; margin-bottom: 5px;">
-                        <strong>${generatedQRCodes.length}</strong> QR codes • <strong>${totalPages}</strong> page(s) • ${template.perSheet} per sheet
-                    </p>
-                    <p style="color: #9A8478; font-size: 13px; margin-bottom: 15px;">
-                        Label: ${template.labelW}" × ${template.labelH}" ${template.round ? '(Round)' : ''}
-                    </p>
-                    
-                    <div style="max-height: 400px; overflow-y: auto; background: #e8e8e8; padding: 15px; border-radius: 12px;">
-                        ${pagesHTML}
-                    </div>
-                    
-                    <div style="margin-top: 20px; padding: 20px; background: #fff3cd; border-radius: 12px; border: 2px solid #ffc107;">
-                        <p style="color: #856404; font-weight: 600; margin-bottom: 15px;">📥 Download Options:</p>
-                        <div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;">
-                            <button onclick="tryJsPDFDownload('${templateId}')" type="button"
-                               style="padding: 14px 24px; background: #8B3A7F; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
-                                ⬇️ Download PDF
-                            </button>
-                            <button onclick="showPrintableInPage('${templateId}')" type="button"
-                               style="padding: 14px 24px; background: #3182ce; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
-                                🖨️ Open Printable Page
-                            </button>
-                        </div>
-                        <p style="color: #856404; font-size: 14px; margin-top: 12px;">
-                            Print Tip: Select <strong>"Actual Size"</strong> in print settings for correct label alignment
-                        </p>
-                    </div>
-                </div>
-            `;
-            
-            showDownloadPreview(previewHTML);
-        }
         
         function tryJsPDFDownload(templateId) {
             // Try to initialize jsPDF
@@ -7462,43 +7297,6 @@
                     });
                     
                     pdf.save('duyen-qr-codes.pdf');
-                } else {
-                    const template = averyTemplates[templateId];
-                    let qrIndex = 0;
-                    let pageNum = 0;
-                    
-                    while (qrIndex < generatedQRCodes.length) {
-                        if (pageNum > 0) pdf.addPage();
-                        
-                        for (let row = 0; row < template.rows && qrIndex < generatedQRCodes.length; row++) {
-                            for (let col = 0; col < template.cols && qrIndex < generatedQRCodes.length; col++) {
-                                const qrData = generatedQRCodes[qrIndex];
-                                
-                                const x = template.marginLeft + col * (template.labelW + template.gapX);
-                                const y = template.marginTop + row * (template.labelH + template.gapY);
-                                
-                                const qrSize = Math.min(template.labelW, template.labelH) * 0.75;
-                                const qrX = x + (template.labelW - qrSize) / 2;
-                                const qrY = y + (template.labelH - qrSize) / 2 - 0.1;
-                                
-                                const canvas = createHighResQR(qrData.url, 400, qrData.includeLogo);
-                                const imgData = canvas.toDataURL('image/png');
-                                
-                                pdf.addImage(imgData, 'PNG', qrX, qrY, qrSize, qrSize);
-                                
-                                if (template.labelH >= 1) {
-                                    pdf.setFontSize(7);
-                                    pdf.setTextColor(100);
-                                    pdf.text(qrData.label, x + template.labelW/2, qrY + qrSize + 0.12, { align: 'center' });
-                                }
-                                
-                                qrIndex++;
-                            }
-                        }
-                        pageNum++;
-                    }
-                    
-                    pdf.save('duyen-' + templateId + '-labels.pdf');
                 }
                 
                 alert('✅ PDF Downloaded!');
@@ -7511,14 +7309,13 @@
         function showPrintableInPage(templateId) {
             var isCustom = templateId === 'custom';
             var customTpl = isCustom ? (window.currentPrintData && window.currentPrintData.template) : null;
-            const isAvery = !isCustom && templateId !== 'standard';
-            const template = isCustom ? customTpl : (isAvery ? averyTemplates[templateId] : null);
+            const template = isCustom ? customTpl : null;
             const templateName = template ? template.name : 'Standard Layout';
             
             // Build printable content
             let pagesHTML = '';
             
-            if (isAvery || isCustom) {
+            if (isCustom) {
                 const totalPages = Math.ceil(generatedQRCodes.length / template.perSheet);
                 
                 for (let page = 0; page < totalPages; page++) {
@@ -9824,7 +9621,7 @@
                     if (hash && hash.startsWith('claim/')) {
                         var claimId = hash.replace('claim/', '').trim();
                         hasRoutedOnLoad = true;
-                        if (!bizProfileData || !bizProfileData.name) {
+                        if (!isAdmin() && (!bizProfileData || !bizProfileData.name)) {
                             try { localStorage.setItem('pendingClaimQr', claimId); } catch(e) {}
                             console.log('🆕 Claim arrival, no profile → bizProfile first');
                             bizIsFirstTime = true;
@@ -9838,7 +9635,9 @@
 
                     // First-timer redirect ONLY on a brand-new login,
                     // not on every page reload (avoids the jumping bug).
-                    if (isBrandNewLogin && (!bizProfileData || !bizProfileData.name)) {
+                    // Admins (operators) don't use a business profile, so they
+                    // skip setup and land on the dashboard like a returning user.
+                    if (isBrandNewLogin && !isAdmin() && (!bizProfileData || !bizProfileData.name)) {
                         console.log('🆕 First-timer → bizProfile');
                         bizIsFirstTime = true;
                         showView('bizProfile');
@@ -9854,7 +9653,7 @@
                     try { postClaim = localStorage.getItem('postClaimQr'); } catch(e) {}
                     if (postClaim) {
                         hasRoutedOnLoad = true;
-                        if (!bizProfileData || !bizProfileData.name) {
+                        if (!isAdmin() && (!bizProfileData || !bizProfileData.name)) {
                             bizIsFirstTime = true;
                             showView('bizProfile'); // flag stays; studio opens after save
                         } else {
