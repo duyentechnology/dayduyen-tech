@@ -1535,47 +1535,17 @@
                         <button type="button" class="tpl-new-btn" onclick="showTemplateForm(null)">+ New template</button>
                     </div>
                     
-                    <h5 style="color: #166534; margin: 25px 0 15px; font-size: 18px; border-top: 1px solid #bbf7d0; padding-top: 20px;">🏷️ Avery Label Templates</h5>
-                    <p style="color: #7D6E64; font-size: 15px; margin-bottom: 15px;">Download PDF formatted for popular Avery label sheets - print at home!</p>
-                    
+                    <h5 style="color: #166534; margin: 25px 0 15px; font-size: 18px; border-top: 1px solid #bbf7d0; padding-top: 20px;">🏷️ Duyên sticker sheet</h5>
+                    <p style="color: #7D6E64; font-size: 15px; margin-bottom: 15px;">Fill a Duyên 30-square sheet (1.25" squares) — the same sheet businesses print from. Print at home.</p>
+
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px;">
-                        <button onclick="downloadAveryPDF('22806')" class="avery-btn" type="button">
-                            <strong>Avery 22806</strong>
-                            <span>2" × 2" Square</span>
-                            <span>12 per sheet</span>
-                        </button>
-                        <button onclick="downloadAveryPDF('22565')" class="avery-btn" type="button">
-                            <strong>Avery 22565</strong>
-                            <span>1.5" × 1.5" Glossy</span>
-                            <span>24 per sheet</span>
-                        </button>
-                        <button onclick="downloadAveryPDF('5371')" class="avery-btn" type="button">
-                            <strong>Avery 5371</strong>
-                            <span>2" × 3.5" Business Card</span>
-                            <span>10 per sheet</span>
-                        </button>
-                        <button onclick="downloadAveryPDF('22807')" class="avery-btn" type="button">
-                            <strong>Avery 22807</strong>
-                            <span>2" Round</span>
-                            <span>12 per sheet</span>
-                        </button>
-                        <button onclick="downloadAveryPDF('5163')" class="avery-btn" type="button">
-                            <strong>Avery 5163</strong>
-                            <span>2" × 4" Shipping</span>
-                            <span>10 per sheet</span>
-                        </button>
-                        <button onclick="downloadAveryPDF('5160')" class="avery-btn" type="button">
-                            <strong>Avery 5160</strong>
-                            <span>1" × 2.625" Address</span>
+                        <button onclick="downloadDuyen30PDF()" class="avery-btn" type="button">
+                            <strong>Duyên · 30 squares</strong>
+                            <span>1.25" × 1.25"</span>
                             <span>30 per sheet</span>
                         </button>
-                        <button onclick="downloadAveryPDF('5164')" class="avery-btn" type="button">
-                            <strong>Avery 5164</strong>
-                            <span>3.33" × 4" Shipping</span>
-                            <span>6 per sheet</span>
-                        </button>
                     </div>
-                    
+
                     <!-- Download Preview Area -->
                     <div id="downloadPreview" style="margin-top: 25px; padding-top: 20px; border-top: 1px solid #bbf7d0; display: none;">
                         <h5 style="color: #166534; margin-bottom: 15px; font-size: 18px;">📋 Download Preview</h5>
@@ -8729,6 +8699,43 @@
                 doc.addImage(png, 'PNG', x, y, qw, qh);
             }
             doc.save((item.label || 'business-qr').replace(/[^\w-]+/g, '_') + '_stickers_' + cols + 'x' + rows + '.pdf');
+        }
+
+        // Admin generator: lay the just-generated code(s) onto the branded Duyên
+        // 30-square sheet (the same geometry businesses print from). A single
+        // generated code fills the whole sheet (30 copies); a batch fills cells
+        // in order, paging as needed.
+        function downloadDuyen30PDF() {
+            if (!generatedQRCodes || generatedQRCodes.length === 0) { alert('⚠️ Please generate QR codes first!'); return; }
+            var jsPDF = (window.jspdf || {}).jsPDF;
+            if (!jsPDF) { alert('PDF library not loaded — check your connection and retry.'); return; }
+            var t = STICKER_TEMPLATES.duyen30, PG = STICKER_PAGES.duyen30;
+            var lw = t.lw, lh = t.lh, gx = t.gx, gy = t.gy, mt = t.mt, ml = t.ml;
+            var cols = Math.floor((PG.w - ml*2 + gx) / (lw + gx));
+            var rows = Math.floor((PG.h - mt*2 + gy) / (lh + gy));
+            var perSheet = cols * rows;
+            var single = generatedQRCodes.length === 1;
+            var pages = single ? 1 : Math.ceil(generatedQRCodes.length / perSheet);
+            var qw = lw * 0.94, qh = lh * 0.94; // square code, centered in the cell
+            var imgCache = {};
+            var pngFor = function(qr) {
+                var key = qr.url + '|' + (qr.includeLogo ? 1 : 0);
+                if (!imgCache[key]) imgCache[key] = createHighResQR(qr.url, 150, qr.includeLogo).toDataURL('image/png');
+                return imgCache[key];
+            };
+            var doc = new jsPDF({ unit: 'in', format: PG.fmt, orientation: 'portrait' });
+            for (var pg = 0; pg < pages; pg++) {
+                if (pg > 0) doc.addPage(PG.fmt, 'portrait');
+                for (var r = 0; r < rows; r++) for (var c = 0; c < cols; c++) {
+                    var idx = single ? 0 : (pg * perSheet + r * cols + c);
+                    var qr = generatedQRCodes[idx];
+                    if (!qr) continue;
+                    var x = ml + c*(lw+gx) + (lw-qw)/2;
+                    var y = mt + r*(lh+gy) + (lh-qh)/2;
+                    doc.addImage(pngFor(qr), 'PNG', x, y, qw, qh);
+                }
+            }
+            doc.save('duyen-30-square-stickers.pdf');
         }
         // ────────────────────────────────────────────────────────────────────
 
