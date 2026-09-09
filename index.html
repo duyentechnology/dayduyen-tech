@@ -1192,6 +1192,7 @@
             <button class="cta-button" id="headerBtn" onclick="handleHeaderCTA()">Log In</button>
             <div class="user-menu" id="userMenu">
                 <button class="cta-button" id="adminNewQR" onclick="showView('mode')" style="background: white; color: #8B3A7F; border: 2px solid var(--lantern-plum); display:none;">+ New QR</button>
+                <button class="cta-button" id="adminMyCodes" onclick="showView('genLog')" style="background: white; color: #8B3A7F; border: 2px solid var(--lantern-plum); display:none;">My Codes</button>
                 <button class="cta-button" onclick="showView('bizDashboard')" style="background: #8B3A7F; color: white;">My Dashboard</button>
                 <div class="user-avatar-wrap">
                     <button class="user-avatar" id="userAvatarBtn" type="button" onclick="event.stopPropagation(); document.getElementById('userDropdown').classList.toggle('open');" aria-label="Account menu"></button>
@@ -1674,6 +1675,18 @@
             </div>
             
             <div id="myCodesGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px;"></div>
+        </div>
+    </div>
+
+    <!-- Generation Log (admin only) — every code generated, grouped by day, reprint anytime -->
+    <div id="genLogView" class="view">
+        <div class="generator" style="max-width: 720px;">
+            <div style="margin-bottom: 16px;">
+                <h2 style="margin:0;color:#3D2E24;">My QR Codes</h2>
+                <p style="color:#9A8478;margin:5px 0 0;font-size:16px;" id="genLogSubtitle">Everything you've generated — reprint any of it, anytime.</p>
+            </div>
+            <input type="text" id="genLogSearch" placeholder="Search labels or code…" oninput="renderGenLog()" style="width:100%;padding:12px 14px;border:1.5px solid #E8DDD6;border-radius:11px;font-size:16px;box-sizing:border-box;margin-bottom:6px;">
+            <div id="genLogBody"></div>
         </div>
     </div>
 
@@ -3339,6 +3352,8 @@
                 showUpgradeModal('generate');
                 return;
             }
+            // The generation log is an admin (operator) tool only.
+            if (view === 'genLog' && !isAdmin()) { showView('bizDashboard'); return; }
             document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
             var el = document.getElementById(view + 'View');
             if (!el) { console.warn('View not found:', view); return; }
@@ -3367,6 +3382,7 @@
             // renderMyCodes and openEditQR are still here only because the enterprise
             // redesign will rewrite this whole surface — delete them with it.
             if (view === 'myCodes') renderMyCodes();
+            if (view === 'genLog') renderGenLog();
             if (view === 'bizDashboard') loadDashboard();
             if (view === 'bizDashboard') loadPrintRuns();
             if (view === 'bizProfile') {
@@ -8533,6 +8549,94 @@
                 }
             }
             doc.save('duyen-30-square-stickers.pdf');
+        }
+
+        // ── Admin generation log: every code you've made, by day, reprint anytime ──
+        // Reuses the existing PDF builders by temporarily pointing them at the
+        // chosen code(s) — nothing is stored; the sheet regenerates from the URL.
+        function _withGeneratedCodes(list, fn) {
+            var save = generatedQRCodes;
+            generatedQRCodes = list;
+            try { fn(); } finally { generatedQRCodes = save; }
+        }
+        function _codeToGen(c) { return { url: c.url, label: c.label || 'QR code', includeLogo: c.includeLogo !== false }; }
+        function _dayKey(c) {
+            var d = c.createdAt ? new Date(c.createdAt) : new Date();
+            return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+        }
+        function reprintCode(id, kind) {
+            var c = (savedQRCodes || []).find(function(x){ return (x.dbId || x.id) === id; });
+            if (!c) { alert('Code not found.'); return; }
+            _withGeneratedCodes([_codeToGen(c)], kind === 'sq' ? downloadDuyen30PDF : function(){ tryJsPDFDownload('standard'); });
+        }
+        function reprintRun(dayKey, kind) {
+            var list = (savedQRCodes || []).filter(function(c){ return c && c.url && _dayKey(c) === dayKey; }).map(_codeToGen);
+            if (!list.length) { alert('No codes in this run.'); return; }
+            _withGeneratedCodes(list, kind === 'sq' ? downloadDuyen30PDF : function(){ tryJsPDFDownload('standard'); });
+        }
+        function renderGenLog() {
+            var body = document.getElementById('genLogBody');
+            if (!body) return;
+            if (!isAdmin()) { body.innerHTML = ''; return; }
+            var search = ((document.getElementById('genLogSearch') || {}).value || '').toLowerCase().trim();
+            var codes = (savedQRCodes || []).filter(function(c){ return c && c.url; });
+            var sub = document.getElementById('genLogSubtitle');
+            if (sub) sub.textContent = codes.length + ' code' + (codes.length !== 1 ? 's' : '') + ' generated — reprint any of it, anytime.';
+            var filtered = codes.filter(function(c){
+                if (!search) return true;
+                return (c.label || '').toLowerCase().indexOf(search) !== -1 || (c.url || '').toLowerCase().indexOf(search) !== -1;
+            });
+            if (!filtered.length) {
+                body.innerHTML = '<div style="text-align:center;padding:40px;color:#9A8478;">' + (codes.length ? 'No codes match your search.' : 'No codes generated yet.') + '</div>';
+                return;
+            }
+            var groups = {}, order = [];
+            filtered.forEach(function(c){
+                var key = _dayKey(c);
+                if (!groups[key]) {
+                    var d = c.createdAt ? new Date(c.createdAt) : new Date();
+                    groups[key] = { label: d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }), sort: d.getTime(), items: [] };
+                    order.push(key);
+                }
+                groups[key].items.push(c);
+            });
+            order.sort(function(a, b){ return groups[b].sort - groups[a].sort; });
+            var runBtn = function(key, kind, primary, txt){
+                return '<button onclick="reprintRun(\'' + key + '\',\'' + kind + '\')" style="font-size:12.5px;font-weight:700;border-radius:9px;padding:7px 11px;cursor:pointer;' +
+                    (primary ? 'color:#fff;background:#8B3A7F;border:none;' : 'color:#8B3A7F;background:#fff;border:1.5px solid #8B3A7F;') + '">' + txt + '</button>';
+            };
+            var html = '';
+            order.forEach(function(key){
+                var g = groups[key];
+                html += '<div style="margin-top:18px;">' +
+                    '<div style="display:flex;align-items:center;gap:10px;margin:0 2px 10px;flex-wrap:wrap;">' +
+                        '<span style="font-size:13.5px;font-weight:700;color:#8B3A7F;text-transform:uppercase;letter-spacing:.5px;">' + sanitize(g.label) + '</span>' +
+                        '<span style="font-size:13px;color:#9A8478;">' + g.items.length + ' code' + (g.items.length !== 1 ? 's' : '') + '</span>' +
+                        '<span style="margin-left:auto;display:flex;gap:6px;">' + runBtn(key, 'std', true, 'Reprint PDF') + runBtn(key, 'sq', false, '30-sq') + '</span>' +
+                    '</div>';
+                g.items.forEach(function(c){
+                    var id = c.dbId || c.id;
+                    var slug = (c.url || '').replace(/^https?:\/\//, '');
+                    var active = c.status === 'active';
+                    html += '<div style="background:#fff;border:1.5px solid #E8DDD6;border-radius:13px;padding:12px;margin-bottom:10px;display:flex;gap:12px;align-items:center;">' +
+                        '<canvas class="genLogQr" data-url="' + sanitize(c.url) + '" data-color="' + sanitize(c.color || '#2E2A28') + '" width="160" height="160" style="width:56px;height:56px;border-radius:8px;border:1px solid #eee;flex-shrink:0;"></canvas>' +
+                        '<div style="flex:1;min-width:0;">' +
+                            '<div style="font-size:16px;font-weight:700;color:#2E2A28;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + sanitize(c.label || 'QR code') + '</div>' +
+                            '<div style="font-size:12.5px;color:#9A8478;font-family:monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + sanitize(slug) + '</div>' +
+                            '<span style="display:inline-block;font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:20px;margin-top:4px;' + (active ? 'background:#E6F5F3;color:#2AA8A0;' : 'background:#F3E9F3;color:#8B3A7F;') + '">' + (active ? 'Active' : 'Draft') + '</span>' +
+                        '</div>' +
+                        '<div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">' +
+                            '<button onclick="reprintCode(\'' + id + '\',\'std\')" style="font-size:13px;font-weight:700;border:none;background:#8B3A7F;color:#fff;border-radius:9px;padding:8px 10px;cursor:pointer;white-space:nowrap;">⬇ PDF</button>' +
+                            '<button onclick="reprintCode(\'' + id + '\',\'sq\')" style="font-size:13px;font-weight:700;border:1.5px solid #E8DDD6;background:#fff;color:#6B5E56;border-radius:9px;padding:8px 10px;cursor:pointer;white-space:nowrap;">🏷️ 30-sq</button>' +
+                        '</div>' +
+                    '</div>';
+                });
+                html += '</div>';
+            });
+            body.innerHTML = html;
+            Array.prototype.forEach.call(body.querySelectorAll('canvas.genLogQr'), function(cv){
+                try { drawProfileQr(cv, cv.getAttribute('data-url'), cv.getAttribute('data-color')); } catch(e){}
+            });
         }
         // ────────────────────────────────────────────────────────────────────
 
