@@ -1491,7 +1491,20 @@
                     <input type="text" id="hexInput" class="input-field" style="flex: 1;" value="#8B3A7F" placeholder="#000000" onchange="updateFromHex()">
                 </div>
             </div>
-            
+
+            <!-- Sticker background: fill the entire sticker box (default white) -->
+            <h3 style="font-size: 18px; font-weight: 600; margin-top: 40px; margin-bottom: 15px;">🎨 Sticker Background</h3>
+            <div class="color-section">
+                <div class="color-input-group">
+                    <input type="color" id="stickerBgPicker" value="#FFFFFF" onchange="updateStickerBg(this.value)">
+                    <input type="text" id="stickerBgHex" class="input-field" style="flex: 1;" value="#FFFFFF" placeholder="#FFFFFF" onchange="updateStickerBg(this.value)">
+                    <button type="button" onclick="updateStickerBg('#FFFFFF')" style="background:white;color:#8B3A7F;border:2px solid var(--lantern-plum);border-radius:9px;padding:8px 14px;font-weight:600;cursor:pointer;white-space:nowrap;">White</button>
+                </div>
+                <p style="color: #7D6E64; font-size: 15px; margin-top: 10px;">
+                    Fills the whole sticker — quiet zone, behind the code, and the logo circle — so it blends onto a coloured card instead of a white square. Keep it white for a plain sticker.
+                </p>
+            </div>
+
             <!-- Logo Option -->
             <h3 style="font-size: 18px; font-weight: 600; margin-top: 40px; margin-bottom: 15px;">緣 Center Logo</h3>
             <div style="background: #f7fafc; padding: 20px; border-radius: 12px; border: 2px solid #E8DDD6;">
@@ -2639,6 +2652,12 @@
         var currentUser = null;
         let currentMode = null;
         let selectedColor = '#8B3A7F';
+        // Fill colour for the whole sticker (quiet zone + behind the code + the
+        // logo circle). Default white = a plain white sticker, unchanged. Set it
+        // to tint the entire box so it sits on a coloured card without a white
+        // rectangle around the code. Colour *choices* are picked by the operator
+        // in the picker; this only holds the current one.
+        let stickerBg = '#FFFFFF';
         let generatedQRCodes = [];
         let savedQRCodes = [];
         let editingQRIndex = null;
@@ -6525,19 +6544,32 @@
                 renderColorPresets();
             }
         }
-        
+
+        // Sticker background fill (default white). Keeps the swatch, hex box and
+        // the global in sync; accepts either input or the White reset button.
+        function updateStickerBg(v) {
+            var hex = String(v || '').trim();
+            if (!/^#[0-9A-Fa-f]{6}$/.test(hex)) return;
+            stickerBg = hex.toUpperCase();
+            var pick = document.getElementById('stickerBgPicker');
+            var box = document.getElementById('stickerBgHex');
+            if (pick) pick.value = stickerBg;
+            if (box) box.value = stickerBg;
+        }
+
         // Draw Duyên logo on QR code
-        function drawLogoOnCanvas(canvas, color, scale) {
+        function drawLogoOnCanvas(canvas, color, scale, circleBg) {
             const ctx = canvas.getContext('2d');
             const centerX = canvas.width / 2;
             const centerY = canvas.height / 2;
             const s = Math.max(0.7, Math.min(2, scale || 1));
             const logoSize = Math.min(canvas.width, canvas.height) * 0.22 * s;
-            
-            // White circle background
+
+            // Circle behind the crest — matches the sticker background so a
+            // tinted sticker stays seamless (defaults to white).
             ctx.beginPath();
             ctx.arc(centerX, centerY, logoSize * 0.7, 0, Math.PI * 2);
-            ctx.fillStyle = '#FFFFFF';
+            ctx.fillStyle = circleBg || '#FFFFFF';
             ctx.fill();
             
             // Draw the 緣 character
@@ -6549,7 +6581,8 @@
         }
         
         // Create high-res QR code canvas for downloads
-        function createHighResQR(url, size, includeLogoPref) {
+        function createHighResQR(url, size, includeLogoPref, bg) {
+            const bgColor = bg || stickerBg || '#FFFFFF';
             // 'H' (high, ~30% damage tolerance) so a print smear, a light crease,
             // or the optional center logo can't stop a scan. Plus a 4-module white
             // QUIET ZONE on every side — QR detection genuinely needs that border,
@@ -6570,8 +6603,8 @@
             canvas.height = actualSize;
             const ctx = canvas.getContext('2d');
 
-            // White background (includes the quiet zone)
-            ctx.fillStyle = '#FFFFFF';
+            // Sticker background (includes the quiet zone) — white by default
+            ctx.fillStyle = bgColor;
             ctx.fillRect(0, 0, actualSize, actualSize);
 
             // Draw QR modules, inset by the quiet zone
@@ -6586,7 +6619,7 @@
 
             // Add logo if enabled
             if (includeLogoPref) {
-                drawLogoOnCanvas(canvas, selectedColor);
+                drawLogoOnCanvas(canvas, selectedColor, 1, bgColor);
             }
 
             return canvas;
@@ -6869,8 +6902,8 @@
                 canvas.height = canvas.width;
                 const ctx = canvas.getContext('2d');
 
-                // White background (includes the quiet zone)
-                ctx.fillStyle = '#FFFFFF';
+                // Sticker background (includes the quiet zone) — white by default
+                ctx.fillStyle = stickerBg;
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
 
                 // Draw QR code in selected color, inset by the quiet zone
@@ -6882,10 +6915,10 @@
                         }
                     }
                 }
-                
+
                 // Add logo if enabled
                 if (includeLogo) {
-                    drawLogoOnCanvas(canvas, selectedColor);
+                    drawLogoOnCanvas(canvas, selectedColor, 1, stickerBg);
                 }
                 
                 qrContainer.appendChild(canvas);
@@ -6894,7 +6927,8 @@
                 generatedQRCodes.push({
                     url: url,
                     label: labels[i],
-                    includeLogo: includeLogo
+                    includeLogo: includeLogo,
+                    bg: stickerBg
                 });
                 
                 // Save to persistent library
@@ -6903,6 +6937,7 @@
                     url: url,
                     label: (_bizGen && (!labels[i] || labels[i] === 'QR Code')) ? bizProfileData.name : labels[i],
                     color: selectedColor,
+                    bg: stickerBg,
                     includeLogo: includeLogo,
                     // Admin flyer runs mint unclaimed 'business' QRs; a paying
                     // business's own code carries their profile from birth.
@@ -6947,7 +6982,7 @@
                 return;
             }
             
-            const canvas = createHighResQR(qrData.url, 400, qrData.includeLogo);
+            const canvas = createHighResQR(qrData.url, 400, qrData.includeLogo, qrData.bg);
             const dataUrl = canvas.toDataURL('image/png');
             
             // Store for download
@@ -7063,7 +7098,7 @@
             `;
             
             generatedQRCodes.forEach((qrData, index) => {
-                const canvas = createHighResQR(qrData.url, 400, qrData.includeLogo);
+                const canvas = createHighResQR(qrData.url, 400, qrData.includeLogo, qrData.bg);
                 const dataUrl = canvas.toDataURL('image/png');
                 
                 // Store for download
@@ -7134,7 +7169,7 @@
                 
                 for (let i = startIdx; i < endIdx; i++) {
                     const qrData = generatedQRCodes[i];
-                    const canvas = createHighResQR(qrData.url, 200, qrData.includeLogo);
+                    const canvas = createHighResQR(qrData.url, 200, qrData.includeLogo, qrData.bg);
                     const dataUrl = canvas.toDataURL('image/png');
                     
                     printImageData.push({ dataUrl, label: qrData.label });
@@ -7261,7 +7296,7 @@
                                     logoTop = null;
                                 }
                                 var qrX = x + (template.labelW - qrSize) / 2;
-                                var canvas = createHighResQR(qrData.url, 400, qrData.includeLogo);
+                                var canvas = createHighResQR(qrData.url, 400, qrData.includeLogo, qrData.bg);
                                 var imgData = canvas.toDataURL('image/png');
                                 pdf.addImage(imgData, 'PNG', qrX, qrTop, qrSize, qrSize);
                                 if (logoTop != null && logoUrl) {
@@ -7301,7 +7336,7 @@
                         const x = margin + col * (qrSize + 0.25);
                         const y = margin + row * (qrSize + 0.5);
                         
-                        const canvas = createHighResQR(qrData.url, 400, qrData.includeLogo);
+                        const canvas = createHighResQR(qrData.url, 400, qrData.includeLogo, qrData.bg);
                         const imgData = canvas.toDataURL('image/png');
                         
                         pdf.addImage(imgData, 'PNG', x, y, qrSize, qrSize);
@@ -7339,7 +7374,7 @@
                     for (let row = 0; row < template.rows && qrIndex < generatedQRCodes.length; row++) {
                         for (let col = 0; col < template.cols && qrIndex < generatedQRCodes.length; col++) {
                             const qrData = generatedQRCodes[qrIndex];
-                            const canvas = createHighResQR(qrData.url, 400, qrData.includeLogo);
+                            const canvas = createHighResQR(qrData.url, 400, qrData.includeLogo, qrData.bg);
                             const dataUrl = canvas.toDataURL('image/png');
                             
                             const x = template.marginLeft + col * (template.labelW + template.gapX);
@@ -7373,7 +7408,7 @@
                     
                     for (let i = startIdx; i < endIdx; i++) {
                         const qrData = generatedQRCodes[i];
-                        const canvas = createHighResQR(qrData.url, 400, qrData.includeLogo);
+                        const canvas = createHighResQR(qrData.url, 400, qrData.includeLogo, qrData.bg);
                         const dataUrl = canvas.toDataURL('image/png');
                         
                         const pageIndex = i - startIdx;
@@ -8531,7 +8566,7 @@
             var imgCache = {};
             var pngFor = function(qr) {
                 var key = qr.url + '|' + (qr.includeLogo ? 1 : 0);
-                if (!imgCache[key]) imgCache[key] = createHighResQR(qr.url, 150, qr.includeLogo).toDataURL('image/png');
+                if (!imgCache[key]) imgCache[key] = createHighResQR(qr.url, 150, qr.includeLogo, qr.bg).toDataURL('image/png');
                 return imgCache[key];
             };
             var doc = new jsPDF({ unit: 'in', format: PG.fmt, orientation: 'portrait' });
@@ -8557,7 +8592,7 @@
             generatedQRCodes = list;
             try { fn(); } finally { generatedQRCodes = save; }
         }
-        function _codeToGen(c) { return { url: c.url, label: c.label || 'QR code', includeLogo: c.includeLogo !== false }; }
+        function _codeToGen(c) { return { url: c.url, label: c.label || 'QR code', includeLogo: c.includeLogo !== false, bg: c.bg }; }
         function _dayKey(c) {
             var d = c.createdAt ? new Date(c.createdAt) : new Date();
             return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
@@ -9075,7 +9110,7 @@
             var qrItem = savedQRCodes[editingQRIndex];
             if (!qrItem) return;
             
-            var canvas = createHighResQR(qrItem.url, 400, qrItem.includeLogo);
+            var canvas = createHighResQR(qrItem.url, 400, qrItem.includeLogo, qrItem.bg);
             var ctx = canvas.getContext('2d');
             var imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             var pixels = imgData.data;
@@ -9092,7 +9127,7 @@
                 }
             }
             ctx.putImageData(imgData, 0, 0);
-            if (qrItem.includeLogo) drawLogoOnCanvas(canvas, hex);
+            if (qrItem.includeLogo) drawLogoOnCanvas(canvas, hex, 1, qrItem.bg);
             
             smartDownload(canvas.toDataURL('image/png'), 'duyen-' + qrItem.label + '.png');
         }
@@ -9101,7 +9136,7 @@
             var qrItem = savedQRCodes[index];
             if (!qrItem) return;
             
-            var canvas = createHighResQR(qrItem.url, 400, qrItem.includeLogo);
+            var canvas = createHighResQR(qrItem.url, 400, qrItem.includeLogo, qrItem.bg);
             var ctx = canvas.getContext('2d');
             var imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             var pixels = imgData.data;
@@ -9118,7 +9153,7 @@
                 }
             }
             ctx.putImageData(imgData, 0, 0);
-            if (qrItem.includeLogo) drawLogoOnCanvas(canvas, hex);
+            if (qrItem.includeLogo) drawLogoOnCanvas(canvas, hex, 1, qrItem.bg);
             
             smartDownload(canvas.toDataURL('image/png'), 'duyen-' + qrItem.label + '.png');
         }
@@ -10171,7 +10206,7 @@
                         pageContent += '<div style="position:absolute;left:' + x + 'px;top:' + y + 'px;width:' + labelW + 'px;height:' + labelH + 'px;border:1px dashed #ccc;border-radius:' + borderRadius + ';"></div>';
                         if (qrIndex < qrList.length) {
                             var qrData = qrList[qrIndex];
-                            var canvas = createHighResQR(qrData.url, 150, qrData.includeLogo);
+                            var canvas = createHighResQR(qrData.url, 150, qrData.includeLogo, qrData.bg);
                             var dataUrl = canvas.toDataURL('image/png');
                             printImageData.push({ dataUrl: dataUrl, label: qrData.label });
                             // Center stack vertically inside the sticker
