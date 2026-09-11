@@ -8741,20 +8741,23 @@
             redirect_mismatch: 'Redirects to a different domain',
             dead_link: "Didn't resolve (dead link)",
             unsafe: '⚠️ Flagged by Safe Browsing',
-            safebrowsing_unavailable: 'Safe Browsing check unavailable'
+            safebrowsing_unavailable: 'Security check unavailable'
         };
         function _lrBtn(primary) {
             return 'font-size:13.5px;font-weight:700;border-radius:10px;padding:9px 16px;cursor:pointer;border:none;color:#fff;background:' + (primary ? '#2E9E5B' : '#C0392B') + ';';
         }
         // Nudge to move off the free (non-commercial) Safe Browsing API to Web
         // Risk once vetting volume looks commercial. Count = link checks / 30 days.
-        var WEB_RISK_THRESHOLD = 500;
+        // Heads-up as vetting nears Web Risk's free tier. Web Risk includes
+        // 100k free lookups/month; each link check is ~1-2 lookups, so warn
+        // around 40k checks/30 days. (We already run on Web Risk.)
+        var FREE_TIER_WARN = 40000;
         function _lrUsageHtml(n) {
             var line = '<div style="font-size:12.5px;color:#9A8478;margin-bottom:10px;">' + n + ' link check' + (n !== 1 ? 's' : '') + ' in the last 30 days.</div>';
-            if (n >= WEB_RISK_THRESHOLD) {
+            if (n >= FREE_TIER_WARN) {
                 return '<div style="border:1.5px solid #E0A800;background:#FFF8E1;border-radius:12px;padding:12px 14px;margin-bottom:14px;">' +
-                    '<div style="font-weight:700;color:#8A6D00;">⚠️ Time to switch to Web Risk</div>' +
-                    '<div style="font-size:13px;color:#6B5A2E;margin-top:5px;line-height:1.4;">You\'ve run ' + n + ' link checks in the last 30 days. Google\'s free Safe Browsing API is for non-commercial use only — at this volume, switch to the paid Web Risk API to stay within Google\'s terms. Ask your developer to migrate the vet-link function (a ~10-line change).</div>' +
+                    '<div style="font-weight:700;color:#8A6D00;">⚠️ Approaching Web Risk\'s free tier</div>' +
+                    '<div style="font-size:13px;color:#6B5A2E;margin-top:5px;line-height:1.4;">You\'ve run ' + n + ' link checks in the last 30 days. Web Risk includes 100,000 free lookups/month; beyond that it\'s $0.50 per 1,000. Keep an eye on your Google Cloud billing as you grow.</div>' +
                 '</div>' + line;
             }
             return line;
