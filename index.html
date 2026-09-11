@@ -4164,6 +4164,7 @@
 
                 // Update existing or add new to array
                 var idx = bizProfiles.findIndex(function(p) { return p.profileId === profileId; });
+                var _prevProfile = (idx > -1 && bizProfiles[idx]) ? bizProfiles[idx] : {};
                 if (idx > -1) { bizProfiles[idx] = newProfile; } else { bizProfiles.push(newProfile); }
                 bizProfileData = newProfile;
                 currentProfileId = profileId;
@@ -4218,12 +4219,57 @@
                 // saved from a different profile. Codes are attached to a profile
                 // with its profileId at claim/scan time, so this refresh keeps
                 // address/phone/social/About edits live without cross-contaminating.
+                // ── Link vetting + public gating ─────────────────────────────
+                // Vet only links that CHANGED this save; unchanged pre-existing
+                // links are grandfathered (nothing currently public disappears).
+                // The public copy (qr_codes.business_data) carries only links that
+                // are live — a flagged or unvetted change is held back until an
+                // admin approves it (fail-closed).
+                var _SOC = ['facebook','pinterest','youtube','yelp','linkedin','x','instagram','tiktok'];
+                var _prevSocial = _prevProfile.social || {};
+                var changedLinks = {};
+                if ((newProfile.website || '') !== (_prevProfile.website || '')) changedLinks.website = newProfile.website || '';
+                _SOC.forEach(function(k){
+                    if ((newProfile.social[k] || '') !== (_prevSocial[k] || '')) changedLinks[k] = newProfile.social[k] || '';
+                });
+                var vetResults = {};
+                if (Object.keys(changedLinks).length) {
+                    if (btn) btn.textContent = '⏳ Checking links…';
+                    try {
+                        var vr = await db.functions.invoke('vet-link', { body: { profileId: profileId, links: changedLinks } });
+                        if (!vr.error && vr.data && vr.data.results) vetResults = vr.data.results;
+                    } catch (e) { console.error('vet-link:', e); }
+                }
+                // Authoritative per-link status decides what goes public.
+                var statusMap = {};
+                try {
+                    var { data: _bl } = await db.from('business_links').select('kind,status').eq('profile_id', profileId);
+                    (_bl || []).forEach(function(r){ statusMap[r.kind] = r.status; });
+                } catch (e) {}
+                function _pubLink(kind, val) {
+                    if (!val) return '';
+                    var st = statusMap[kind];
+                    if (st) return (st === 'live') ? val : '';       // vetted: live shows, else held
+                    return changedLinks.hasOwnProperty(kind) ? '' : val; // changed-but-unvetted held; else grandfathered
+                }
+                var publicProfile = JSON.parse(JSON.stringify(newProfile));
+                publicProfile.website = _pubLink('website', newProfile.website);
+                publicProfile.social = publicProfile.social || {};
+                _SOC.forEach(function(k){ publicProfile.social[k] = _pubLink(k, (newProfile.social || {})[k] || ''); });
+
                 try {
                     await db.from('qr_codes')
-                        .update({ business_data: newProfile, about_photos: aboutUrls })
+                        .update({ business_data: publicProfile, about_photos: aboutUrls })
                         .eq('business_user_id', user.id)
                         .eq('business_data->>profileId', profileId);
                 } catch (e) { console.error('Business data sync:', e); }
+
+                // Let the owner know if a new/changed link is held for review.
+                var _held = Object.keys(vetResults).filter(function(k){ return vetResults[k] && vetResults[k].status === 'flagged'; });
+                if (_held.length) {
+                    var _lnm = { website:'Website', facebook:'Facebook', pinterest:'Pinterest', youtube:'YouTube', yelp:'Yelp', linkedin:'LinkedIn', x:'X', instagram:'Instagram', tiktok:'TikTok' };
+                    alert('Saved ✓\n\nHeld for review before showing publicly: ' + _held.map(function(k){ return _lnm[k] || k; }).join(', ') + '.\nNew links are checked for safety — they go live once approved.');
+                }
 
                 // Arrived via a scanned code without a profile: profile is now
                 // saved, so continue the claim right away — no success modal,
@@ -4777,6 +4823,40 @@
             });
         }
 
+        // Show a vetting badge under each profile link input ("✓ Live" /
+        // "⏳ In review" / "✕ Not approved"). Reads the owner's own rows
+        // (RLS-scoped). Badges are injected next to the inputs — no markup change.
+        async function applyLinkBadges(profileId) {
+            var INPUTS = { website:'bizWebsite', facebook:'socFacebook', pinterest:'socPinterest',
+                youtube:'socYoutube', yelp:'socYelp', linkedin:'socLinkedin', x:'socX',
+                instagram:'socInstagram', tiktok:'socTiktok' };
+            var map = {};
+            if (profileId) {
+                try {
+                    var { data: rows } = await db.from('business_links').select('kind,status').eq('profile_id', profileId);
+                    (rows || []).forEach(function(r){ map[r.kind] = r.status; });
+                } catch (e) {}
+            }
+            Object.keys(INPUTS).forEach(function(kind){
+                var input = document.getElementById(INPUTS[kind]);
+                if (!input) return;
+                var badge = document.getElementById('_lb_' + kind);
+                if (!badge) {
+                    badge = document.createElement('div');
+                    badge.id = '_lb_' + kind;
+                    badge.style.cssText = 'font-size:12.5px;font-weight:600;margin:4px 0 2px;';
+                    input.parentNode.insertBefore(badge, input.nextSibling);
+                }
+                var st = map[kind];
+                if (!st || !input.value) { badge.style.display = 'none'; return; }
+                badge.style.display = 'block';
+                if (st === 'live')          { badge.style.color = '#2E9E5B'; badge.textContent = '✓ Live'; }
+                else if (st === 'flagged')  { badge.style.color = '#B26A00'; badge.textContent = '⏳ In review — hidden until approved'; }
+                else if (st === 'rejected') { badge.style.color = '#C0392B'; badge.textContent = '✕ Not approved — hidden'; }
+                else                        { badge.style.display = 'none'; }
+            });
+        }
+
         function populateBizProfile() {
             if (!bizProfileData) return;
             if (bizProfileData.logo) {
@@ -4809,6 +4889,7 @@
             _f('socX',         s.x);
             _f('socInstagram', s.instagram);
             _f('socTiktok',    s.tiktok);
+            applyLinkBadges(bizProfileData && bizProfileData.profileId);
             aboutPhotos = (Array.isArray(bizProfileData.aboutPhotos) ? bizProfileData.aboutPhotos : []).map(function(u){ return { url: u }; });
             renderAboutPhotos();
             menuPhotos = (Array.isArray(bizProfileData.menuPhotos) ? bizProfileData.menuPhotos : []).map(function(u){ return { url: u }; });
