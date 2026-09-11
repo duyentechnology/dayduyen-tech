@@ -1193,6 +1193,7 @@
             <div class="user-menu" id="userMenu">
                 <button class="cta-button" id="adminNewQR" onclick="showView('mode')" style="background: white; color: #8B3A7F; border: 2px solid var(--lantern-plum); display:none;">+ New QR</button>
                 <button class="cta-button" id="adminMyCodes" onclick="showView('genLog')" style="background: white; color: #8B3A7F; border: 2px solid var(--lantern-plum); display:none;">My Codes</button>
+                <button class="cta-button" id="adminLinkReview" onclick="showView('linkReview')" style="background: white; color: #8B3A7F; border: 2px solid var(--lantern-plum); display:none;">Link Review</button>
                 <button class="cta-button" onclick="showView('bizDashboard')" style="background: #8B3A7F; color: white;">My Dashboard</button>
                 <div class="user-avatar-wrap">
                     <button class="user-avatar" id="userAvatarBtn" type="button" onclick="event.stopPropagation(); document.getElementById('userDropdown').classList.toggle('open');" aria-label="Account menu"></button>
@@ -1704,6 +1705,20 @@
             </div>
             <input type="text" id="genLogSearch" placeholder="Search labels or code…" oninput="renderGenLog()" style="width:100%;padding:12px 14px;border:1.5px solid #E8DDD6;border-radius:11px;font-size:16px;box-sizing:border-box;margin-bottom:6px;">
             <div id="genLogBody"></div>
+        </div>
+    </div>
+
+    <div id="linkReviewView" class="view">
+        <div class="generator" style="max-width: 760px;">
+            <div style="margin-bottom: 16px;">
+                <h2 style="margin:0;color:#3D2E24;">Link Review</h2>
+                <p style="color:#9A8478;margin:5px 0 0;font-size:16px;" id="linkReviewSubtitle">Business links held for review, and links that are live.</p>
+            </div>
+            <div style="display:flex;gap:8px;margin-bottom:14px;">
+                <button id="lrTabFlagged" onclick="setLinkReviewTab('flagged')" style="font-size:14px;font-weight:700;border-radius:10px;padding:9px 15px;cursor:pointer;color:#fff;background:#8B3A7F;border:none;">Pending review</button>
+                <button id="lrTabLive" onclick="setLinkReviewTab('live')" style="font-size:14px;font-weight:700;border-radius:10px;padding:9px 15px;cursor:pointer;color:#8B3A7F;background:#fff;border:1.5px solid #8B3A7F;">Live</button>
+            </div>
+            <div id="linkReviewBody"></div>
         </div>
     </div>
 
@@ -3279,6 +3294,9 @@
             // profile card / studio, so they never need this list.
             if (newQR)   newQR.style.display   = showNewQR ? 'inline-block' : 'none';
             if (myCodes) myCodes.style.display = isAdmin() ? 'inline-block' : 'none';
+            // 'Link Review' is the admin queue for vetted business links. Admin-only.
+            var linkRev = document.getElementById('adminLinkReview');
+            if (linkRev) linkRev.style.display = isAdmin() ? 'inline-block' : 'none';
         }
 
         // ---- Store (pre-printed cards & stickers) -------------------------
@@ -3375,6 +3393,7 @@
             }
             // The generation log is an admin (operator) tool only.
             if (view === 'genLog' && !isAdmin()) { showView('bizDashboard'); return; }
+            if (view === 'linkReview' && !isAdmin()) { showView('bizDashboard'); return; }
             document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
             var el = document.getElementById(view + 'View');
             if (!el) { console.warn('View not found:', view); return; }
@@ -3404,6 +3423,7 @@
             // redesign will rewrite this whole surface — delete them with it.
             if (view === 'myCodes') renderMyCodes();
             if (view === 'genLog') renderGenLog();
+            if (view === 'linkReview') renderLinkReview();
             if (view === 'bizDashboard') loadDashboard();
             if (view === 'bizDashboard') loadPrintRuns();
             if (view === 'bizProfile') {
@@ -8630,6 +8650,96 @@
             if (!list.length) { alert('No codes in this run.'); return; }
             _withGeneratedCodes(list, kind === 'sq' ? downloadDuyen30PDF : function(){ tryJsPDFDownload('standard'); });
         }
+        // ── Admin: Link Review (vetted business links) ───────────────────────
+        var _lrTab = 'flagged';
+        var _lrBusy = false;
+        var _LR_KINDS = { website:'Website', facebook:'Facebook', pinterest:'Pinterest', youtube:'YouTube', yelp:'Yelp', linkedin:'LinkedIn', x:'X', instagram:'Instagram', tiktok:'TikTok' };
+        var _LR_REASONS = {
+            invalid_url: 'Not a valid https:// link',
+            shortener: 'URL shortener (destination hidden)',
+            redirect_mismatch: 'Redirects to a different domain',
+            dead_link: "Didn't resolve (dead link)",
+            unsafe: '⚠️ Flagged by Safe Browsing',
+            safebrowsing_unavailable: 'Safe Browsing check unavailable'
+        };
+        function _lrBtn(primary) {
+            return 'font-size:13.5px;font-weight:700;border-radius:10px;padding:9px 16px;cursor:pointer;border:none;color:#fff;background:' + (primary ? '#2E9E5B' : '#C0392B') + ';';
+        }
+        function setLinkReviewTab(tab) {
+            _lrTab = (tab === 'live') ? 'live' : 'flagged';
+            var f = document.getElementById('lrTabFlagged'), lv = document.getElementById('lrTabLive');
+            if (f && lv) {
+                var base = 'font-size:14px;font-weight:700;border-radius:10px;padding:9px 15px;cursor:pointer;';
+                var on = 'color:#fff;background:#8B3A7F;border:none;', off = 'color:#8B3A7F;background:#fff;border:1.5px solid #8B3A7F;';
+                f.style.cssText  = base + (_lrTab === 'flagged' ? on : off);
+                lv.style.cssText = base + (_lrTab === 'live' ? on : off);
+            }
+            renderLinkReview();
+        }
+        async function renderLinkReview() {
+            var body = document.getElementById('linkReviewBody');
+            if (!body) return;
+            if (!isAdmin()) { body.innerHTML = ''; return; }
+            body.innerHTML = '<div style="text-align:center;padding:36px;color:#9A8478;">Loading…</div>';
+            var status = (_lrTab === 'live') ? 'live' : 'flagged';
+            var links = [];
+            try {
+                var res = await db.functions.invoke('link-admin', { body: { action: 'list', status: status } });
+                if (res.error) throw res.error;
+                links = (res.data && res.data.links) || [];
+            } catch (e) {
+                body.innerHTML = '<div style="text-align:center;padding:36px;color:#C0392B;">Couldn\'t load: ' + sanitize(e.message || String(e)) + '</div>';
+                return;
+            }
+            var sub = document.getElementById('linkReviewSubtitle');
+            if (sub) sub.textContent = links.length + (status === 'live' ? ' live link' : ' link') + (links.length !== 1 ? 's' : '') + (status === 'live' ? '.' : ' pending your review.');
+            if (!links.length) {
+                body.innerHTML = '<div style="text-align:center;padding:40px;color:#9A8478;">' + (status === 'live' ? 'No live links yet.' : 'Nothing pending — all clear. ✓') + '</div>';
+                return;
+            }
+            var html = '';
+            links.forEach(function(l) {
+                var kind = _LR_KINDS[l.kind] || l.kind;
+                var reasons = (l.reasons || []).map(function(r) {
+                    return '<span style="display:inline-block;background:#FBEAEA;color:#B23B3B;font-size:12px;font-weight:600;border-radius:8px;padding:3px 8px;margin:2px 4px 2px 0;">' + sanitize(_LR_REASONS[r] || r) + '</span>';
+                }).join('');
+                var finalLine = (l.final_url && l.final_url !== l.url)
+                    ? '<div style="font-size:12.5px;color:#9A8478;margin-top:3px;">↳ lands on <span style="font-family:ui-monospace,monospace;">' + sanitize(l.final_url) + '</span></div>' : '';
+                var actions = (status === 'live')
+                    ? '<button onclick="reviewAction(\'' + l.id + '\',\'remove\')" style="' + _lrBtn(false) + '">Remove</button>'
+                    : '<button onclick="reviewAction(\'' + l.id + '\',\'approve\')" style="' + _lrBtn(true) + '">Approve</button>' +
+                      '<button onclick="reviewAction(\'' + l.id + '\',\'reject\')" style="' + _lrBtn(false) + '">Reject</button>';
+                html += '<div style="border:1.5px solid #E8DDD6;border-radius:14px;padding:14px 16px;margin-bottom:12px;">' +
+                    '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
+                        '<span style="font-weight:700;color:#3D2E24;">' + sanitize(l.business_name || '(unnamed business)') + '</span>' +
+                        '<span style="font-size:12px;font-weight:700;color:#8B3A7F;background:#F3E9F1;border-radius:8px;padding:3px 9px;">' + sanitize(kind) + '</span>' +
+                    '</div>' +
+                    '<div style="font-family:ui-monospace,monospace;font-size:13.5px;color:#3D2E24;margin-top:7px;word-break:break-all;">' + sanitize(l.url) + '</div>' +
+                    finalLine +
+                    (reasons ? ('<div style="margin-top:8px;">' + reasons + '</div>') : '') +
+                    '<div style="display:flex;gap:8px;margin-top:12px;">' + actions + '</div>' +
+                '</div>';
+            });
+            body.innerHTML = html;
+        }
+        async function reviewAction(linkId, action) {
+            if (_lrBusy) return;
+            if (action !== 'approve') {
+                var verb = (action === 'reject') ? 'Reject' : 'Remove';
+                if (!confirm(verb + ' this link? The owner is notified and it is hidden from their public profile immediately.')) return;
+            }
+            _lrBusy = true;
+            try {
+                var res = await db.functions.invoke('link-admin', { body: { action: action, link_id: linkId } });
+                if (res.error) throw res.error;
+            } catch (e) {
+                alert('Action failed: ' + (e.message || String(e)));
+                _lrBusy = false; return;
+            }
+            _lrBusy = false;
+            renderLinkReview();
+        }
+
         function renderGenLog() {
             var body = document.getElementById('genLogBody');
             if (!body) return;
