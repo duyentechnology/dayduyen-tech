@@ -8746,6 +8746,19 @@
         function _lrBtn(primary) {
             return 'font-size:13.5px;font-weight:700;border-radius:10px;padding:9px 16px;cursor:pointer;border:none;color:#fff;background:' + (primary ? '#2E9E5B' : '#C0392B') + ';';
         }
+        // Nudge to move off the free (non-commercial) Safe Browsing API to Web
+        // Risk once vetting volume looks commercial. Count = link checks / 30 days.
+        var WEB_RISK_THRESHOLD = 500;
+        function _lrUsageHtml(n) {
+            var line = '<div style="font-size:12.5px;color:#9A8478;margin-bottom:10px;">' + n + ' link check' + (n !== 1 ? 's' : '') + ' in the last 30 days.</div>';
+            if (n >= WEB_RISK_THRESHOLD) {
+                return '<div style="border:1.5px solid #E0A800;background:#FFF8E1;border-radius:12px;padding:12px 14px;margin-bottom:14px;">' +
+                    '<div style="font-weight:700;color:#8A6D00;">⚠️ Time to switch to Web Risk</div>' +
+                    '<div style="font-size:13px;color:#6B5A2E;margin-top:5px;line-height:1.4;">You\'ve run ' + n + ' link checks in the last 30 days. Google\'s free Safe Browsing API is for non-commercial use only — at this volume, switch to the paid Web Risk API to stay within Google\'s terms. Ask your developer to migrate the vet-link function (a ~10-line change).</div>' +
+                '</div>' + line;
+            }
+            return line;
+        }
         function setLinkReviewTab(tab) {
             _lrTab = (tab === 'live') ? 'live' : 'flagged';
             var f = document.getElementById('lrTabFlagged'), lv = document.getElementById('lrTabLive');
@@ -8764,10 +8777,12 @@
             body.innerHTML = '<div style="text-align:center;padding:36px;color:#9A8478;">Loading…</div>';
             var status = (_lrTab === 'live') ? 'live' : 'flagged';
             var links = [];
+            var usage = 0;
             try {
                 var res = await db.functions.invoke('link-admin', { body: { action: 'list', status: status } });
                 if (res.error) throw res.error;
                 links = (res.data && res.data.links) || [];
+                usage = (res.data && typeof res.data.usage30d === 'number') ? res.data.usage30d : 0;
             } catch (e) {
                 body.innerHTML = '<div style="text-align:center;padding:36px;color:#C0392B;">Couldn\'t load: ' + sanitize(e.message || String(e)) + '</div>';
                 return;
@@ -8775,7 +8790,7 @@
             var sub = document.getElementById('linkReviewSubtitle');
             if (sub) sub.textContent = links.length + (status === 'live' ? ' live link' : ' link') + (links.length !== 1 ? 's' : '') + (status === 'live' ? '.' : ' pending your review.');
             if (!links.length) {
-                body.innerHTML = '<div style="text-align:center;padding:40px;color:#9A8478;">' + (status === 'live' ? 'No live links yet.' : 'Nothing pending — all clear. ✓') + '</div>';
+                body.innerHTML = _lrUsageHtml(usage) + '<div style="text-align:center;padding:40px;color:#9A8478;">' + (status === 'live' ? 'No live links yet.' : 'Nothing pending — all clear. ✓') + '</div>';
                 return;
             }
             var html = '';
@@ -8801,7 +8816,7 @@
                     '<div style="display:flex;gap:8px;margin-top:12px;">' + actions + '</div>' +
                 '</div>';
             });
-            body.innerHTML = html;
+            body.innerHTML = _lrUsageHtml(usage) + html;
         }
         async function reviewAction(linkId, action) {
             if (_lrBusy) return;
