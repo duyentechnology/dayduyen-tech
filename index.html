@@ -264,6 +264,15 @@
         .user-dropdown button:hover { background: #FAF6F3; }
 
         .user-dropdown .dropdown-signout { color: #DA251D; }
+
+        .user-dropdown .dd-sep { height: 1px; background: #F0EAE6; margin: 5px 0; }
+
+        /* Phones: the header was 40px side padding + a wrapping button row that
+           stacked into half the screen. Nav now lives in the avatar menu, so the
+           header just needs to breathe less on the sides. */
+        @media (max-width: 640px) {
+            header { padding: 14px 18px; }
+        }
         
         /* Landing Page */
         .hero {
@@ -1191,14 +1200,18 @@
             <button class="cta-button" id="headerAboutBtn" style="background: none; color: #3D2E24; border: none; font-weight: 600;">About</button>
             <button class="cta-button" id="headerBtn" onclick="handleHeaderCTA()">Log In</button>
             <div class="user-menu" id="userMenu">
-                <button class="cta-button" id="adminNewQR" onclick="showView('mode')" style="background: white; color: #8B3A7F; border: 2px solid var(--lantern-plum); display:none;">+ New QR</button>
-                <button class="cta-button" id="adminMyCodes" onclick="showView('genLog')" style="background: white; color: #8B3A7F; border: 2px solid var(--lantern-plum); display:none;">My Codes</button>
-                <button class="cta-button" id="adminLinkReview" onclick="showView('linkReview')" style="background: white; color: #8B3A7F; border: 2px solid var(--lantern-plum); display:none;">Link Review</button>
-                <button class="cta-button" onclick="showView('bizDashboard')" style="background: #8B3A7F; color: white;">My Dashboard</button>
+                <!-- Nav collapsed into the avatar menu so the header stays one slim
+                     row on a phone (the old stacked pills filled half the screen).
+                     Admin-only items are toggled by applyAdminNav(). -->
                 <div class="user-avatar-wrap">
-                    <button class="user-avatar" id="userAvatarBtn" type="button" onclick="event.stopPropagation(); document.getElementById('userDropdown').classList.toggle('open');" aria-label="Account menu"></button>
+                    <button class="user-avatar" id="userAvatarBtn" type="button" onclick="event.stopPropagation(); document.getElementById('userDropdown').classList.toggle('open');" aria-label="Menu"></button>
                     <div class="user-dropdown" id="userDropdown">
                         <span class="user-email" id="userEmail"></span>
+                        <button type="button" onclick="document.getElementById('userDropdown').classList.remove('open'); showView('bizDashboard');">My Dashboard</button>
+                        <button type="button" id="adminNewQR" style="display:none;" onclick="document.getElementById('userDropdown').classList.remove('open'); showView('mode');">+ New QR</button>
+                        <button type="button" id="adminMyCodes" style="display:none;" onclick="document.getElementById('userDropdown').classList.remove('open'); showView('genLog');">My Codes</button>
+                        <button type="button" id="adminLinkReview" style="display:none;" onclick="document.getElementById('userDropdown').classList.remove('open'); showView('linkReview');">Link Review</button>
+                        <div class="dd-sep"></div>
                         <button type="button" onclick="document.getElementById('userDropdown').classList.remove('open'); showView('profile');">My Account</button>
                         <button type="button" class="dropdown-signout" onclick="logout();">Log Out</button>
                     </div>
@@ -3292,11 +3305,13 @@
             // 'My Codes' is the operator generation log (reprint any past run).
             // Admin-only — a business's single profile QR reprints from its
             // profile card / studio, so they never need this list.
-            if (newQR)   newQR.style.display   = showNewQR ? 'inline-block' : 'none';
-            if (myCodes) myCodes.style.display = isAdmin() ? 'inline-block' : 'none';
+            // These now live as items in the avatar dropdown (full-width block
+            // buttons), so toggle with 'block' not 'inline-block'.
+            if (newQR)   newQR.style.display   = showNewQR ? 'block' : 'none';
+            if (myCodes) myCodes.style.display = isAdmin() ? 'block' : 'none';
             // 'Link Review' is the admin queue for vetted business links. Admin-only.
             var linkRev = document.getElementById('adminLinkReview');
-            if (linkRev) linkRev.style.display = isAdmin() ? 'inline-block' : 'none';
+            if (linkRev) linkRev.style.display = isAdmin() ? 'block' : 'none';
         }
 
         // ---- Store (pre-printed cards & stickers) -------------------------
