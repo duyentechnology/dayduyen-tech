@@ -9946,7 +9946,9 @@
 
         async function maybeShowVerifyBanner(session) {
             try {
+                if (window._emailJustVerified) { hideVerifyBanner(); return; }
                 if (await isEmailVerified(session)) { hideVerifyBanner(); return; }
+                if (window._emailJustVerified) { hideVerifyBanner(); return; } // re-check after the await (race)
                 var u = (session && session.user) || null;
                 showVerifyBanner(u ? u.email : '');
             } catch (e) {}
@@ -9964,9 +9966,11 @@
                 if (res && res.error) { showVerifyToast('Could not confirm email — the link may have expired'); return; }
                 var data = res && res.data;
                 if (data && data.ok) {
+                    window._emailJustVerified = true;
                     showVerifyToast('Email confirmed — thank you!');
                     hideVerifyBanner();
                     try { await db.auth.refreshSession(); } catch (e) {}
+                    hideVerifyBanner(); // in case a racing banner check re-showed it
                 } else {
                     showVerifyToast((data && data.error) || 'Could not confirm email');
                 }
