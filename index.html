@@ -929,8 +929,8 @@
         }
         
         .card-data-details {
-            background: #f0fdf4;
-            border: 1px solid #bbf7d0;
+            background: #FBF7FB;
+            border: 1px solid #E8DDD6;
         }
         
         .card-data-box-label {
@@ -995,19 +995,19 @@
             gap: 5px;
             padding: 15px;
             background: white;
-            border: 2px solid #22c55e;
+            border: 1.5px solid #E8DDD6;
             border-radius: 12px;
             cursor: pointer;
             transition: all 0.3s;
             font-weight: 600;
-            color: #166534;
+            color: #2E2A28;
         }
         
         .download-btn:hover {
-            background: #22c55e;
+            background: #8B3A7F;
             color: white;
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+            box-shadow: 0 4px 12px rgba(139, 58, 127, 0.2);
         }
         
         .download-btn:hover span {
@@ -1046,8 +1046,8 @@
             box-shadow: 0 4px 12px rgba(139, 58, 127, 0.15);
         }
                 /* ── Custom Print Templates ───────────────────────────── */
-        .tpl-section { margin: 25px 0 15px; padding-top: 20px; border-top: 1px solid #bbf7d0; }
-        .tpl-section h5 { color: #166534; margin: 0 0 5px; font-size: 18px; }
+        .tpl-section { margin: 25px 0 15px; padding-top: 20px; border-top: 1px solid #E8DDD6; }
+        .tpl-section h5 { color: #2E2A28; margin: 0 0 5px; font-size: 18px; }
         .tpl-section p.tpl-sub { color: #7D6E64; font-size: 15px; margin: 0 0 15px; }
         .tpl-empty { background: #f8f6f3; border: 1px solid #ece4de; border-radius: 10px; padding: 18px; text-align: center; font-size: 15px; color: #5a4a44; margin-bottom: 10px; line-height: 1.5; }
         .tpl-card { background: #faf6f3; border: 1px solid #ece4de; border-radius: 10px; padding: 12px 14px; margin-bottom: 8px; }
@@ -1544,8 +1544,8 @@
                 </div>
                 
                 <!-- Download Options -->
-                <div id="downloadSection" style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-radius: 16px; padding: 25px; margin: 25px 0; border: 2px solid #22c55e;">
-                    <h4 style="color: #166534; margin-bottom: 20px; font-size: 18px;">📥 Download Options</h4>
+                <div id="downloadSection" style="background:#fff; border-radius: 16px; padding: 25px; margin: 25px 0; border: 1.5px solid #E8DDD6;">
+                    <h4 style="color: #2E2A28; margin-bottom: 20px; font-size: 18px;">📥 Download Options</h4>
                     
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
                         <button onclick="downloadAllPNG()" class="download-btn" type="button">
@@ -1567,7 +1567,7 @@
                         <button type="button" class="tpl-new-btn" onclick="showTemplateForm(null)">+ New template</button>
                     </div>
                     
-                    <h5 style="color: #166534; margin: 25px 0 15px; font-size: 18px; border-top: 1px solid #bbf7d0; padding-top: 20px;">🏷️ Duyên sticker sheet</h5>
+                    <h5 style="color: #2E2A28; margin: 25px 0 15px; font-size: 18px; border-top: 1px solid #E8DDD6; padding-top: 20px;">🏷️ Duyên sticker sheet</h5>
                     <p style="color: #7D6E64; font-size: 15px; margin-bottom: 15px;">Fill a Duyên 30-square sheet (1.25" squares) — the same sheet businesses print from. Print at home.</p>
 
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px;">
@@ -1579,8 +1579,8 @@
                     </div>
 
                     <!-- Download Preview Area -->
-                    <div id="downloadPreview" style="margin-top: 25px; padding-top: 20px; border-top: 1px solid #bbf7d0; display: none;">
-                        <h5 style="color: #166534; margin-bottom: 15px; font-size: 18px;">📋 Download Preview</h5>
+                    <div id="downloadPreview" style="margin-top: 25px; padding-top: 20px; border-top: 1px solid #E8DDD6; display: none;">
+                        <h5 style="color: #2E2A28; margin-bottom: 15px; font-size: 18px;">📋 Download Preview</h5>
                         <div id="previewContent" style="background: white; border-radius: 12px; padding: 20px; text-align: center;"></div>
                     </div>
                 </div>
@@ -2219,7 +2219,7 @@
                     <!-- Actions -->
                     <div style="display: flex; gap: 12px; margin-top: 25px; flex-wrap: wrap;">
                         <button class="btn-primary" onclick="saveQREdits()" style="flex: 1;">💾 Save Changes</button>
-                        <button class="btn-primary" onclick="downloadEditQR()" style="flex: 1; background: #22c55e;">⬇️ Download PNG</button>
+                        <button class="btn-primary" onclick="downloadEditQR()" style="flex: 1; background: #8B3A7F;">⬇️ Download PNG</button>
                         <button type="button" onclick="deleteQRCode()" style="flex: 0 0 auto; background: #fed7d7; color: #c53030; border: none; padding: 15px 20px; border-radius: 12px; font-weight: 600; cursor: pointer;">🗑️ Delete</button>
                     </div>
                 </div>
@@ -7124,13 +7124,13 @@
             
             showDownloadPreview(`
                 <div style="text-align: center;">
-                    <h4 style="color: #166534; margin-bottom: 15px;">🖼️ PNG Preview: ${qrData.label}</h4>
+                    <h4 style="color: #2E2A28; margin-bottom: 15px;">🖼️ PNG Preview: ${qrData.label}</h4>
                     <div style="background: #f0f0f0; padding: 30px; border-radius: 12px; display: inline-block;">
-                        <img id="downloadImg-single-${index}" src="${dataUrl}" style="width: 200px; height: 200px; border: 3px solid #22c55e; border-radius: 8px;">
+                        <img id="downloadImg-single-${index}" src="${dataUrl}" style="width: 200px; height: 200px; border: 3px solid #E8DDD6; border-radius: 8px;">
                     </div>
                     <p style="margin-top: 15px; color: #7D6E64; font-size: 16px;"><strong>400 × 400 pixels</strong> • PNG format</p>
                     <button onclick="triggerPNGDownload('single_${index}')" type="button"
-                       style="display: inline-block; margin-top: 20px; padding: 16px 32px; background: #22c55e; color: white; border-radius: 8px; border: none; font-weight: 600; font-size: 18px; cursor: pointer;">
+                       style="display: inline-block; margin-top: 20px; padding: 16px 32px; background: #8B3A7F; color: white; border-radius: 8px; border: none; font-weight: 600; font-size: 18px; cursor: pointer;">
                         ⬇️ Download ${qrData.label}.png
                     </button>
                     <p style="margin-top: 12px; color: #9A8478; font-size: 14px;">Or right-click image above → "Save Image As"</p>
@@ -7223,7 +7223,7 @@
             
             let previewHTML = `
                 <div style="text-align: center;">
-                    <h4 style="color: #166534; margin-bottom: 8px;">🖼️ Your QR Code${generatedQRCodes.length > 1 ? 's' : ''}</h4>
+                    <h4 style="color: #2E2A28; margin-bottom: 8px;">🖼️ Your QR Code${generatedQRCodes.length > 1 ? 's' : ''}</h4>
                     <p style="color: #7D6E64; font-size: 15px; margin-bottom: 20px;">📱 <strong>Long press</strong> any image to save · 💻 <strong>Right-click</strong> → Save Image As</p>
                     <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; margin-bottom: 25px;">
             `;
@@ -7333,7 +7333,7 @@
             
             const previewHTML = `
                 <div style="text-align: center;">
-                    <h4 style="color: #166534; margin-bottom: 10px;">📄 PDF Preview: Standard Layout</h4>
+                    <h4 style="color: #2E2A28; margin-bottom: 10px;">📄 PDF Preview: Standard Layout</h4>
                     <p style="color: #7D6E64; font-size: 15px; margin-bottom: 15px;">
                         <strong>${generatedQRCodes.length}</strong> QR codes • <strong>${totalPages}</strong> page(s) • 2" × 2" each
                     </p>
@@ -9507,7 +9507,7 @@
             if (qrItem.details) {
                 html += '<div style="margin-bottom: 20px;">';
                 html += '<h4 style="color: #3D2E24; margin: 0 0 12px; font-size: 17px;">📝 Product Details</h4>';
-                html += '<div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 16px; font-size: 16px; line-height: 1.7; white-space: pre-wrap; color: #333;">' + qrItem.details + '</div>';
+                html += '<div style="background: #FBF7FB; border: 1px solid #E8DDD6; border-radius: 10px; padding: 16px; font-size: 16px; line-height: 1.7; white-space: pre-wrap; color: #333;">' + qrItem.details + '</div>';
                 html += '</div>';
             }
             
@@ -10609,12 +10609,12 @@
             window.currentPrintData = { type: 'custom', template: template, images: printImageData };
             var labelDesc = template.round ? template.labelW + '" Round' : template.labelW + '" × ' + template.labelH + '"';
             var previewHTML = '<div style="text-align:center;">';
-            // Header: green Preview · red 緣 DUYÊN · green template name
+            // Header: Preview · red 緣 DUYÊN · template name (ink)
             previewHTML += '<div style="display:flex;align-items:baseline;gap:8px;justify-content:center;margin-bottom:10px;flex-wrap:wrap;">';
-            previewHTML += '<span style="font-size:17px;color:#166534;font-weight:600;">Preview:</span>';
+            previewHTML += '<span style="font-size:17px;color:#2E2A28;font-weight:600;">Preview:</span>';
             previewHTML += '<span style="color:#DA251D;font-family:\'Cormorant Garamond\',serif;font-size:22px;font-weight:500;line-height:1;">緣</span>';
             previewHTML += '<span style="color:#DA251D;font-size:17px;font-weight:500;letter-spacing:0.04em;line-height:1;">DUYÊN</span>';
-            previewHTML += '<span style="font-size:17px;color:#166534;font-weight:600;">' + escapeHtml(template.name) + '</span>';
+            previewHTML += '<span style="font-size:17px;color:#2E2A28;font-weight:600;">' + escapeHtml(template.name) + '</span>';
             previewHTML += '</div>';
             previewHTML += '<p style="color:#7D6E64;font-size:16px;margin-bottom:5px;"><strong>' + qrList.length + '</strong> QR code' + (qrList.length === 1 ? '' : 's') + ' • <strong>' + totalPages + '</strong> page' + (totalPages === 1 ? '' : 's') + ' • ' + perSheet + ' per sheet</p>';
             previewHTML += '<p style="color:#9A8478;font-size:14px;margin-bottom:14px;">Label: ' + labelDesc + '</p>';
