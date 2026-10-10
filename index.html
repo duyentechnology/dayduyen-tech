@@ -6702,8 +6702,11 @@
         }
         
         // Create high-res QR code canvas for downloads
-        function createHighResQR(url, size, includeLogoPref, bg) {
+        function createHighResQR(url, size, includeLogoPref, bg, color) {
             const bgColor = bg || stickerBg || '#FFFFFF';
+            // Per-code foreground. Falls back to the live studio pick for callers
+            // that don't carry a saved color (e.g. a fresh generation batch).
+            const fgColor = color || selectedColor || '#8B3A7F';
             // 'H' (high, ~30% damage tolerance) so a print smear, a light crease,
             // or the optional center logo can't stop a scan. Plus a 4-module white
             // QUIET ZONE on every side — QR detection genuinely needs that border,
@@ -6729,7 +6732,7 @@
             ctx.fillRect(0, 0, actualSize, actualSize);
 
             // Draw QR modules, inset by the quiet zone
-            ctx.fillStyle = selectedColor;
+            ctx.fillStyle = fgColor;
             for (let row = 0; row < moduleCount; row++) {
                 for (let col = 0; col < moduleCount; col++) {
                     if (qr.isDark(row, col)) {
@@ -6740,7 +6743,7 @@
 
             // Add logo if enabled
             if (includeLogoPref) {
-                drawLogoOnCanvas(canvas, selectedColor, 1, bgColor);
+                drawLogoOnCanvas(canvas, fgColor, 1, bgColor);
             }
 
             return canvas;
@@ -7113,7 +7116,7 @@
                 return;
             }
             
-            const canvas = createHighResQR(qrData.url, 400, qrData.includeLogo, qrData.bg);
+            const canvas = createHighResQR(qrData.url, 400, qrData.includeLogo, qrData.bg, qrData.color);
             const dataUrl = canvas.toDataURL('image/png');
             
             // Store for download
@@ -7229,7 +7232,7 @@
             `;
             
             generatedQRCodes.forEach((qrData, index) => {
-                const canvas = createHighResQR(qrData.url, 400, qrData.includeLogo, qrData.bg);
+                const canvas = createHighResQR(qrData.url, 400, qrData.includeLogo, qrData.bg, qrData.color);
                 const dataUrl = canvas.toDataURL('image/png');
                 
                 // Store for download
@@ -7300,7 +7303,7 @@
                 
                 for (let i = startIdx; i < endIdx; i++) {
                     const qrData = generatedQRCodes[i];
-                    const canvas = createHighResQR(qrData.url, 200, qrData.includeLogo, qrData.bg);
+                    const canvas = createHighResQR(qrData.url, 200, qrData.includeLogo, qrData.bg, qrData.color);
                     const dataUrl = canvas.toDataURL('image/png');
                     
                     printImageData.push({ dataUrl, label: qrData.label });
@@ -7427,7 +7430,7 @@
                                     logoTop = null;
                                 }
                                 var qrX = x + (template.labelW - qrSize) / 2;
-                                var canvas = createHighResQR(qrData.url, 400, qrData.includeLogo, qrData.bg);
+                                var canvas = createHighResQR(qrData.url, 400, qrData.includeLogo, qrData.bg, qrData.color);
                                 var imgData = canvas.toDataURL('image/png');
                                 pdf.addImage(imgData, 'PNG', qrX, qrTop, qrSize, qrSize);
                                 if (logoTop != null && logoUrl) {
@@ -7467,7 +7470,7 @@
                         const x = margin + col * (qrSize + 0.25);
                         const y = margin + row * (qrSize + 0.5);
                         
-                        const canvas = createHighResQR(qrData.url, 400, qrData.includeLogo, qrData.bg);
+                        const canvas = createHighResQR(qrData.url, 400, qrData.includeLogo, qrData.bg, qrData.color);
                         const imgData = canvas.toDataURL('image/png');
                         
                         pdf.addImage(imgData, 'PNG', x, y, qrSize, qrSize);
@@ -7505,7 +7508,7 @@
                     for (let row = 0; row < template.rows && qrIndex < generatedQRCodes.length; row++) {
                         for (let col = 0; col < template.cols && qrIndex < generatedQRCodes.length; col++) {
                             const qrData = generatedQRCodes[qrIndex];
-                            const canvas = createHighResQR(qrData.url, 400, qrData.includeLogo, qrData.bg);
+                            const canvas = createHighResQR(qrData.url, 400, qrData.includeLogo, qrData.bg, qrData.color);
                             const dataUrl = canvas.toDataURL('image/png');
                             
                             const x = template.marginLeft + col * (template.labelW + template.gapX);
@@ -7539,7 +7542,7 @@
                     
                     for (let i = startIdx; i < endIdx; i++) {
                         const qrData = generatedQRCodes[i];
-                        const canvas = createHighResQR(qrData.url, 400, qrData.includeLogo, qrData.bg);
+                        const canvas = createHighResQR(qrData.url, 400, qrData.includeLogo, qrData.bg, qrData.color);
                         const dataUrl = canvas.toDataURL('image/png');
                         
                         const pageIndex = i - startIdx;
@@ -8697,7 +8700,7 @@
             var imgCache = {};
             var pngFor = function(qr) {
                 var key = qr.url + '|' + (qr.includeLogo ? 1 : 0);
-                if (!imgCache[key]) imgCache[key] = createHighResQR(qr.url, 150, qr.includeLogo, qr.bg).toDataURL('image/png');
+                if (!imgCache[key]) imgCache[key] = createHighResQR(qr.url, 150, qr.includeLogo, qr.bg, qr.color).toDataURL('image/png');
                 return imgCache[key];
             };
             var doc = new jsPDF({ unit: 'in', format: PG.fmt, orientation: 'portrait' });
@@ -8723,7 +8726,7 @@
             generatedQRCodes = list;
             try { fn(); } finally { generatedQRCodes = save; }
         }
-        function _codeToGen(c) { return { url: c.url, label: c.label || 'QR code', includeLogo: c.includeLogo !== false, bg: c.bg }; }
+        function _codeToGen(c) { return { url: c.url, label: c.label || 'QR code', color: c.color, includeLogo: c.includeLogo !== false, bg: c.bg }; }
         function _dayKey(c) {
             var d = c.createdAt ? new Date(c.createdAt) : new Date();
             return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
@@ -9349,7 +9352,7 @@
             var qrItem = savedQRCodes[editingQRIndex];
             if (!qrItem) return;
             
-            var canvas = createHighResQR(qrItem.url, 400, qrItem.includeLogo, qrItem.bg);
+            var canvas = createHighResQR(qrItem.url, 400, qrItem.includeLogo, qrItem.bg, qrItem.color);
             var ctx = canvas.getContext('2d');
             var imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             var pixels = imgData.data;
@@ -9375,7 +9378,7 @@
             var qrItem = savedQRCodes[index];
             if (!qrItem) return;
             
-            var canvas = createHighResQR(qrItem.url, 400, qrItem.includeLogo, qrItem.bg);
+            var canvas = createHighResQR(qrItem.url, 400, qrItem.includeLogo, qrItem.bg, qrItem.color);
             var ctx = canvas.getContext('2d');
             var imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             var pixels = imgData.data;
@@ -10565,7 +10568,7 @@
                         pageContent += '<div style="position:absolute;left:' + x + 'px;top:' + y + 'px;width:' + labelW + 'px;height:' + labelH + 'px;border:1px dashed #ccc;border-radius:' + borderRadius + ';"></div>';
                         if (qrIndex < qrList.length) {
                             var qrData = qrList[qrIndex];
-                            var canvas = createHighResQR(qrData.url, 150, qrData.includeLogo, qrData.bg);
+                            var canvas = createHighResQR(qrData.url, 150, qrData.includeLogo, qrData.bg, qrData.color);
                             var dataUrl = canvas.toDataURL('image/png');
                             printImageData.push({ dataUrl: dataUrl, label: qrData.label });
                             // Center stack vertically inside the sticker
