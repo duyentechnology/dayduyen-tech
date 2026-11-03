@@ -9907,7 +9907,15 @@
             try {
                 var u = (session && session.user) || (await db.auth.getUser()).data.user;
                 if (!u) return true;
-                if (u.app_metadata && u.app_metadata.email_verified === true) return true;
+                var am = u.app_metadata || {};
+                var um = u.user_metadata || {};
+                // Social sign-ins (Google/Apple/…) already confirmed the email at the
+                // provider — never nag them. The verified flag lives in user_metadata
+                // for OAuth; app_metadata is the legacy spot. Any non-email provider
+                // is, by definition, a confirmed address.
+                if (am.email_verified === true || um.email_verified === true) return true;
+                var prov = am.provider || (Array.isArray(am.providers) && am.providers[0]);
+                if (prov && prov !== 'email') return true;
                 var r = await db.from('email_verifications').select('verified_at').eq('user_id', u.id).maybeSingle();
                 if (r.error) return true;
                 return !!(r.data && r.data.verified_at);
@@ -10033,6 +10041,9 @@
                 const aboutBtn = document.getElementById('headerAboutBtn');
                 if (aboutBtn) aboutBtn.style.display = 'none';
                 document.getElementById('userMenu').classList.add('active');
+                // Dismiss the auth modal if it was open (e.g. briefly shown while a
+                // social sign-in was still exchanging) — the user is signed in now.
+                document.getElementById('authModal').classList.remove('active');
                 maybeShowVerifyBanner(session);
                 await loadEntitlements();
                 applyAdminNav();
@@ -10770,8 +10781,15 @@
 
     </script>
 <script>
+    // Captured at load, BEFORE Supabase strips ?code= from the URL: are we
+    // returning from a social sign-in (Google/Apple)? PKCE comes back with
+    // ?code=… in the query, implicit with #access_token=… in the hash. The
+    // session exchange is asynchronous, so currentUser is briefly null — we must
+    // not flash the login modal ("sign in again") in the meantime.
+    var _oauthReturn = /[?&]code=/.test(window.location.search)
+        || /access_token=|provider_token=/.test(window.location.hash);
     // Splash screen
-    setTimeout(function() { 
+    setTimeout(function() {
         var s = document.getElementById('duyenSplash');
         if (s) s.classList.add('dismissed');
         setTimeout(function() { if (s) s.style.display = 'none'; }, 600);
@@ -10790,13 +10808,25 @@
             // If logged in, onAuthStateChange will handle the claim
         } else if (hash && validViews.includes(hash) && currentUser) {
             showView(hash);
-        } else if (!currentUser) {
+        } else if (!currentUser && !_oauthReturn) {
             // Not logged in — always show login modal so business users don't land on the marketing page
             document.getElementById('signupForm').style.display = 'none';
             document.getElementById('loginForm').style.display = 'block';
             document.getElementById('verifyForm').style.display = 'none';
             document.getElementById('authModalClose').style.display = 'none';
             document.getElementById('authModal').classList.add('active');
+        } else if (!currentUser && _oauthReturn) {
+            // Social sign-in still exchanging — wait for onAuthStateChange to route
+            // the user in. Safety net: if the session never lands (failed exchange),
+            // fall back to the login modal rather than stranding them on a blank page.
+            setTimeout(function() {
+                if (currentUser) return;
+                document.getElementById('signupForm').style.display = 'none';
+                document.getElementById('loginForm').style.display = 'block';
+                document.getElementById('verifyForm').style.display = 'none';
+                document.getElementById('authModalClose').style.display = 'none';
+                document.getElementById('authModal').classList.add('active');
+            }, 6000);
         }
     }, 2800);
     
