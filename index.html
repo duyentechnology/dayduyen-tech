@@ -2364,7 +2364,6 @@
                     <select id="shPage" class="input-field" style="margin:2px 0 10px;">
                         <option value="letter">Letter (8.5 × 11 in)</option>
                         <option value="a4">A4 (8.27 × 11.69 in)</option>
-                        <option value="duyen30">Duyên 30-square sheet (11.77 × 14.57 in)</option>
                     </select>
                 </label>
                 <button type="button" onclick="printStudioSheet()" style="width:100%;background:#2AA8A0;color:#fff;border:none;border-radius:11px;padding:12px;font-family:'Outfit',sans-serif;font-weight:600;font-size:15.5px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>Make my sticker sheet PDF</button>
@@ -8630,13 +8629,16 @@
         // inches, measured from the die-cut sheet. Selecting one fills the fields
         // and picks the matching page size.
         var STICKER_TEMPLATES = {
-            duyen30: { lw: 1.25, lh: 1.25, gx: 0.325, gy: 0.482, mt: 2.214, ml: 1.615, page: 'duyen30' },
+            // 30-up (5 cols x 6 rows) of 1.25" squares on US Letter, centred with
+            // symmetric margins: 5*1.25 + 4*0.2 = 7.05in wide (0.72/0.73 side
+            // margins) and 6*1.25 + 5*0.3 = 9.0in tall (~1in top/bottom). Prints at
+            // Actual Size on any home printer — no oversized page to scale down.
+            duyen30: { lw: 1.25, lh: 1.25, gx: 0.2, gy: 0.3, mt: 0.95, ml: 0.72, page: 'letter' },
         };
-        // Page sizes the sticker generator knows, including the branded sheets.
+        // Page sizes the sticker generator knows.
         var STICKER_PAGES = {
             letter:  { w: 8.5,    h: 11,     fmt: 'letter' },
             a4:      { w: 8.27,   h: 11.69,  fmt: 'a4' },
-            duyen30: { w: 11.765, h: 14.572, fmt: [11.765, 14.572] },
         };
         function applyStickerTemplate(key) {
             var t = STICKER_TEMPLATES[key];
@@ -8689,7 +8691,7 @@
             if (!generatedQRCodes || generatedQRCodes.length === 0) { alert('⚠️ Please generate QR codes first!'); return; }
             var jsPDF = (window.jspdf || {}).jsPDF;
             if (!jsPDF) { alert('PDF library not loaded — check your connection and retry.'); return; }
-            var t = STICKER_TEMPLATES.duyen30, PG = STICKER_PAGES.duyen30;
+            var t = STICKER_TEMPLATES.duyen30, PG = STICKER_PAGES[t.page] || STICKER_PAGES.letter;
             var lw = t.lw, lh = t.lh, gx = t.gx, gy = t.gy, mt = t.mt, ml = t.ml;
             var cols = Math.floor((PG.w - ml*2 + gx) / (lw + gx));
             var rows = Math.floor((PG.h - mt*2 + gy) / (lh + gy));
