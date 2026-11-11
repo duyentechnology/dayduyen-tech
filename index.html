@@ -8629,11 +8629,14 @@
         // inches, measured from the die-cut sheet. Selecting one fills the fields
         // and picks the matching page size.
         var STICKER_TEMPLATES = {
-            // 30-up (5 cols x 6 rows) of 1.25" squares on US Letter, centred with
-            // symmetric margins: 5*1.25 + 4*0.2 = 7.05in wide (0.72/0.73 side
-            // margins) and 6*1.25 + 5*0.3 = 9.0in tall (~1in top/bottom). Prints at
-            // Actual Size on any home printer — no oversized page to scale down.
-            duyen30: { lw: 1.25, lh: 1.25, gx: 0.2, gy: 0.3, mt: 0.95, ml: 0.72, page: 'letter' },
+            // 30-up (5 cols x 6 rows) matching the physical die-cut label sheet,
+            // in inches converted from the vendor spec (US Letter, 216x279mm):
+            //   square 31.75mm = 1.25" ; gap across 8.25mm = 0.3248" ;
+            //   gap down 12.25mm = 0.4823" ; top margin 13.63mm = 0.5366" ;
+            //   left margin 12.13mm = 0.4776". Codes are anchored from the top-left
+            //   at these offsets so each lands on its die-cut square. cols/rows are
+            //   fixed (not inferred) so the count is always exactly 30.
+            duyen30: { lw: 1.25, lh: 1.25, gx: 0.3248, gy: 0.4823, mt: 0.5366, ml: 0.4776, cols: 5, rows: 6, page: 'letter' },
         };
         // Page sizes the sticker generator knows.
         var STICKER_PAGES = {
@@ -8664,8 +8667,12 @@
             var page = document.getElementById('shPage').value;
             var PG = STICKER_PAGES[page] || STICKER_PAGES.letter;
             var pw = PG.w, ph = PG.h;
-            var cols = Math.floor((pw - ml*2 + gx) / (lw + gx));
-            var rows = Math.floor((ph - mt*2 + gy) / (lh + gy));
+            // Count how many labels physically sit on the sheet, anchored from the
+            // top-left margin. Don't assume an equal right/bottom margin (the old
+            // ml*2 / mt*2 form rounded exact-fit sheets like the 30-square one a
+            // column/row short). Small epsilon absorbs float error at exact fits.
+            var cols = Math.floor((pw - ml + gx) / (lw + gx) + 1e-9);
+            var rows = Math.floor((ph - mt + gy) / (lh + gy) + 1e-9);
             if (cols < 1 || rows < 1) { alert('Those measurements do not fit on the page — double-check the sticker size and margins.'); return; }
             var doc = new jsPDF({ unit: 'in', format: PG.fmt, orientation: 'portrait' });
             var png = studioPngDataUrl(900);
@@ -8693,8 +8700,8 @@
             if (!jsPDF) { alert('PDF library not loaded — check your connection and retry.'); return; }
             var t = STICKER_TEMPLATES.duyen30, PG = STICKER_PAGES[t.page] || STICKER_PAGES.letter;
             var lw = t.lw, lh = t.lh, gx = t.gx, gy = t.gy, mt = t.mt, ml = t.ml;
-            var cols = Math.floor((PG.w - ml*2 + gx) / (lw + gx));
-            var rows = Math.floor((PG.h - mt*2 + gy) / (lh + gy));
+            // Fixed 5x6 to match the physical die-cut sheet exactly (never inferred).
+            var cols = t.cols, rows = t.rows;
             var perSheet = cols * rows;
             var single = generatedQRCodes.length === 1;
             var pages = single ? 1 : Math.ceil(generatedQRCodes.length / perSheet);
