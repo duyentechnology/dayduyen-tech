@@ -1014,7 +1014,7 @@
             color: white;
         }
         
-        .avery-btn {
+        .sheet-btn {
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -1029,17 +1029,17 @@
             color: #374151;
         }
         
-        .avery-btn strong {
+        .sheet-btn strong {
             color: #8B3A7F;
             font-size: 15px;
         }
         
-        .avery-btn span {
+        .sheet-btn span {
             color: #6b7280;
             font-size: 13px;
         }
         
-        .avery-btn:hover {
+        .sheet-btn:hover {
             border-color: #8B3A7F;
             background: #fff5f5;
             transform: translateY(-2px);
@@ -1571,7 +1571,7 @@
                     <p style="color: #7D6E64; font-size: 15px; margin-bottom: 15px;">Fill a Duyên 30-square sheet (1.25" squares) — the same sheet businesses print from. Print at home.</p>
 
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px;">
-                        <button onclick="downloadDuyen30PDF()" class="avery-btn" type="button">
+                        <button onclick="downloadDuyen30PDF()" class="sheet-btn" type="button">
                             <strong>Duyên · 30 squares</strong>
                             <span>1.25" × 1.25"</span>
                             <span>30 per sheet</span>
@@ -6904,7 +6904,7 @@
             // ---- Product tag serials -------------------------------------------
             // A product tag prints blank and goes out as physical stock, so its
             // label IS its identity: it prints under the code on the sheet
-            // (see the Avery/PDF paths) and is what ties a sticker in someone's
+            // (see the sticker-sheet/PDF paths) and is what ties a sticker in someone's
             // hand back to a row. Both label modes above restart at 001 every
             // run, which would put the same serial on two different tags, so
             // continue from however many product tags already exist.
