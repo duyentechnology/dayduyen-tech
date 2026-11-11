@@ -8705,7 +8705,10 @@
             var pg = document.getElementById('shPage'); if (pg) pg.value = t.page || 'letter';
         }
         // Save whatever is currently in the measurement fields as a named template.
-        function saveStickerTemplateFromFields() {
+        // Writes locally first (instant), then upserts to the account so it follows
+        // the user across devices. Falls back to local-only if signed out / offline /
+        // the table isn't there yet.
+        async function saveStickerTemplateFromFields() {
             var v = function (id) { var el = document.getElementById(id); return el ? (parseFloat(el.value) || 0) : 0; };
             var lw = v('shLabelW'), lh = v('shLabelH'), gx = v('shGapX'), gy = v('shGapY'), mt = v('shMarT'), ml = v('shMarL');
             if (lw <= 0.4 || lh <= 0.4) { alert('Sticker size must be at least 0.4 inch before saving.'); return; }
@@ -8715,7 +8718,7 @@
             if (!name) return;
             var arr = userStickerTemplates();
             // Overwrite a same-named template instead of duplicating it.
-            var existing = arr.filter(function (x) { return x.name.toLowerCase() === name.toLowerCase(); })[0];
+            var existing = arr.filter(function (x) { return (x.name || '').toLowerCase() === name.toLowerCase(); })[0];
             var tpl = {
                 id: existing ? existing.id : ('t' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6)),
                 name: name, lw: lw, lh: lh, gx: gx, gy: gy, mt: mt, ml: ml, page: page
@@ -8724,17 +8727,63 @@
             else arr.push(tpl);
             setUserStickerTemplates(arr);
             renderStickerTemplateOptions('u:' + tpl.id);
+            // Mirror to the account (upsert by name). Non-fatal if it can't reach it.
+            if (typeof currentUser !== 'undefined' && currentUser) {
+                try {
+                    var up = await db.from('sticker_templates')
+                        .upsert({ user_id: currentUser.id, name: name, lw: lw, lh: lh, gx: gx, gy: gy, mt: mt, ml: ml, page: page }, { onConflict: 'user_id,name' })
+                        .select('*').maybeSingle();
+                    if (!up.error && up.data) {
+                        var arr2 = userStickerTemplates().map(function (x) {
+                            return (x.name || '').toLowerCase() === name.toLowerCase() ? Object.assign({}, x, { id: up.data.id }) : x;
+                        });
+                        setUserStickerTemplates(arr2);
+                        renderStickerTemplateOptions('u:' + up.data.id);
+                    }
+                } catch (e) {}
+            }
         }
-        function deleteCurrentStickerTemplate() {
+        async function deleteCurrentStickerTemplate() {
             var sel = document.getElementById('shTemplate'); if (!sel) return;
             var key = sel.value; if (!key || key.indexOf('u:') !== 0) return;
             var id = key.slice(2);
             var t = userStickerTemplates().filter(function (x) { return x.id === id; })[0];
             if (!t) return;
-            if (!confirm('Delete the template "' + t.name + '"? This only removes it from this device.')) return;
+            if (!confirm('Delete the template "' + t.name + '"?')) return;
             setUserStickerTemplates(userStickerTemplates().filter(function (x) { return x.id !== id; }));
             renderStickerTemplateOptions('custom');
             applyStickerTemplate('custom');
+            if (typeof currentUser !== 'undefined' && currentUser) {
+                try { await db.from('sticker_templates').delete().eq('name', t.name); } catch (e) {}
+            }
+        }
+        // Pull the user's saved templates from their account and merge with anything
+        // saved locally on this device (first run uploads local-only templates). The
+        // account is the source of truth once signed in; localStorage mirrors it so
+        // the dropdown stays synchronous. Silently no-ops if the table isn't there
+        // yet or we're offline — the local copy keeps working.
+        async function syncStickerTemplatesFromAccount() {
+            try {
+                if (typeof currentUser === 'undefined' || !currentUser) return;
+                var r = await db.from('sticker_templates').select('*').order('created_at', { ascending: true });
+                if (r.error) return;
+                var remote = r.data || [];
+                var haveName = {};
+                remote.forEach(function (x) { haveName[(x.name || '').toLowerCase()] = true; });
+                var local = userStickerTemplates();
+                var toInsert = local.filter(function (t) { return t.name && !haveName[t.name.toLowerCase()]; })
+                    .map(function (t) { return { user_id: currentUser.id, name: t.name, lw: t.lw, lh: t.lh, gx: t.gx, gy: t.gy, mt: t.mt, ml: t.ml, page: t.page || 'letter' }; });
+                if (toInsert.length) {
+                    var ins = await db.from('sticker_templates').insert(toInsert).select('*');
+                    if (!ins.error && ins.data) remote = remote.concat(ins.data);
+                }
+                var merged = remote.map(function (x) {
+                    return { id: x.id, name: x.name, lw: +x.lw, lh: +x.lh, gx: +x.gx, gy: +x.gy, mt: +x.mt, ml: +x.ml, page: x.page || 'letter' };
+                });
+                setUserStickerTemplates(merged);
+                var sel = document.getElementById('shTemplate');
+                renderStickerTemplateOptions(sel ? sel.value : 'custom');
+            } catch (e) {}
         }
         function printStudioSheet() {
             var item = studioItem(); if (!item) return;
@@ -10214,6 +10263,7 @@
                 renderMyCodes();
                 updateQRCount();
                 loadPrintTemplates();
+                syncStickerTemplatesFromAccount(); // pull saved sticker templates across devices
                 applyAdminNav(); // re-run now codes are loaded — My Codes nav shows for claimed-code owners
 
                 // Load business profile FIRST, then navigate
