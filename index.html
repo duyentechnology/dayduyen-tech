@@ -1568,11 +1568,11 @@
                     </div>
                     
                     <h5 style="color: #2E2A28; margin: 25px 0 15px; font-size: 18px; border-top: 1px solid #E8DDD6; padding-top: 20px;">🏷️ Duyên sticker sheet</h5>
-                    <p style="color: #7D6E64; font-size: 15px; margin-bottom: 15px;">Fill a Duyên 30-square sheet (1.25" squares) — the same sheet businesses print from. Print at home.</p>
+                    <p style="color: #7D6E64; font-size: 15px; margin-bottom: 15px;">Fill a Duyên 1.25 squares sheet — the same sheet businesses print from. Print at home.</p>
 
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px;">
                         <button onclick="downloadDuyen30PDF()" class="sheet-btn" type="button">
-                            <strong>Duyên · 30 squares</strong>
+                            <strong>Duyên 1.25 squares</strong>
                             <span>1.25" × 1.25"</span>
                             <span>30 per sheet</span>
                         </button>
@@ -2346,11 +2346,11 @@
                 <label style="display:block;font-size:13px;color:#9A8478;margin-bottom:8px;">Sheet template
                     <select id="shTemplate" class="input-field" style="margin:2px 0 0;" onchange="applyStickerTemplate(this.value)">
                         <option value="custom">Custom — measure your own</option>
-                        <option value="duyen30">Duyên · 30 squares (1.25")</option>
+                        <option value="duyen30">Duyên 1.25 squares</option>
                     </select>
                 </label>
                 <div style="font-size:13.5px;color:#5D4E44;line-height:1.55;background:#FBF7FB;border-radius:10px;padding:10px 12px;margin-bottom:10px;">
-                    <strong>How to measure your sheet:</strong> with a ruler, measure one sticker's width and height; the gap between neighboring stickers; and the distance from the top and left page edges to the first sticker. Enter everything in inches — decimals are fine (e.g. 0.13). Or pick a ready-made template above.
+                    <strong>How to measure your sheet:</strong> with a ruler, measure one sticker's width and height; the gap between neighboring stickers; and the distance from the top and left page edges to the first sticker. Enter everything in inches — decimals are fine (e.g. 0.13). Pick the built-in <strong>Duyên 1.25 squares</strong> template above, or enter your own measurements and <strong>Save as my template</strong> to reuse them later.
                 </div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
                     <div><div style="font-size:13px;color:#9A8478;margin-bottom:2px;">Sticker width (in)</div><input type="text" inputmode="decimal" autocomplete="off" id="shLabelW" value="2" class="input-field" style="margin:0;"></div>
@@ -2366,6 +2366,10 @@
                         <option value="a4">A4 (8.27 × 11.69 in)</option>
                     </select>
                 </label>
+                <div style="display:flex;gap:8px;margin-bottom:10px;">
+                    <button type="button" onclick="saveStickerTemplateFromFields()" style="flex:1;background:#fff;color:#8B3A7F;border:1.5px solid #8B3A7F;border-radius:11px;padding:10px;font-family:'Outfit',sans-serif;font-weight:600;font-size:14px;cursor:pointer;">＋ Save as my template</button>
+                    <button type="button" id="shDeleteTemplateBtn" onclick="deleteCurrentStickerTemplate()" style="display:none;background:#fff;color:#c53030;border:1.5px solid #e2b8b8;border-radius:11px;padding:10px 14px;font-family:'Outfit',sans-serif;font-weight:600;font-size:14px;cursor:pointer;">Delete</button>
+                </div>
                 <button type="button" onclick="printStudioSheet()" style="width:100%;background:#2AA8A0;color:#fff;border:none;border-radius:11px;padding:12px;font-family:'Outfit',sans-serif;font-weight:600;font-size:15.5px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>Make my sticker sheet PDF</button>
 
                 <div style="font-size:13.5px;color:#5D4E44;line-height:1.6;background:#FBF7FB;border-radius:10px;padding:10px 12px;margin-top:12px;">
@@ -7727,7 +7731,8 @@
         window.addEventListener('DOMContentLoaded', function() {
             renderColorPresets();
             initPWAPrompt();
-            
+            try { renderStickerTemplateOptions(); } catch (e) {}
+
             // Check if required libraries loaded
             setTimeout(function() {
                 if (typeof qrcode === 'undefined') {
@@ -8643,14 +8648,93 @@
             letter:  { w: 8.5,    h: 11,     fmt: 'letter' },
             a4:      { w: 8.27,   h: 11.69,  fmt: 'a4' },
         };
+        // ── Sticker-sheet templates ────────────────────────────────────────
+        // Built-ins (STICKER_TEMPLATES, e.g. "Duyên 1.25 squares") ship in the
+        // code and are available to everyone. On top of those, a user can enter
+        // their own measurements and save them as named templates; those are kept
+        // in this browser's localStorage (per device — not synced to the account).
+        var STICKER_TPL_STORE = 'dd_sticker_templates_v1';
+        function userStickerTemplates() {
+            try { return JSON.parse(localStorage.getItem(STICKER_TPL_STORE) || '[]') || []; }
+            catch (e) { return []; }
+        }
+        function setUserStickerTemplates(arr) {
+            try { localStorage.setItem(STICKER_TPL_STORE, JSON.stringify(arr)); } catch (e) {}
+        }
+        function escapeHtmlSticker(s) {
+            var d = document.createElement('div'); d.textContent = String(s == null ? '' : s); return d.innerHTML;
+        }
+        // Rebuild the template dropdown: Custom, the built-ins, then the user's
+        // saved templates. Keeps the current selection where possible.
+        function renderStickerTemplateOptions(selectVal) {
+            var sel = document.getElementById('shTemplate'); if (!sel) return;
+            var want = selectVal || sel.value || 'custom';
+            var html = '<option value="custom">Custom — measure your own</option>'
+                     + '<option value="duyen30">Duyên 1.25 squares</option>';
+            var ut = userStickerTemplates();
+            if (ut.length) {
+                html += '<optgroup label="My saved templates">';
+                ut.forEach(function (t) { html += '<option value="u:' + t.id + '">' + escapeHtmlSticker(t.name) + '</option>'; });
+                html += '</optgroup>';
+            }
+            sel.innerHTML = html;
+            sel.value = want;
+            if (sel.value !== want) sel.value = 'custom'; // the wanted one was deleted
+            updateStickerDeleteBtn();
+        }
+        function updateStickerDeleteBtn() {
+            var sel = document.getElementById('shTemplate');
+            var btn = document.getElementById('shDeleteTemplateBtn');
+            if (!sel || !btn) return;
+            btn.style.display = (sel.value && sel.value.indexOf('u:') === 0) ? 'inline-flex' : 'none';
+        }
         function applyStickerTemplate(key) {
-            var t = STICKER_TEMPLATES[key];
+            var t;
+            if (key && key.indexOf('u:') === 0) {
+                var id = key.slice(2);
+                t = userStickerTemplates().filter(function (x) { return x.id === id; })[0];
+            } else {
+                t = STICKER_TEMPLATES[key];
+            }
+            updateStickerDeleteBtn();
             if (!t) return; // "custom" → leave the fields for the user
             var set = function(id, val) { var el = document.getElementById(id); if (el) el.value = val; };
             set('shLabelW', t.lw); set('shLabelH', t.lh);
             set('shGapX', t.gx);   set('shGapY', t.gy);
             set('shMarT', t.mt);   set('shMarL', t.ml);
-            var pg = document.getElementById('shPage'); if (pg) pg.value = t.page;
+            var pg = document.getElementById('shPage'); if (pg) pg.value = t.page || 'letter';
+        }
+        // Save whatever is currently in the measurement fields as a named template.
+        function saveStickerTemplateFromFields() {
+            var v = function (id) { var el = document.getElementById(id); return el ? (parseFloat(el.value) || 0) : 0; };
+            var lw = v('shLabelW'), lh = v('shLabelH'), gx = v('shGapX'), gy = v('shGapY'), mt = v('shMarT'), ml = v('shMarL');
+            if (lw <= 0.4 || lh <= 0.4) { alert('Sticker size must be at least 0.4 inch before saving.'); return; }
+            var pageEl = document.getElementById('shPage');
+            var page = pageEl ? pageEl.value : 'letter';
+            var name = (prompt('Name this template (e.g. "Avery 5160" or "My 2-inch sheet"):', '') || '').trim();
+            if (!name) return;
+            var arr = userStickerTemplates();
+            // Overwrite a same-named template instead of duplicating it.
+            var existing = arr.filter(function (x) { return x.name.toLowerCase() === name.toLowerCase(); })[0];
+            var tpl = {
+                id: existing ? existing.id : ('t' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6)),
+                name: name, lw: lw, lh: lh, gx: gx, gy: gy, mt: mt, ml: ml, page: page
+            };
+            if (existing) arr = arr.map(function (x) { return x.id === existing.id ? tpl : x; });
+            else arr.push(tpl);
+            setUserStickerTemplates(arr);
+            renderStickerTemplateOptions('u:' + tpl.id);
+        }
+        function deleteCurrentStickerTemplate() {
+            var sel = document.getElementById('shTemplate'); if (!sel) return;
+            var key = sel.value; if (!key || key.indexOf('u:') !== 0) return;
+            var id = key.slice(2);
+            var t = userStickerTemplates().filter(function (x) { return x.id === id; })[0];
+            if (!t) return;
+            if (!confirm('Delete the template "' + t.name + '"? This only removes it from this device.')) return;
+            setUserStickerTemplates(userStickerTemplates().filter(function (x) { return x.id !== id; }));
+            renderStickerTemplateOptions('custom');
+            applyStickerTemplate('custom');
         }
         function printStudioSheet() {
             var item = studioItem(); if (!item) return;
