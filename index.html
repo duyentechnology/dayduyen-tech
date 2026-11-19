@@ -2349,6 +2349,20 @@
                         <option value="duyen30">Duyên 1.25 squares</option>
                     </select>
                 </label>
+                <div id="duyen30Tune" style="display:none;background:#F3E9F3;border:1px solid #E3C9E3;border-radius:10px;padding:11px 12px;margin-bottom:10px;">
+                    <div style="font-size:14px;font-weight:700;color:#2E2A28;font-family:'Outfit',sans-serif;margin-bottom:3px;">Fine-tune alignment</div>
+                    <div style="font-size:12.5px;color:#7A6A74;line-height:1.45;margin-bottom:9px;">Printers vary a little. If the codes don't land centred on your sticker squares, nudge the whole grid &mdash; each tap is 0.5&nbsp;mm, and it's saved for next time.</div>
+                    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;">
+                        <span style="font-size:13px;color:#5D4E44;width:48px;">Across</span>
+                        <button type="button" onclick="nudgeDuyen30(-1,0)" style="width:40px;height:34px;border:1px solid #C9A9C9;background:#fff;border-radius:8px;font-size:15px;cursor:pointer;">&#9664;</button>
+                        <button type="button" onclick="nudgeDuyen30(1,0)" style="width:40px;height:34px;border:1px solid #C9A9C9;background:#fff;border-radius:8px;font-size:15px;cursor:pointer;">&#9654;</button>
+                        <span style="font-size:13px;color:#5D4E44;width:40px;margin-left:6px;">Down</span>
+                        <button type="button" onclick="nudgeDuyen30(0,-1)" style="width:40px;height:34px;border:1px solid #C9A9C9;background:#fff;border-radius:8px;font-size:15px;cursor:pointer;">&#9650;</button>
+                        <button type="button" onclick="nudgeDuyen30(0,1)" style="width:40px;height:34px;border:1px solid #C9A9C9;background:#fff;border-radius:8px;font-size:15px;cursor:pointer;">&#9660;</button>
+                        <button type="button" onclick="resetDuyen30Align()" style="margin-left:auto;height:34px;padding:0 12px;border:1px solid #C9A9C9;background:#fff;border-radius:8px;font-size:13px;font-weight:600;color:#8B3A7F;cursor:pointer;">Reset</button>
+                    </div>
+                    <div id="duyen30TuneReadout" style="font-size:12px;color:#7A6A74;margin-top:8px;">Centred (no offset)</div>
+                </div>
                 <div style="font-size:13.5px;color:#5D4E44;line-height:1.55;background:#FBF7FB;border-radius:10px;padding:10px 12px;margin-bottom:10px;">
                     <strong>How to measure your sheet:</strong> with a ruler, measure one sticker's width and height; the gap between neighboring stickers; and the distance from the top and left page edges to the first sticker. Enter everything in inches — decimals are fine (e.g. 0.13). Pick the built-in <strong>Duyên 1.25 squares</strong> template above, or enter your own measurements and <strong>Save as my template</strong> to reuse them later.
                 </div>
@@ -8688,6 +8702,48 @@
             if (!sel || !btn) return;
             btn.style.display = (sel.value && sel.value.indexOf('u:') === 0) ? 'inline-flex' : 'none';
         }
+        // ── Duên 1.25-square alignment fine-tune ────────────────────
+        // A per-user, per-device nudge layered on top of the built-in template, so a
+        // customer can line the codes up with their own printer without touching the
+        // raw margin fields. Stored in localStorage and re-applied whenever the
+        // template is selected; each step is 0.5mm. Feeds the studio print (via the
+        // margin fields) and the admin 30-square button (via getDuyen30Align()).
+        var DUYEN30_ALIGN_KEY = 'dd_duyen30_align_v1';
+        var DUYEN30_STEP_IN = 0.5 / 25.4; // 0.5mm in inches
+        function getDuyen30Align() {
+            try { var a = JSON.parse(localStorage.getItem(DUYEN30_ALIGN_KEY) || '{}') || {}; return { dx: +a.dx || 0, dy: +a.dy || 0 }; }
+            catch (e) { return { dx: 0, dy: 0 }; }
+        }
+        function setDuyen30Align(a) { try { localStorage.setItem(DUYEN30_ALIGN_KEY, JSON.stringify(a)); } catch (e) {} }
+        function applyDuyen30AlignToFields() {
+            var t = STICKER_TEMPLATES.duyen30, a = getDuyen30Align();
+            var setf = function (id, v) { var el = document.getElementById(id); if (el) el.value = (Math.round(v * 10000) / 10000); };
+            setf('shMarL', t.ml + a.dx);
+            setf('shMarT', t.mt + a.dy);
+        }
+        function duyen30TuneReadout() {
+            var a = getDuyen30Align(), el = document.getElementById('duyen30TuneReadout');
+            if (!el) return;
+            if (!a.dx && !a.dy) { el.textContent = 'Centred (no offset)'; return; }
+            var mm = function (v) { return (Math.round(Math.abs(v) * 25.4 * 10) / 10); };
+            var parts = [];
+            if (a.dx) parts.push(mm(a.dx) + ' mm ' + (a.dx > 0 ? 'right' : 'left'));
+            if (a.dy) parts.push(mm(a.dy) + ' mm ' + (a.dy > 0 ? 'down' : 'up'));
+            el.textContent = 'Offset: ' + parts.join(', ');
+        }
+        function nudgeDuyen30(hx, hy) {
+            var a = getDuyen30Align();
+            a.dx = Math.round((a.dx + hx * DUYEN30_STEP_IN) * 10000) / 10000;
+            a.dy = Math.round((a.dy + hy * DUYEN30_STEP_IN) * 10000) / 10000;
+            setDuyen30Align(a);
+            applyDuyen30AlignToFields();
+            duyen30TuneReadout();
+        }
+        function resetDuyen30Align() {
+            setDuyen30Align({ dx: 0, dy: 0 });
+            applyDuyen30AlignToFields();
+            duyen30TuneReadout();
+        }
         function applyStickerTemplate(key) {
             var t;
             if (key && key.indexOf('u:') === 0) {
@@ -8697,12 +8753,15 @@
                 t = STICKER_TEMPLATES[key];
             }
             updateStickerDeleteBtn();
+            var tune = document.getElementById('duyen30Tune');
+            if (tune) tune.style.display = (key === 'duyen30') ? 'block' : 'none';
             if (!t) return; // "custom" → leave the fields for the user
             var set = function(id, val) { var el = document.getElementById(id); if (el) el.value = val; };
             set('shLabelW', t.lw); set('shLabelH', t.lh);
             set('shGapX', t.gx);   set('shGapY', t.gy);
             set('shMarT', t.mt);   set('shMarL', t.ml);
             var pg = document.getElementById('shPage'); if (pg) pg.value = t.page || 'letter';
+            if (key === 'duyen30') { applyDuyen30AlignToFields(); duyen30TuneReadout(); }
         }
         // Save whatever is currently in the measurement fields as a named template.
         // Writes locally first (instant), then upserts to the account so it follows
@@ -8848,7 +8907,8 @@
             var jsPDF = (window.jspdf || {}).jsPDF;
             if (!jsPDF) { alert('PDF library not loaded — check your connection and retry.'); return; }
             var t = STICKER_TEMPLATES.duyen30, PG = STICKER_PAGES[t.page] || STICKER_PAGES.letter;
-            var lw = t.lw, lh = t.lh, gx = t.gx, gy = t.gy, mt = t.mt, ml = t.ml;
+            var _al = (typeof getDuyen30Align === 'function') ? getDuyen30Align() : { dx: 0, dy: 0 };
+            var lw = t.lw, lh = t.lh, gx = t.gx, gy = t.gy, mt = t.mt + _al.dy, ml = t.ml + _al.dx;
             // Fixed 5x6 to match the physical die-cut sheet exactly (never inferred).
             var cols = t.cols, rows = t.rows;
             var perSheet = cols * rows;
