@@ -10346,7 +10346,19 @@
                         return;
                     }
 
-                    // Page reload mid-session, no hash — leave current view alone.
+                    // Cold PWA open / restored session fires INITIAL_SESSION (not
+                    // SIGNED_IN), so the brand-new-login route above is skipped. If
+                    // we're still on the default marketing view, the user is logged in
+                    // but was never routed into the app — send them to the dashboard.
+                    var _activeView = document.querySelector('.view.active');
+                    if (!_activeView || _activeView.id === 'landingView') {
+                        console.log('🔁 Restored session on landing → bizDashboard');
+                        showView('bizDashboard');
+                        hasRoutedOnLoad = true;
+                        return;
+                    }
+
+                    // Genuine in-app reload on a real view — leave it alone.
                     console.log('🔁 Page reload — leaving view untouched');
                     hasRoutedOnLoad = true;
                 });
