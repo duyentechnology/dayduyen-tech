@@ -8561,7 +8561,7 @@
             var built = buildStudioPosterDoc(); if (!built) return;
             var item = studioItem();
             var suffix = built.plan.S.tag + (built.plan.multi ? '_' + built.plan.count + 'up' : '');
-            built.doc.save(((item && item.label) || 'business-qr').replace(/[^\w-]+/g, '_') + '_poster_' + suffix + '.pdf');
+            deliverPdf(built.doc, ((item && item.label) || 'business-qr').replace(/[^\w-]+/g, '_') + '_poster_' + suffix + '.pdf');
         }
         function _loadImg(src) { return new Promise(function(res) { var im = new Image(); im.onload = function(){ res(im); }; im.onerror = function(){ res(null); }; im.src = src; }); }
         // Render the exact same plan to a canvas for the on-screen preview.
@@ -8820,13 +8820,29 @@
                 var y = mt + r*(lh+gy) + (lh-qh)/2;
                 doc.addImage(png, 'PNG', x, y, qw, qh);
             }
-            doc.save((item.label || 'business-qr').replace(/[^\w-]+/g, '_') + '_stickers_' + cols + 'x' + rows + '.pdf');
+            deliverPdf(doc, (item.label || 'business-qr').replace(/[^\w-]+/g, '_') + '_stickers_' + cols + 'x' + rows + '.pdf');
         }
 
         // Admin generator: lay the just-generated code(s) onto the branded Duyên
         // 30-square sheet (the same geometry businesses print from). A single
         // generated code fills the whole sheet (30 copies); a batch fills cells
         // in order, paging as needed.
+        // Hand a generated PDF to the OS for printing/saving. On iOS a plain
+        // doc.save() gets trapped as a sandboxed "blob" (especially inside the
+        // installed PWA) that Print / Save-to-Files cannot open — so open the PDF in
+        // a new browser tab, where the viewer's Share -> Print works. Desktop keeps
+        // the normal download.
+        function deliverPdf(doc, filename) {
+            var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+                     || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+            if (isIOS) {
+                try {
+                    var w = window.open(doc.output('bloburl'), '_blank');
+                    if (w) return;
+                } catch (e) {}
+            }
+            try { doc.save(filename); } catch (e) {}
+        }
         function downloadDuyen30PDF() {
             if (!generatedQRCodes || generatedQRCodes.length === 0) { alert('⚠️ Please generate QR codes first!'); return; }
             var jsPDF = (window.jspdf || {}).jsPDF;
@@ -8857,7 +8873,7 @@
                     doc.addImage(pngFor(qr), 'PNG', x, y, qw, qh);
                 }
             }
-            doc.save('duyen-30-square-stickers.pdf');
+            deliverPdf(doc, 'duyen-30-square-stickers.pdf');
         }
 
         // ── Admin generation log: every code you've made, by day, reprint anytime ──
