@@ -8892,29 +8892,9 @@
         // a new browser tab, where the viewer's Share -> Print works. Desktop keeps
         // the normal download.
         function deliverPdf(doc, filename) {
-            var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
-                     || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-            if (isIOS) {
-                // 1) Web Share with a REAL file (iOS 16.4+). Inside the installed
-                //    home-screen app this is the only path whose share-sheet Print
-                //    actually works — a plain blob download is sandboxed and silently
-                //    fails. Runs in the button's user gesture (PDF build above is
-                //    synchronous, so the gesture is still live here).
-                try {
-                    var blob = doc.output('blob');
-                    var file = new File([blob], filename, { type: 'application/pdf' });
-                    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-                        navigator.share({ files: [file], title: filename }).catch(function () {});
-                        return;
-                    }
-                } catch (e) {}
-                // 2) Regular Safari (not installed): open the PDF in a new tab to print.
-                try {
-                    var w = window.open(doc.output('bloburl'), '_blank');
-                    if (w) return;
-                } catch (e) {}
-            }
-            // 3) Desktop / last resort: normal download.
+            // Reverted to the pre-2026-11-20 behaviour. The iOS new-tab / Web-Share
+            // experiments broke printing inside the installed home-screen app, which
+            // had worked with a plain save. Thin wrapper so the call sites stay put.
             try { doc.save(filename); } catch (e) {}
         }
         function downloadDuyen30PDF() {
